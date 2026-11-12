@@ -1,0 +1,51 @@
+# 2026 ATP Challenger Tour. Source: Wikipedia "2026 ATP Challenger Tour". week|cat,City,CTY,surface;...
+01-05|125,Bengaluru,IND,H;125,Canberra,AUS,H;75,Nouméa,NCL,H;50,Nonthaburi,THA,H;50,Nottingham,GBR,Hi
+01-12|75,Nonthaburi,THA,H;50,Buenos Aires,ARG,C;50,Glasgow,GBR,Hi
+01-19|100,Oeiras,POR,Hi;75,Itajaí,BRA,C;75,Soma Bay,EGY,H;50,Phan Thiết,VIE,H
+01-26|125,Manama,BRN,H;125,Quimper,FRA,Hi;100,Concepción,CHI,C;100,San Diego,USA,H;75,Oeiras,POR,Hi;50,Phan Thiết,VIE,H
+02-02|125,Rosario,ARG,C;75,Brisbane,AUS,H;75,Cleveland,USA,Hi;75,Tenerife,ESP,H;50,Cesenatico,ITA,Hi;50,Koblenz,GER,Hi
+02-09|125,Pau,FRA,Hi;75,Brisbane,AUS,H;75,Tenerife,ESP,H;50,Baton Rouge,USA,Hi;50,Chennai,IND,H
+02-16|125,Lille,FRA,Hi;75,Metepec,MEX,H;75,New Delhi,IND,H;50,Tigre,ARG,C
+02-23|100,Saint-Brieuc,FRA,Hi;75,Lugano,SUI,Hi;75,Pune,IND,H;50,Tigre,ARG,C
+03-02|100,Thionville,FRA,Hi;75,Brasília,BRA,C;75,Kigali,RWA,C;50,Hersonissos,GRE,H
+03-09|175,Phoenix,USA,H;175,Punta Cana,DOM,H;100,Kigali,RWA,C;75,Cherbourg-en-Cotentin,FRA,Hi;75,Santiago,CHI,C;50,Hersonissos,GRE,H
+03-16|75,Asunción,PAR,C;75,Cuernavaca,MEX,H;75,Murcia,ESP,C;75,Zadar,CRO,C
+03-23|125,Morelia,MEX,H;125,Naples,ITA,C;100,Alicante,ESP,C;100,São Paulo,BRA,C;50,Bucaramanga,COL,C;50,Split,CRO,C;50,Yokkaichi,JPN,H
+03-30|100,Menorca,ESP,C;75,Barletta,ITA,C;75,San Luis Potosí,MEX,C;75,São Leopoldo,BRA,C;50,Miyazaki,JPN,H
+04-06|125,Mexico City,MEX,C;125,Monza,ITA,C;75,Campinas,BRA,C;75,Madrid,ESP,C;75,Sarasota,USA,C;50,Wuning,CHN,H
+04-13|125,Busan,KOR,H;125,Oeiras,POR,C;75,Santa Cruz de la Sierra,BOL,C;75,Tallahassee,USA,C;50,Wuning,CHN,H
+04-20|75,Gwangju,KOR,H;75,Rome,ITA,C;75,Savannah,USA,C;50,Abidjan,CIV,H;50,Shymkent,KAZ,C
+04-27|175,Aix-en-Provence,FRA,C;175,Cagliari,ITA,C;100,Mauthausen,AUT,C;75,Jiujiang,CHN,H;75,Ostrava,CZE,C;75,Abidjan,CIV,H;50,Shymkent,KAZ,C
+05-04|100,Wuxi,CHN,H;75,Francavilla al Mare,ITA,C;50,Brazzaville,CGO,C;50,Santos,BRA,C
+05-11|175,Bordeaux,FRA,C;175,Valencia,ESP,C;100,Oeiras,POR,C;75,Tunis,TUN,C;75,Zagreb,CRO,C;50,Bengaluru,IND,H;50,Córdoba,ARG,C
+05-18|75,Istanbul,TUR,C;50,Bengaluru,IND,H;50,Cervia,ITA,C
+05-25|100,Chișinău,MDA,C;75,Little Rock,USA,H;75,Vicenza,ITA,C;50,Centurion,RSA,H;50,Košice,SVK,C
+06-01|125,Birmingham,GBR,G;125,Perugia,ITA,C;100,Bad Rappenau,GER,C;100,Prostějov,CZE,C;75,Tyler,USA,H;50,Centurion,RSA,H
+06-08|125,Ilkley,GBR,G;100,Bratislava,SVK,C;100,Lyon,FRA,C;75,Cattolica,ITA,C;50,San Miguel de Tucumán,ARG,C
+06-15|125,Nottingham,GBR,G;125,Parma,ITA,C;100,Poznań,POL,C;75,Dublin,IRL,G;50,Asunción,PAR,C;50,Royan,FRA,C
+06-22|75,Târgu Mureș,ROU,C;50,Piracicaba,BRA,C;50,Plovdiv,BUL,C
+06-29|75,Brașov,ROU,C;75,Cary,USA,H;75,Milan,ITA,C;50,Quito,ECU,C;50,Troyes,FRA,C
+07-06|125,Braunschweig,GER,C;125,Newport,USA,G;100,Iași,ROU,C;75,Bogotá,COL,C;75,Trieste,ITA,C;50,Liège,BEL,C;50,Nottingham,GBR,G
+07-13|75,Bunschoten,NED,C;75,Cordenons,ITA,C;75,Granby,CAN,H;75,Lincoln,USA,H;75,Pozoblanco,ESP,H
+07-20|125,Zug,SUI,C;125,Bloomfield Hills,USA,H;75,Segovia,ESP,H;75,Tampere,FIN,C;75,Winnipeg,CAN,H
+07-27|125,San Marino,SMR,C;125,Vancouver,CAN,H;75,Bonn,GER,C;75,Liberec,CZE,C;50,Samsun,TUR,H
+08-03|100,Hagen,GER,C;75,Grodzisk Mazowiecki,POL,H;75,Lexington,USA,H;50,Istanbul,TUR,H;50,Plovdiv,BUL,C
+08-10|75,Brownsburg,USA,H;75,Hamburg,GER,C;75,Todi,ITA,C;50,Astana,KAZ,H
+08-17|125,Cancún,MEX,H;125,Quebec City,CAN,H;75,Kingston,JAM,H;75,Prague,CZE,C;50,Roehampton,GBR,H;50,Sion,SUI,C
+08-24|75,Kingston,JAM,H;50,Augsburg,GER,C;50,Roehampton,GBR,H
+08-31|75,Como,ITA,C;75,Manacor,ESP,H;75,Porto,POR,C;75,Zhangjiagang,CHN,H;50,Plovdiv,BUL,C
+09-07|125,Genoa,ITA,C;125,Seville,ESP,C;100,Shanghai,CHN,H;100,Tulln,AUT,C;75,Cassis,FRA,H;75,Istanbul,TUR,H;50,Phan Thiết,VIE,H
+09-14|125,Szczecin,POL,C;125,Tiburon,USA,H;100,Guangzhou,CHN,H;100,Rennes,FRA,Hi;50,Biella,ITA,C;50,Phan Thiết,VIE,H
+09-21|125,Saint-Tropez,FRA,H;75,Buenos Aires,ARG,C;75,Genoa,ITA,C;75,Plovdiv,BUL,C;75,San Diego,USA,H
+09-28|125,Porto,POR,H;100,Jingshan,CHN,H;75,Columbus,USA,Hi;75,Curitiba,BRA,C;75,Mouilleron-le-Captif,FRA,Hi;50,Bari,ITA,C
+10-05|100,Villena,ESP,H;75,Antofagasta,CHI,C;75,Braga,POR,C;50,Palermo,ITA,C;50,Wuning,CHN,H
+10-12|125,Jinan,CHN,H;125,Olbia,ITA,H;100,Maia,POR,Ci;100,Roanne,FRA,Hi;75,Santa Cruz de la Sierra,BOL,C;50,Catania,ITA,C
+10-19|100,Lisbon,POR,C;75,Cali,COL,C;75,Fort Worth,USA,H;75,Nansha,CHN,H;50,Florence,ITA,C
+10-26|125,Seoul,KOR,H;100,Brest,FRA,Hi;100,Sioux Falls,USA,Hi;75,Guayaquil,ECU,C;75,Ningbo,CHN,H
+11-02|125,Sauipe,BRA,C;100,Bratislava,SVK,Hi;100,Taipei,TPE,H;75,Charlottesville,USA,Hi;50,Taranto,ITA,H;50,Villa María,ARG,C
+11-09|125,Orléans,FRA,Hi;75,Knoxville,USA,Hi;75,Matsuyama,JPN,H;75,Lima,PER,C;75,Brisbane,AUS,H;50,Hersonissos,GRE,H;50,Monastir,TUN,H
+11-16|125,Helsinki,FIN,Hi;125,Metz,FRA,Hi;75,Montevideo,URU,C;75,Kobe,JPN,Hi;75,Drummondville,CAN,Hi;75,Sydney,AUS,H;50,Champaign,USA,Hi
+11-23|75,Florianópolis,BRA,C;75,Playford,AUS,H;75,Yokohama,JPN,H;50,Hersonissos,GRE,H;50,Monastir,TUN,H;50,San Salvador,ESA,H
+11-30|75,Bogotá,COL,C;75,Temuco,CHI,H;50,Chișinău,MDA,Hi;50,Hersonissos,GRE,H;50,Soma Bay,EGY,H;50,Trnava,SVK,Hi
+12-07|50,Copenhagen,DEN,Hi;50,La Paz,BOL,C;50,Monastir,TUN,H;50,Nonthaburi,THA,H;50,Rio de Janeiro,BRA,C
+12-14|50,Blumenau,BRA,C;50,Guanzate,ITA,Hi;50,La Paz,BOL,C;50,Nonthaburi,THA,H

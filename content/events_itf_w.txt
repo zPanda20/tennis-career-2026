@@ -1,0 +1,28 @@
+# 2026 ITF Women's World Tennis Tour, January–June (a selection of up to six events per week). Source: Wikipedia quarterly schedule pages.
+# July–December entries are generated from these venues and flagged provisional. week|cat,City,CTY,surface;...
+01-05|W75,Nonthaburi,THA,H;W35,Antalya,TUR,C;W35,Nairobi,KEN,C;W15,Oslo,NOR,Hi;W15,Monastir,TUN,H;W15,Hurghada,EGY,H
+01-12|W75,Nonthaburi,THA,H;W50,Manchester,GBR,Hi;W50,Buenos Aires,ARG,C;W35,Antalya,TUR,C;W35,Bradenton,USA,H;W15,Monastir,TUN,H
+01-19|W75,Manama,BRN,H;W75,Leszno,POL,Hi;W50,Monastir,TUN,H;W35,Petit-Bourg,FRA,H;W35,Weston,USA,C;W35,Buenos Aires,ARG,C
+01-26|W100,Fujairah,UAE,H;W100,San Diego,USA,H;W75,Porto,POR,Hi;W50,Monastir,TUN,H;W35,Birmingham,GBR,Hi;W15,Antalya,TUR,C
+02-02|W75,Brisbane,AUS,H;W75,Andrézieux-Bouthéon,FRA,Hi;W50,Porto,POR,Hi;W50,Orlando,USA,H;W35,Sheffield,GBR,Hi;W15,Monastir,TUN,H
+02-09|W75,Brisbane,AUS,H;W75,Pune,IND,H;W75,Prague,CZE,Hi;W50,Grenoble,FRA,Hi;W35,Antalya,TUR,C;W15,Manacor,ESP,H
+02-16|W100,Bengaluru,IND,H;W75,Altenkirchen,GER,Hi;W50,Mâcon,FRA,Hi;W35,The Hague,NED,Hi;W35,Las Vegas,USA,H;W15,Monastir,TUN,H
+02-23|W75,Porto,POR,Hi;W75,Trnava,SVK,Hi;W35,Burnie,AUS,H;W35,Antalya,TUR,C;W35,Arcadia,USA,H;W15,Leimen,GER,Hi
+03-02|W75,Trnava,SVK,Hi;W50,Helsinki,FIN,Hi;W35,Launceston,AUS,H;W35,Kalaburagi,IND,H;W35,Heraklion,GRE,C;W15,Maanshan,CHN,Hi
+03-09|W75,Kyoto,JPN,Hi;W50,Heraklion,GRE,C;W35,Timaru,NZL,H;W35,Monastir,TUN,H;W35,Huamantla,MEX,H;W15,Victoriaville,CAN,Hi
+03-16|W75,Kofu,JPN,H;W75,Maribor,SLO,Hi;W50,Chihuahua,MEX,C;W35,Maanshan,CHN,Hi;W35,Sabadell,ESP,C;W15,Wodonga,AUS,G
+03-23|W75,Murska Sobota,SLO,Hi;W50,Maanshan,CHN,Hi;W50,Croissy-Beaubourg,FRA,Hi;W35,San Gregorio,ITA,C;W35,Junín,ARG,C;W15,Swan Hill,AUS,G
+03-30|W100,Lu'an,CHN,H;W50,Nantes,FRA,Hi;W35,Santa Margherita di Pula,ITA,C;W35,Jackson,USA,C;W35,Junín,ARG,C;W15,Monastir,TUN,H
+04-06|W75,Calvi,FRA,H;W50,Bujumbura,BDI,C;W35,Osaka,JPN,H;W35,Anning,CHN,C;W35,Santa Margherita di Pula,ITA,C;W35,Boca Raton,USA,C
+04-13|W75,Portorož,SLO,C;W50,Bujumbura,BDI,C;W35,Miyazaki,JPN,H;W35,Luzhou,CHN,H;W35,Santa Margherita di Pula,ITA,C;W35,Zephyrhills,USA,C
+04-20|W100,Tokyo,JPN,H;W100,Charlottesville,USA,C;W75,Chiasso,SUI,C;W50,Baotou,CHN,Ci;W50,Roehampton,GBR,H;W35,Santa Margherita di Pula,ITA,C
+04-27|W100,Gifu,JPN,H;W100,Wiesbaden,GER,C;W100,Bonita Springs,USA,C;W75,Lopota,GEO,H;W35,Goyang,KOR,H;W35,Nottingham,GBR,H
+05-04|W100,Indian Harbour Beach,USA,C;W75,Saint-Gaudens,FRA,C;W50,Lopota,GEO,H;W35,Fukuoka,JPN,H;W35,Platja d'Aro,ESP,C;W35,Tumkur,IND,H
+05-11|W75,Kurume,JPN,H;W75,Trnava,SVK,C;W75,Zagreb,CRO,C;W35,Andong,KOR,H;W35,Båstad,SWE,C;W35,Hurghada,EGY,H
+05-18|W100,Takasaki,JPN,H;W75,Košice,SVK,C;W50,Portorož,SLO,C;W50,Pelham,USA,C;W35,Wuning,CHN,H;W35,Estepona,ESP,H
+05-25|W75,Zaragoza,ESP,C;W75,Kuršumlijska Banja,SRB,C;W35,Wuning,CHN,H;W35,Bol,CRO,C;W35,Wichita,USA,H;W15,Tsaghkadzor,ARM,C
+06-01|W100,Sumter,USA,H;W75,Caserta,ITA,C;W50,Wuning,CHN,H;W50,Montemor-o-Novo,POR,H;W15,Focșani,ROU,C;W15,Brasília,BRA,H
+06-08|W100,Wuning,CHN,H;W100,Zagreb,CRO,C;W75,Česká Lípa,CZE,C;W50,Guimarães,POR,H;W50,Hurghada,EGY,H;W35,Nice,FRA,C
+06-15|W75,Blois,FRA,C;W50,Haskovo,BUL,C;W35,Taipei,TPE,H;W35,Zhengzhou,CHN,H;W35,Tauste,ESP,H;W35,Klosters,SUI,C
+06-22|W50,Palma del Río,ESP,H;W50,Gdańsk,POL,C;W35,Taipei,TPE,H;W35,Tarvisio,ITA,C;W35,Rome,USA,H;W15,Ma'anshan,CHN,Hi
+06-29|W100,Cary,USA,H;W50,Elvas,POR,H;W50,Stuttgart-Vaihingen,GER,C;W35,Aix-les-Bains,FRA,C;W35,Amstelveen,NED,C;W15,Getxo,ESP,Ci

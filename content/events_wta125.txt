@@ -1,0 +1,31 @@
+# 2026 WTA 125 tournaments. Source: Wikipedia "2026 WTA 125 tournaments" (listing visible through the week of 12 Oct). week|City,CTY,surface;...
+01-05|Canberra,AUS,H
+01-26|Manila,PHI,H
+02-02|Mumbai,IND,H
+02-09|Oeiras,POR,Hi
+02-16|Oeiras,POR,Hi;Les Sables-d'Olonne,FRA,Hi;Midland,USA,Hi
+02-23|Antalya,TUR,C
+03-02|Antalya,TUR,C
+03-09|Austin,USA,H;Antalya,TUR,C
+03-23|Dubrovnik,CRO,C
+04-06|Madrid,ESP,C
+04-13|Oeiras,POR,C
+04-20|Oeiras,POR,C
+04-27|Saint-Malo,FRA,C;La Bisbal d'Empordà,ESP,C;Huzhou,CHN,C
+05-04|Istanbul,TUR,C;Jiujiang,CHN,H
+05-11|Parma,ITA,C;Paris,FRA,C
+06-01|Birmingham,GBR,G;Foggia,ITA,C;Makarska,CRO,C
+06-08|Ilkley,GBR,G;Modena,ITA,C
+06-15|Brescia,ITA,C;Figueira da Foz,POR,H
+07-06|Newport,USA,G;Contrexéville,FRA,C;Båstad,SWE,C
+07-13|Kitzbühel,AUT,C;Rome,ITA,C;Istanbul,TUR,H
+07-20|Palermo,ITA,C
+07-27|Târgu Mureș,ROU,C;Vancouver,CAN,H
+08-03|Warsaw,POL,H
+08-24|Philadelphia,USA,H
+09-07|Montreux,SUI,C;Antalya,TUR,C;Barranquilla,COL,H
+09-14|Valencia,ESP,C;Ljubljana,SLO,C;Caldas da Rainha,POR,H
+09-21|Tolentino,ITA,C;Porto,POR,H;Ankara,TUR,H
+09-28|Jingshan,CHN,H;Adana,TUR,H
+10-05|Suzhou,CHN,H;Samsun,TUR,H;Rio de Janeiro,BRA,C
+10-12|Mallorca,ESP,C;Lisbon,POR,C;Rovereto,ITA,Hi

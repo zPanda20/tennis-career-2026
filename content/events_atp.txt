@@ -1,0 +1,61 @@
+# 2026 ATP Tour singles calendar. Source: Wikipedia "2026 ATP Tour" (totals cross-checked with ATP's calendar announcement); Grand Slam and ATP Finals dates from the design document.
+# week-start MM-DD|name|city|country|cat|surface|draw|weeks|display dates (optional)
+01-05|Hong Kong Open|Hong Kong|HKG|250|H|28|1
+01-05|Brisbane International|Brisbane|AUS|250|H|32|1
+01-12|Adelaide International|Adelaide|AUS|250|H|28|1
+01-12|Auckland Open|Auckland|NZL|250|H|28|1
+01-19|Australian Open|Melbourne|AUS|GS|H|128|2|18 Jan – 1 Feb
+02-02|Open Occitanie|Montpellier|FRA|250|Hi|28|1
+02-09|Dallas Open|Dallas|USA|500|Hi|32|1
+02-09|Rotterdam Open|Rotterdam|NED|500|Hi|32|1
+02-09|Argentina Open|Buenos Aires|ARG|250|C|28|1
+02-16|Qatar Open|Doha|QAT|500|H|32|1
+02-16|Rio Open|Rio de Janeiro|BRA|500|C|32|1
+02-16|Delray Beach Open|Delray Beach|USA|250|H|28|1
+02-23|Dubai Tennis Championships|Dubai|UAE|500|H|32|1
+02-23|Mexican Open|Acapulco|MEX|500|H|32|1
+02-23|Chile Open|Santiago|CHI|250|C|28|1
+03-02|Indian Wells Open|Indian Wells|USA|1000|H|96|2
+03-16|Miami Open|Miami Gardens|USA|1000|H|96|2
+03-30|U.S. Men's Clay Court Championships|Houston|USA|250|C|28|1
+03-30|Grand Prix Hassan II|Marrakesh|MAR|250|C|28|1
+03-30|Romanian Open|Bucharest|ROU|250|C|28|1
+04-06|Monte-Carlo Masters|Roquebrune-Cap-Martin|FRA|1000|C|56|1
+04-13|Barcelona Open|Barcelona|ESP|500|C|32|1
+04-13|Bavarian International Tennis Championships|Munich|GER|500|C|32|1
+04-20|Madrid Open|Madrid|ESP|1000|C|96|2
+05-04|Italian Open|Rome|ITA|1000|C|96|2
+05-18|Hamburg Open|Hamburg|GER|500|C|32|1
+05-18|Geneva Open|Geneva|SUI|250|C|28|1
+05-25|French Open|Paris|FRA|GS|C|128|2|24 May – 7 Jun
+06-08|Stuttgart Open|Stuttgart|GER|250|G|28|1
+06-08|Rosmalen Open|'s-Hertogenbosch|NED|250|G|28|1
+06-15|Halle Open|Halle|GER|500|G|32|1
+06-15|Queen's Club Championships|London|GBR|500|G|32|1
+06-22|Mallorca Championships|Santa Ponsa|ESP|250|G|28|1
+06-22|Eastbourne Open|Eastbourne|GBR|250|G|28|1
+06-29|Wimbledon|London|GBR|GS|G|128|2|29 Jun – 12 Jul
+07-13|Swedish Open|Båstad|SWE|250|C|28|1
+07-13|Swiss Open|Gstaad|SUI|250|C|28|1
+07-13|Croatia Open|Umag|CRO|250|C|28|1
+07-20|Austrian Open|Kitzbühel|AUT|250|C|28|1
+07-20|Estoril Open|Estoril|POR|250|C|28|1
+07-27|Washington Open|Washington, D.C.|USA|500|H|32|1
+07-27|Los Cabos Open|Los Cabos|MEX|250|H|28|1
+08-03|Canadian Open|Montreal|CAN|1000|H|96|2
+08-17|Cincinnati Open|Mason|USA|1000|H|96|1
+08-24|Winston-Salem Open|Winston-Salem|USA|250|H|48|1
+08-31|US Open|New York City|USA|GS|H|128|2|30 Aug – 13 Sep
+09-21|Chengdu Open|Chengdu|CHN|250|H|28|1
+09-21|Hangzhou Open|Hangzhou|CHN|250|H|28|1
+09-28|China Open|Beijing|CHN|500|H|32|1
+09-28|Japan Open|Tokyo|JPN|500|H|32|1
+10-05|Shanghai Masters|Shanghai|CHN|1000|H|96|2
+10-19|Almaty Open|Almaty|KAZ|250|Hi|28|1
+10-19|Grand Prix Auvergne-Rhône-Alpes|Lyon|FRA|250|Hi|28|1
+10-19|European Open|Brussels|BEL|250|Hi|28|1
+10-26|Swiss Indoors|Basel|SUI|500|Hi|32|1
+10-26|Vienna Open|Vienna|AUT|500|Hi|32|1
+11-02|Paris Masters|Nanterre|FRA|1000|Hi|56|1
+11-09|Stockholm Open|Stockholm|SWE|250|Hi|28|1
+11-16|ATP Finals|Turin|ITA|F|Hi|8|1|15 – 22 Nov

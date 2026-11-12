@@ -1,0 +1,192 @@
+# ATP singles, ranking of 17 Nov 2025 (2025 year-end list used for Australian Open 2026 entry). rank|name|country|birth year|hand|style
+1|Carlos Alcaraz|ESP|2003|R|A
+2|Jannik Sinner|ITA|2001|R|B
+3|Alexander Zverev|GER|1997|R|S
+4|Novak Djokovic|SRB|1987|R|C
+5|Felix Auger-Aliassime|CAN|2000|R|S
+6|Taylor Fritz|USA|1997|R|S
+7|Alex de Minaur|AUS|1999|R|C
+8|Lorenzo Musetti|ITA|2002|R|A
+9|Ben Shelton|USA|2002|L|S
+10|Jack Draper|GBR|2001|L|B
+11|Alexander Bublik|KAZ|1997|R|S
+12|Casper Ruud|NOR|1998|R|B
+13|Daniil Medvedev|RUS|1996|R|C
+14|Alejandro Davidovich Fokina|ESP|1999|R|C
+15|Holger Rune|DEN|2003|R|B
+16|Andrey Rublev|RUS|1997|R|B
+17|Jiri Lehecka|CZE|2001|R|B
+18|Karen Khachanov|RUS|1996|R|B
+19|Jakub Mensik|CZE|2005|R|S
+20|Tommy Paul|USA|1997|R|A
+21|Francisco Cerundolo|ARG|1998|R|B
+22|Flavio Cobolli|ITA|2002|R|B
+23|Denis Shapovalov|CAN|1999|L|B
+24|Joao Fonseca|BRA|2006|R|B
+25|Tallon Griekspoor|NED|1996|R|S
+26|Luciano Darderi|ITA|2002|R|B
+27|Cameron Norrie|GBR|1995|L|C
+28|Learner Tien|USA|2005|L|C
+29|Arthur Rinderknech|FRA|1995|R|S
+30|Frances Tiafoe|USA|1998|R|A
+31|Valentin Vacherot|MON|1998|R|S
+32|Tomas Machac|CZE|2000|R|A
+33|Brandon Nakashima|USA|2001|R|C
+34|Stefanos Tsitsipas|GRE|1998|R|A
+35|Corentin Moutet|FRA|1999|L|A
+36|Jaume Munar|ESP|1997|R|C
+37|Ugo Humbert|FRA|1998|L|B
+38|Alex Michelsen|USA|2004|R|A
+39|Lorenzo Sonego|ITA|1995|R|S
+40|Arthur Fils|FRA|2004|R|B
+41|Gabriel Diallo|CAN|2001|R|S
+42|Alexandre Muller|FRA|1997|R|C
+43|Zizou Bergs|BEL|1999|R|B
+44|Grigor Dimitrov|BUL|1991|R|A
+45|Sebastian Baez|ARG|2000|R|C
+46|Daniel Altmaier|GER|1998|R|B
+47|Nuno Borges|POR|1997|R|C
+48|Sebastian Korda|USA|2000|R|A
+49|Camilo Ugo Carabelli|ARG|1999|R|C
+50|Reilly Opelka|USA|1997|R|S
+51|Fabian Marozsan|HUN|1999|R|A
+52|Miomir Kecmanovic|SRB|1999|R|C
+53|Jenson Brooksby|USA|2000|R|C
+54|Alexei Popyrin|AUS|1999|R|S
+55|Marton Fucsovics|HUN|1992|R|C
+56|Matteo Berrettini|ITA|1996|R|S
+57|Damir Dzumhur|BIH|1992|R|C
+58|Valentin Royer|FRA|2001|R|B
+59|Giovanni Mpetshi Perricard|FRA|2003|R|S
+60|Tomas Martin Etcheverry|ARG|1999|R|B
+61|Francisco Comesana|ARG|2000|R|B
+62|Aleksandar Kovacevic|USA|1998|R|A
+63|Matteo Arnaldi|ITA|2001|R|C
+64|Kamil Majchrzak|POL|1996|R|C
+65|Terence Atmane|FRA|2002|L|B
+66|Marcos Giron|USA|1993|R|C
+67|Arthur Cazaux|FRA|2002|R|B
+68|Gael Monfils|FRA|1986|R|C
+69|Adrian Mannarino|FRA|1988|L|C
+70|Ethan Quinn|USA|2004|R|B
+71|Jacob Fearnley|GBR|2001|R|B
+72|Mariano Navone|ARG|2001|R|C
+73|Hubert Hurkacz|POL|1997|R|S
+74|Mattia Bellucci|ITA|2001|L|A
+75|Marin Cilic|CRO|1988|R|S
+76|Jesper de Jong|NED|2000|R|C
+77|Botic van de Zandschulp|NED|1995|R|A
+78|Adam Walton|AUS|1999|R|C
+79|Filip Misolic|AUT|2001|R|C
+80|Cristian Garin|CHI|1996|R|B
+81|Alejandro Tabilo|CHI|1997|L|A
+82|Aleksandar Vukic|AUS|1996|R|S
+83|Hamad Medjedovic|SRB|2003|R|S
+84|Jan-Lennard Struff|GER|1990|R|N
+85|Juan Manuel Cerundolo|ARG|2001|L|C
+86|Raphael Collignon|BEL|2002|R|B
+87|Luca Nardi|ITA|2003|R|A
+88|Emilio Nava|USA|2001|R|B
+89|Pablo Carreno Busta|ESP|1991|R|C
+90|Dalibor Svrcina|CZE|2002|R|C
+91|Eliot Spizzirri|USA|2001|R|B
+92|Quentin Halys|FRA|1996|R|S
+93|Roberto Bautista Agut|ESP|1988|R|C
+94|Shintaro Mochizuki|JPN|2003|R|A
+95|Pedro Martinez|ESP|1997|R|C
+96|Benjamin Bonzi|FRA|1996|R|A
+97|Alexander Shevchenko|KAZ|2000|R|B
+98|Hugo Gaston|FRA|2000|L|A
+99|Laslo Djere|SRB|1995|R|B
+100|Tristan Schoolkate|AUS|2001|R|N
+101|Thiago Agustin Tirante|ARG|2001|R|S
+102|Vit Kopriva|CZE|1997|R
+103|Carlos Taberner|ESP|1997|R
+104|Yannick Hanfmann|GER|1991|R|S
+106|James Duckworth|AUS|1992|R
+107|Roman Andres Burruchaga|ARG|2002|R
+108|Jordan Thompson|AUS|1994|R|A
+109|Tomas Barrios Vera|CHI|1997|R
+110|Nikoloz Basilashvili|GEO|1992|R|B
+111|Yoshihito Nishioka|JPN|1995|L|C
+112|Mackenzie McDonald|USA|1995|R
+113|Brandon Holt|USA|1998|R
+116|Alexander Blockx|BEL|2005|R|S
+117|Patrick Kypson|USA|1999|R
+119|Dusan Lajovic|SRB|1990|R
+120|Yunchaokete Bu|CHN|2002|R
+121|Nicolas Jarry|CHI|1995|R|S
+122|Dino Prizmic|CRO|2005|R|C
+123|Liam Draxl|CAN|2001|R
+124|Chun-Hsin Tseng|TPE|2001|R|C
+125|Billy Harris|GBR|1995|R
+126|Otto Virtanen|FIN|2001|R|S
+128|Francesco Passaro|ITA|2001|R
+129|Jan Choinski|GBR|1996|R
+130|Vilius Gaubas|LTU|2004|R
+131|Martin Landaluce|ESP|2006|R|B
+132|Nicolai Budkov Kjaer|NOR|2006|R
+133|Roberto Carballes Baena|ESP|1993|R|C
+134|Sebastian Ofner|AUT|1996|R
+135|Marco Trungelliti|ARG|1990|R
+136|Moez Echargui|TUN|1993|R
+138|Hugo Dellien|BOL|1993|R|C
+139|Andrea Pellegrino|ITA|1997|R
+140|Lukas Klein|SVK|1998|R|S
+141|Zachary Svajda|USA|2002|R
+142|Ugo Blanchet|FRA|1999|R
+143|Coleman Wong|HKG|2004|R
+144|Colton Smith|USA|2003|R
+145|Sho Shimabukuro|JPN|1997|R
+146|Mark Lajal|EST|2003|R
+147|Titouan Droguet|FRA|2001|R
+148|Matteo Gigante|ITA|2002|L
+149|Jaime Faria|POR|2003|R
+150|Daniel Elahi Galan|COL|1996|R
+151|Giulio Zeppieri|ITA|2001|L
+152|Elmer Moller|DEN|2003|R
+153|Henrique Rocha|POR|2004|R
+154|Pierre-Hugues Herbert|FRA|1991|R|N
+155|Nishesh Basavareddy|USA|2005|R
+157|Francesco Maestrelli|ITA|2002|R
+158|Kei Nishikori|JPN|1989|R|C
+159|Yosuke Watanuki|JPN|1998|R
+160|Guy den Ouden|NED|2002|R
+161|Luka Mikrut|CRO|2004|R
+162|Harold Mayot|FRA|2002|R
+163|Adolfo Daniel Vallejo|PAR|2004|R
+164|Juan Pablo Ficovich|ARG|1997|R
+165|Zsombor Piros|HUN|1999|R
+166|Vitaliy Sachko|UKR|1997|R
+167|Luca Van Assche|FRA|2004|R|C
+168|Rafael Jodar|ESP|2006|R|B
+169|Elias Ymer|SWE|1996|R
+171|August Holmgren|DEN|1998|R
+172|Daniel Merida|ESP|2004|R
+173|Hugo Grenier|FRA|1996|R
+174|Alex Barrena|ARG|2002|R
+175|Martin Damm|USA|2003|L|S
+176|Rei Sakamoto|JPN|2006|R
+177|Jurij Rodionov|AUT|1999|L
+178|Hady Habib|LBN|1998|R
+179|Leandro Riedi|SUI|2002|R
+180|Tristan Boyer|USA|2001|R
+181|Yibing Wu|CHN|1999|R
+182|Bernard Tomic|AUS|1992|R
+183|Daniel Evans|GBR|1990|R|A
+184|Jerome Kym|SUI|2003|R|S
+185|Michael Zheng|USA|2004|R
+187|Joao Lucas Reis da Silva|BRA|2000|R
+188|Alex Bolt|AUS|1993|L
+189|Lukas Neumayer|AUT|2002|R
+190|Jason Kubler|AUS|1993|R
+191|Daniil Glinka|EST|2000|R
+192|Oliver Crawford|GBR|1999|R
+193|Sascha Gueymard Wayenburg|FRA|2003|R
+194|Dan Added|FRA|1999|R
+195|Justin Engel|GER|2007|R
+196|James McCabe|AUS|2003|R
+197|Alvaro Guillen Meza|ECU|2003|R
+198|Arthur Fery|GBR|2002|R
+199|Jack Pinnington Jones|GBR|2003|R
+200|Ryan Peniston|GBR|1995|L

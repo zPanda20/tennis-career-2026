@@ -1,0 +1,55 @@
+# 2026 WTA Tour singles calendar. Source: Wikipedia "2026 WTA Tour". WTA Finals host: Riyadh.
+01-05|Brisbane International|Brisbane|AUS|500|H|48|1
+01-05|Auckland Open|Auckland|NZL|250|H|32|1
+01-12|Adelaide International|Adelaide|AUS|500|H|30|1
+01-12|Hobart International|Hobart|AUS|250|H|32|1
+01-19|Australian Open|Melbourne|AUS|GS|H|128|2|18 Jan – 1 Feb
+02-02|Abu Dhabi Open|Abu Dhabi|UAE|500|H|28|1
+02-02|Ostrava Open|Ostrava|CZE|250|Hi|30|1
+02-02|Transylvania Open|Cluj-Napoca|ROU|250|Hi|32|1
+02-09|Qatar Open|Doha|QAT|1000|H|56|1
+02-16|Dubai Tennis Championships|Dubai|UAE|1000|H|56|1
+02-23|Mérida Open|Mérida|MEX|500|H|28|1
+02-23|ATX Open|Austin|USA|250|H|32|1
+03-02|Indian Wells Open|Indian Wells|USA|1000|H|96|2
+03-16|Miami Open|Miami Gardens|USA|1000|H|96|2
+03-30|Charleston Open|Charleston|USA|500|C|48|1
+03-30|Copa Colsanitas|Bogotá|COL|250|C|32|1
+04-06|Linz Open|Linz|AUT|500|Ci|28|1
+04-13|Stuttgart Open|Stuttgart|GER|500|Ci|28|1
+04-13|Open de Rouen|Rouen|FRA|250|Ci|32|1
+04-20|Madrid Open|Madrid|ESP|1000|C|96|2
+05-04|Italian Open|Rome|ITA|1000|C|96|2
+05-18|Internationaux de Strasbourg|Strasbourg|FRA|500|C|28|1
+05-18|Morocco Open|Rabat|MAR|250|C|32|1
+05-25|French Open|Paris|FRA|GS|C|128|2|24 May – 7 Jun
+06-08|Queen's Club Championships|London|GBR|500|G|28|1
+06-08|Rosmalen Championships|Rosmalen|NED|250|G|32|1
+06-15|German Open|Berlin|GER|500|G|28|1
+06-15|Nottingham Open|Nottingham|GBR|250|G|32|1
+06-22|Bad Homburg Open|Bad Homburg|GER|500|G|28|1
+06-22|Eastbourne Open|Eastbourne|GBR|250|G|32|1
+06-29|Wimbledon|London|GBR|GS|G|128|2|29 Jun – 12 Jul
+07-13|Iași Open|Iași|ROU|250|C|32|1
+07-13|Athens Open|Athens|GRE|250|H|32|1
+07-20|Hamburg Open|Hamburg|GER|250|C|32|1
+07-20|Prague Open|Prague|CZE|250|H|32|1
+07-27|Washington Open|Washington, D.C.|USA|500|H|28|1
+07-27|Memphis Classic|Memphis|USA|250|H|32|1
+08-03|Canadian Open|Toronto|CAN|1000|H|96|2
+08-17|Cincinnati Open|Mason|USA|1000|H|96|1
+08-24|Monterrey Open|Monterrey|MEX|500|H|28|1
+08-31|US Open|New York City|USA|GS|H|128|2|30 Aug – 13 Sep
+09-14|Guadalajara Open|Guadalajara|MEX|500|H|28|1
+09-14|SP Open|São Paulo|BRA|250|H|32|1
+09-21|Singapore Open|Singapore|SGP|500|H|32|1
+09-21|Korea Open|Seoul|KOR|250|H|32|1
+09-28|China Open|Beijing|CHN|1000|H|96|2
+10-12|Wuhan Open|Wuhan|CHN|1000|H|56|1
+10-19|Ningbo Open|Ningbo|CHN|500|H|28|1
+10-19|Japan Open|Osaka|JPN|250|H|32|1
+10-26|Pan Pacific Open|Tokyo|JPN|500|H|28|1
+10-26|Guangzhou Open|Guangzhou|CHN|250|H|32|1
+11-02|Hong Kong Open|Hong Kong|HKG|250|H|32|1
+11-02|Chennai Open|Chennai|IND|250|H|32|1
+11-09|WTA Finals|Riyadh|KSA|F|Hi|8|1|7 – 14 Nov

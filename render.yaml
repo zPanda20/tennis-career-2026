@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: tennis-career-2026
+    runtime: static
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist

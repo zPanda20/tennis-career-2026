@@ -1,0 +1,28 @@
+# 2026 ITF Men's World Tennis Tour, January–June (a selection of up to six events per week). Source: Wikipedia quarterly schedule pages.
+# July–December entries are generated from these venues and flagged provisional. week|cat,City,CTY,surface;...
+01-05|M25,Hazebrouck,FRA,Hi;M25,Antalya,TUR,C;M25,Monastir,TUN,H;M25,Winston-Salem,USA,Hi;M15,Manacor,ESP,H;M15,Hurghada,EGY,H
+01-12|M25,Chennai,IND,H;M25,Antalya,TUR,C;M25,Winston-Salem,USA,Hi;M25,Santiago,CHI,C;M15,Manacor,ESP,H;M15,Cadolzburg,GER,Hi
+01-19|M25,Antalya,TUR,C;M25,Santiago,CHI,C;M15,Hyderabad,IND,H;M15,Manacor,ESP,H;M15,Bagnoles-de-l'Orne,FRA,Ci;M15,Monastir,TUN,H
+01-26|M25,Glasgow,GBR,Hi;M25,Nußloch,GER,Hi;M15,Hyderabad,IND,H;M15,Antalya,TUR,C;M15,Naples,USA,C;M15,Huamantla,MEX,H
+02-02|M25,Sheffield,GBR,Hi;M25,Monastir,TUN,H;M15,Zahra,KUW,H;M15,Jávea,ESP,C;M15,Palm Coast,USA,C;M15,Huamantla,MEX,H
+02-09|M25,Vila Real de Santo António,POR,H;M25,Antalya,TUR,C;M25,Monastir,TUN,H;M15,Almoradi,ESP,C;M15,Oberhaching,GER,Hi;M15,Sunrise,USA,C
+02-16|M25,Vila Real de Santo António,POR,H;M25,Trento,ITA,Hi;M25,San José,CRC,Hi;M15,Villena,ESP,H;M15,Sharm El Sheikh,EGY,H;M15,Naples,USA,C
+02-23|M25,Burnie,AUS,H;M25,Vale do Lobo,POR,H;M25,Pszczyna,POL,Hi;M15,Antalya,TUR,C;M15,Monastir,TUN,H;M15,Naples,USA,C
+03-02|M25,Launceston,AUS,H;M25,Faro,POR,H;M25,Trimbach,SUI,Hi;M25,Yerba Buena,ARG,C;M15,Maanshan,CHN,Hi;M15,Sherbrooke,CAN,Hi
+03-09|M25,Timaru,NZL,H;M25,Kolkata,IND,H;M25,Créteil,FRA,Hi;M15,Hinode,JPN,H;M15,Poreč,CRO,C;M15,La Plata,ARG,C
+03-16|M25,Mumbai,IND,H;M25,Badalona,ESP,C;M25,Toulouse–Balma,FRA,Hi;M25,Bakersfield,USA,H;M15,Nishitokyo,JPN,H;M15,Punta del Este,URU,C
+03-23|M25,Tarragona,ESP,C;M25,Saint-Dizier,FRA,Hi;M25,Las Vegas,USA,H;M15,Tsukuba,JPN,H;M15,Opatija,CRO,C;M15,Monastir,TUN,H
+03-30|M25,Maanshan,CHN,Hi;M25,Reus,ESP,C;M25,Santa Margherita di Pula,ITA,C;M25,Heraklion,GRE,H;M15,Kashiwa,JPN,H;M15,Sharm El Sheikh,EGY,H
+04-06|M25,Maanshan,CHN,Hi;M25,Santa Margherita di Pula,ITA,C;M25,Sharm El Sheikh,EGY,H;M25,Monastir,TUN,H;M15,Heraklion,GRE,H;M15,Boca Raton,USA,C
+04-13|M25,Anning,CHN,C;M25,Santa Margherita di Pula,ITA,C;M25,Monastir,TUN,H;M15,Singapore,SGP,Hi;M15,Pretoria,RSA,H;M15,Orlando,USA,C
+04-20|M25,Luzhou,CHN,H;M25,Angers,FRA,Ci;M25,Santa Margherita di Pula,ITA,C;M25,Xalapa,MEX,H;M15,Quito,ECU,C;M15,Pretoria,RSA,H
+04-27|M25,Nakhon Pathom,THA,H;M25,Nottingham,GBR,H;M25,Castelldefels,ESP,C;M25,Santa Margherita di Pula,ITA,C;M25,Luján,ARG,C;M15,Islamabad,PAK,H
+05-04|M25,Nakhon Pathom,THA,H;M25,Nottingham,GBR,H;M25,Sabadell,ESP,C;M25,Santa Margherita di Pula,ITA,C;M25,Villa María,ARG,C;M15,Wuning,CHN,H
+05-11|M25,Kutaisi,GEO,H;M25,Vic,ESP,C;M25,Reggio Emilia,ITA,C;M25,Louny,CZE,C;M25,Pensacola,USA,C;M15,Gaborone,BOT,H
+05-18|M25,Kutaisi,GEO,H;M25,Mataró,ESP,C;M25,Deauville,FRA,C;M25,Bol,CRO,C;M15,Gimcheon,KOR,H;M15,Maringá,BRA,C
+05-25|M25,Carnac,FRA,C;M25,Troisdorf,GER,C;M25,Grado,ITA,C;M25,Kuršumlijska Banja,SRB,C;M15,Karuizawa,JPN,C;M15,Lakewood,USA,H
+06-01|M25,Caltanissetta,ITA,C;M25,Bistrița,ROU,C;M25,Cuiabá,BRA,C;M15,Lu'an,CHN,H;M15,Monastir,TUN,H;M15,Lakewood,USA,H
+06-08|M25,Martos,ESP,H;M25,Värnamo,SWE,C;M25,Česká Lípa,CZE,C;M25,Wichita,USA,H;M15,Tokyo,JPN,H;M15,Brasília,BRA,H
+06-15|M25,Lourinhã,POR,H;M25,Milan,ITA,C;M25,Klosters,SUI,C;M25,Tulsa,USA,H;M15,Ma'anshan,CHN,Hi;M15,Monastir,TUN,H
+06-22|M25,Porto,POR,H;M25,Bakio,ESP,H;M25,Brussels,BEL,C;M25,Tangier,MAR,C;M15,Wuning,CHN,H;M15,Claremont,USA,H
+06-29|M25,Figueira da Foz,POR,H;M25,Ajaccio,FRA,H;M25,Marburg,GER,C;M25,Skopje,MKD,C;M25,Rabat,MAR,C;M15,San Diego,USA,H
