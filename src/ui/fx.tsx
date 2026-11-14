@@ -67,16 +67,18 @@ export function SeasonTrack({ S }: { S: State }) {
   );
 }
 /** Momentum from game-by-game flow: a running balance of games won, drawn as a two-colour wave. */
-export function Momentum({ m, oppName }: { m: UMatch; oppName: string }) {
-  if (!m.flow || m.flow.length < 6) return null;
+export function Momentum({ m, oppName, upto }: { m: UMatch; oppName: string; upto?: number }) {
+  if (!m.flow || m.flow.length < (upto ? 1 : 6)) return null;
   const g = m.flow.split('').map(Number), W = 760, H = 120, mid = 60;
   let v = 0; const pts: [number, number][] = [[0, mid]];
   g.forEach((w, i) => { v = v * 0.86 + (w ? 1 : -1); pts.push([((i + 1) / g.length) * W, mid - Math.max(-4.6, Math.min(4.6, v)) * 11.5]); });
+  const cut = upto ? pts.slice(0, Math.min(pts.length, upto + 1)) : pts;
   // smooth with midpoint quadratic curves so the wave reads as a swing, not a saw
-  let d = `M${pts[0][0]} ${pts[0][1]}`;
-  for (let k = 1; k < pts.length - 1; k++) { const mx = (pts[k][0] + pts[k + 1][0]) / 2, my = (pts[k][1] + pts[k + 1][1]) / 2; d += ` Q${pts[k][0].toFixed(1)} ${pts[k][1].toFixed(1)} ${mx.toFixed(1)} ${my.toFixed(1)}`; }
-  d += ` L${pts[pts.length - 1][0]} ${pts[pts.length - 1][1].toFixed(1)}`;
-  const area = `${d} L${W} ${mid} L0 ${mid} Z`;
+  let d = `M${cut[0][0]} ${cut[0][1]}`;
+  for (let k = 1; k < cut.length - 1; k++) { const mx = (cut[k][0] + cut[k + 1][0]) / 2, my = (cut[k][1] + cut[k + 1][1]) / 2; d += ` Q${cut[k][0].toFixed(1)} ${cut[k][1].toFixed(1)} ${mx.toFixed(1)} ${my.toFixed(1)}`; }
+  const lastX = cut[cut.length - 1][0];
+  d += ` L${lastX.toFixed(1)} ${cut[cut.length - 1][1].toFixed(1)}`;
+  const area = `${d} L${lastX.toFixed(1)} ${mid} L0 ${mid} Z`;
   const sets = m.sets ?? [], bounds: number[] = []; let acc = 0;
   for (const s of sets.slice(0, -1)) { acc += s[0] + s[1]; bounds.push((acc / g.length) * W); }
   const id = `mo${m.id.replace(/[^a-z0-9]/gi, '').slice(-10)}`;
@@ -88,8 +90,8 @@ export function Momentum({ m, oppName }: { m: UMatch; oppName: string }) {
         <path d={area} clipPath={`url(#${id}t)`} fill="rgba(255,255,255,0.82)" />
         <path d={area} clipPath={`url(#${id}b)`} fill="var(--glow)" />
         <line x1="0" x2={W} y1={mid} y2={mid} stroke="rgba(255,255,255,0.3)" />
-        {bounds.map((b, i) => <line key={i} x1={b} x2={b} y1="4" y2={H - 4} stroke="rgba(255,255,255,0.35)" strokeDasharray="3 5" />)}
-        {sets.map((_, i) => { const a = i === 0 ? 0 : bounds[i - 1], b = bounds[i] ?? W; return <text key={i} x={(a + b) / 2} y={H + 12} textAnchor="middle" className="track-t">SET {i + 1}</text>; })}
+        {bounds.filter(b => b <= lastX + 1).map((b, i) => <line key={i} x1={b} x2={b} y1="4" y2={H - 4} stroke="rgba(255,255,255,0.35)" strokeDasharray="3 5" />)}
+        {sets.map((_, i) => { const a = i === 0 ? 0 : bounds[i - 1], b = bounds[i] ?? W; if (a >= lastX - 1) return null; return <text key={i} x={(a + b) / 2} y={H + 12} textAnchor="middle" className="track-t">SET {i + 1}</text>; })}
       </svg>
     </figure>
   );

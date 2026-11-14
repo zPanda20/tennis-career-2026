@@ -1,13 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { BAND_NAME, ECON, POINTS } from '../core/balance';
 import { Option, Route, blockWeeks, coachReport, eventsInWeek, featuredEvent, fillText, optionFor, routes } from '../core/agent';
-import { fmtShort, wkDate } from '../core/content';
+import { absOf, fmtShort, wkDate } from '../core/content';
 import { roundName } from '../core/selectors';
 import { weeklyGuaranteed } from '../core/tour';
 import { ABILITIES, ABILITY_NAMES, Band, Focus, Intensity, Policies, Priority, State, UMatch, UTourney } from '../core/types';
 import { Avatar, BrandMark, Stat, money, rankTxt } from './bits';
 import { Arrow, Ball, BallRun, Momentum, Ring, SWING_ENDS, SWING_SHORT, SURF_COLOR } from './fx';
 import { dispatch, get, set, useApp } from './store';
+import { getSetting, setSetting } from '../persist/db';
 
 const PRIORITIES: [Priority, string, string][] = [['prep', 'Focused preparation', 'More useful training; morale can dip under sustained pressure'], ['recovery', 'Recovery', 'Faster recovery on free weeks; less skill training'], ['social', 'Social life', 'Morale rises; a little sharpness lost to late nights'], ['relationship', 'Relationship time', 'Support and morale; relationships deepen'], ['professional', 'Professional commitments', 'Reputation and sponsor relations; some training time']];
 const INTENS: [Intensity, string, string][] = [['relaxed', 'Relaxed', 'Maintenance, kind to the body'], ['normal', 'Normal', 'The sustainable default'], ['intense', 'Intense', 'More growth, more overload risk']];
@@ -48,6 +49,20 @@ function bestBefore(S: State, t: UTourney) {
   return prev.length ? Math.min(...prev) : -1; // no earlier event: nothing to beat yet
 }
 
+// ---------- season autopilot: plays each remaining swing on the coach's recommended route ----------
+async function autoSeason(S0: State) {
+  if (!confirm(`Simulate the rest of ${S0.year}? Each remaining swing uses your coach's recommended route and your current training settings. Optional life decisions are skipped. Injuries still stop the simulation so you can choose the rehab.`)) return;
+  const from = S0.wk, year = S0.year;
+  for (let n = 0; n < 4; n++) {
+    const s = get().S; if (!s || s.phase !== 'plan' || s.year !== year) break;
+    const rs = routes(s), r = rs.find(x => x.recommended) ?? rs[0];
+    const ok = await dispatch({ type: 'CommitBlock', plan: { weeks: r.weeks, route: r.key }, pol: s.u.pol }, `Simulating ${SWING_SHORT[s.block].join(' ').toLowerCase()}`);
+    if (!ok) return;
+  }
+  const s = get().S;
+  if (s && s.lastSummary && s.phase !== 'interrupt') set({ overlay: { kind: 'reveal', from } });
+}
+
 // ---------- career hub ----------
 export function Home({ S }: { S: State }) {
   const { save } = useApp(), u = S.u, me = S.players[S.userId], rep = useMemo(() => coachReport(S), [S]), ro = save === 'readonly';
@@ -65,7 +80,8 @@ export function Home({ S }: { S: State }) {
             <p className="lede">{u.finalSeasonWarned && S.block === 0 ? 'Your final eligible season. ' : ''}{SWING_ENDS[S.block]}.</p>
             <div className="row" style={{ gap: '1.2rem', marginTop: '1.4rem' }}>
               <button className="cta" disabled={ro} onClick={() => set({ overlay: { kind: 'planner' } })}>Plan the swing<span className="go"><Arrow /></span></button>
-              {S.lastSummary && S.lastSummary.tourneys.length > 0 && <button className="btn" onClick={() => set({ overlay: { kind: 'reveal' } })}>Replay last block</button>}
+              {S.block < 3 && <button className="btn" disabled={ro} onClick={() => autoSeason(S)}>Simulate to season's end</button>}
+              {S.lastSummary && S.lastSummary.tourneys.length > 0 && <button className="btn ghost" onClick={() => set({ overlay: { kind: 'reveal' } })}>Watch last swing</button>}
             </div>
             <div className="coachline"><Avatar name={u.coach.name.split(' (')[0]} size={46} /><div className="bubble"><b>Coach:</b> "{me.injuredUntil > S.wk ? `Rehab first. You should be back around ${fmtShort(wkDate(me.injuredUntil))}.` : rep.advice}"</div></div>
           </>}
@@ -140,7 +156,7 @@ function Interrupt({ S }: { S: State }) {
   if (pend.type === 'forcedRetire') return <><span className="kicker">Medical assessment</span><h1 className="mega"><span>Your career</span><span className="ol">ends here</span></h1><p className="lede">{pend.text}</p><button className="cta" disabled={ro} onClick={() => dispatch({ type: 'ResolveInjury', rehab: 'conservative' }, 'Closing your career').then(ok => ok && set({ tab: 'records' }))}>Career review<span className="go"><Arrow /></span></button></>;
   if (!inj) return null;
   const cost = inj.sev === 'moderate' ? 1500 : inj.sev === 'major' ? 6000 : 15000;
-  const go = (rehab: 'conservative' | 'specialist' | 'early') => dispatch({ type: 'ResolveInjury', rehab }, 'Back to the season').then(ok => { const s = get().S; if (ok && s?.lastSummary && s.phase === 'plan') set({ overlay: { kind: 'reveal' } }); });
+  const go = (rehab: 'conservative' | 'specialist' | 'early') => dispatch({ type: 'ResolveInjury', rehab }, 'Back to the season').then(ok => { const s = get().S; if (ok && s?.lastSummary && (s.phase === 'plan' || s.phase === 'yearEnd')) set({ overlay: { kind: 'reveal' } }); });
   return (
     <>
       <span className="kicker">Injury review · {inj.date}</span>
@@ -165,6 +181,7 @@ function YearEnd({ S }: { S: State }) {
       <h1 className="mega"><span>{s.year}</span><span className="ol">year-end {s.rank}</span></h1>
       <div className="stats"><Stat k="Record" v={`${s.w}–${s.l}`} sub={`${s.events} events`} /><Stat k="Titles" v={s.titles} sub={`${s.finals} finals`} /><Stat k="Best major" v={s.majorsBest === '–' ? '–' : headline(s.majorsBest)} /><Stat k="Prize" v={money(s.prize)} /><Stat k="Growth" v={`+${s.dev.toFixed(1)}`} sub={`${Math.round((s.devComp / (s.dev || 1)) * 100)}% from matches`} /><Stat k="Weeks injured" v={s.injWeeks} /></div>
       {u.finalSeasonWarned && <p className="warn-box">Next season is your final eligible season: the age ceiling closes a career at the end of the season in which a player turns 40.</p>}
+      {S.lastSummary && S.lastSummary.tourneys.length > 0 && <div className="row"><button className="btn" onClick={() => set({ overlay: { kind: 'reveal' } })}>Watch the final swing</button><button className="btn ghost" onClick={() => set({ overlay: { kind: 'reveal', from: absOf(s.year, 0) } })}>Watch the whole season</button></div>}
       <h2 style={{ marginTop: '1.2rem' }}>Coaching</h2>
       <div className="choice-grid" role="radiogroup" aria-label="Coach for next season">
         <button className={`choice ${coach === 'keep' ? 'on' : ''}`} role="radio" aria-checked={coach === 'keep'} onClick={() => setCoach('keep')}><b>Stay with {u.coach.name.split(' (')[0]}</b><span>{u.coach.tier} tier · {money(u.coach.cost)} a month · trust {Math.round(u.rel.coach)}/100</span></button>
@@ -208,7 +225,7 @@ export function Planner({ S }: { S: State }) {
   const choose = (r: Route) => { setKey(r.key); setPlan({ ...r.weeks }); setCustom(false); };
   const setWeek = (w: number, id: string) => { const next = { ...plan }; if (id) { next[w] = id; const ed = S.cal.find(e => e.id === id)!; if (ed.weeks === 2) delete next[w + 1]; if (ed.band === 'GS' && optionFor(S, ed).status !== 'accepted') delete next[w - 1]; } else delete next[w]; setPlan(next); setKey('custom'); };
   const steps = ev ? ['Route', 'Decision', 'Play'] : ['Route', 'Play'], last = steps.length - 1;
-  const commit = () => dispatch({ type: 'CommitBlock', plan: { weeks: plan, route: key, lifeEv: ev?.id, lifeChoice: life ?? undefined }, pol }, 'Playing the swing').then(ok => { const s = get().S; set({ overlay: ok && s?.phase === 'plan' && s.lastSummary?.tourneys.some(id => played(s.u.tourneys.find(t => t.ed === id)!)) ? { kind: 'reveal' } : null }); });
+  const commit = () => dispatch({ type: 'CommitBlock', plan: { weeks: plan, route: key, lifeEv: ev?.id, lifeChoice: life ?? undefined }, pol }, 'Playing the swing').then(ok => { const s = get().S; set({ overlay: ok && (s?.phase === 'plan' || s?.phase === 'yearEnd') && s.lastSummary?.tourneys.some(id => played(s.u.tourneys.find(t => t.ed === id)!)) ? { kind: 'reveal' } : null }); });
   const playedWeeks = new Set<number>(); for (const o of picks) { playedWeeks.add(o.ed.startWk); if (o.ed.weeks === 2) playedWeeks.add(o.ed.startWk + 1); }
   const close = () => set({ overlay: null });
   return (
@@ -305,61 +322,139 @@ function TrainingPanel({ pol, setPol }: { pol: Policies; setPol: (p: Policies) =
   );
 }
 
-// ---------- results reveal ----------
-export function Reveal({ S }: { S: State }) {
-  const u = S.u, sum = S.lastSummary, items = useMemo(() => (sum?.tourneys ?? []).map(id => u.tourneys.find(t => t.ed === id)!).filter(t => t && played(t)), [S]);
-  const [i, setI] = useState(0), close = () => set({ overlay: null });
-  if (!sum) return null;
-  const t = items[i];
-  return (
-    <div className="screen" role="dialog" aria-modal="true" aria-label="Block results">
-      <div className="screen-in">
-        <div className="screen-top">
-          <div><div className="k">Results · {fmtShort(wkDate(sum.fromWk))} to {fmtShort(wkDate(sum.toWk - 1, 6))}</div><div className="t">The swing, event by event</div></div>
-          <span className="dots" style={{ margin: '0 auto' }} role="img" aria-label={`Event ${Math.min(i + 1, items.length)} of ${items.length}`}>{items.map((_, k) => <Ball key={k} size={k === i ? 28 : 20} empty={k > i} glow={k === i} />)}<b style={{ marginLeft: '.3rem' }}>{i < items.length ? `${i + 1} of ${items.length}` : 'Summary'}</b></span>
-          {i < items.length && <button className="btn" onClick={() => setI(items.length)}>Skip to summary</button>}
-        </div>
-        {t ? <EventReveal S={S} t={t} last={i === items.length - 1} /> : <BlockSummary S={S} />}
-      </div>
-      <div className="dock" style={{ justifyContent: 'flex-end' }}>
-        {i > 0 && <button className="btn" onClick={() => setI(i - 1)}>Previous</button>}
-        {t ? <button className="cta" onClick={() => setI(i + 1)}>{items[i + 1] ? `Next: ${items[i + 1].name}` : 'Block summary'}<span className="go"><Arrow /></span></button>
-          : <button className="cta" onClick={close}>Back to career<span className="go"><Arrow /></span></button>}
-      </div>
-    </div>
-  );
-}
+// ---------- watch mode: set by set, match by match, event by event, or straight to the summary ----------
+export type Pace = 'set' | 'match' | 'event' | 'summary';
+const PACES: [Pace, string][] = [['set', 'Set by set'], ['match', 'Match by match'], ['event', 'Event by event'], ['summary', 'Summary only']];
+const DELAY: Record<string, number> = { set: 1900, match: 2800, event: 4500 };
+type Step = { k: 'match'; ti: number; mi: number; sets: number } | { k: 'event'; ti: number } | { k: 'summary' };
+const order = (s: Step) => (s.k === 'summary' ? 1e9 : s.k === 'event' ? s.ti * 1000 + 999 : s.ti * 1000 + s.mi * 10);
 function parseSets(m: UMatch): [number, number, number?][] {
   if (m.sets) return m.sets;
   return m.score.replace(' ret.', '').split(' ').filter(x => /\d-\d/.test(x)).map(x => { const [a, b] = x.split('(')[0].split('-').map(Number); return m.won ? [a, b] : [b, a]; });
 }
-function EventReveal({ S, t }: { S: State; t: UTourney; last: boolean }) {
-  const u = S.u, me = S.players[S.userId], ms = t.matches.map(id => u.matches.find(m => m.id === id)!).filter(Boolean), m = ms[ms.length - 1];
-  const { assets } = useApp(), slam = S.cal.find(e => e.series === t.series)?.slam, trophy = t.title && slam ? assets[`trophy:${slam}:${S.tour}`] : null;
-  const improved = ROUND_ORDER.indexOf(t.reached) >= 0 && ROUND_ORDER.indexOf(t.reached) < bestBefore(S, t);
-  const before = rankAround(S, t.wk), after = rankAround(S, t.wk + (t.band === 'GS' ? 2 : 1));
-  const opp = m ? S.players[m.opp] : null, sets = m ? parseSets(m) : [];
+function buildSteps(ms: UMatch[][], pace: Pace): Step[] {
+  const out: Step[] = [];
+  if (pace !== 'summary') ms.forEach((list, ti) => {
+    if (pace === 'set' || pace === 'match') list.forEach((m, mi) => {
+      const L = m.cls === 'wo' ? 0 : parseSets(m).length;
+      if (pace === 'set' && L > 1) for (let k = 1; k <= L; k++) out.push({ k: 'match', ti, mi, sets: k });
+      else out.push({ k: 'match', ti, mi, sets: L });
+    });
+    out.push({ k: 'event', ti });
+  });
+  out.push({ k: 'summary' });
+  return out;
+}
+/** Watch the swing (or several swings) just played. `from` is the first week to include. */
+export function Reveal({ S, from }: { S: State; from?: number }) {
+  const u = S.u, sum = S.lastSummary, start = from ?? sum?.fromWk ?? S.wk, end = sum?.toWk ?? S.wk;
+  const items = useMemo(() => u.tourneys.filter(t => t.wk >= start && t.wk < end && played(t)).sort((a, b) => a.wk - b.wk), [S, start]);
+  const ms = useMemo(() => items.map(t => t.matches.map(id => u.matches.find(m => m.id === id)!).filter(Boolean)), [items]);
+  const [pace, setPaceRaw] = useState<Pace>(() => (getSetting('pace', 'match') as Pace));
+  const steps = useMemo(() => buildSteps(ms, pace), [ms, pace]);
+  const [i, setI] = useState(0), [playing, setPlaying] = useState(pace === 'set' || pace === 'match');
+  const step = steps[Math.min(i, steps.length - 1)];
+  const setPace = (p: Pace) => { const base = order(step), ns = buildSteps(ms, p), j = ns.findIndex(s => order(s) >= base); setSetting('pace', p); setPaceRaw(p); setI(j < 0 ? ns.length - 1 : j); if (p === 'summary') setPlaying(false); };
+  useEffect(() => {
+    if (!playing || step.k === 'summary') return;
+    const id = setTimeout(() => setI(x => Math.min(x + 1, steps.length - 1)), step.k === 'event' ? DELAY.event : DELAY[pace] ?? DELAY.match);
+    return () => clearTimeout(id);
+  }, [playing, i, pace, steps.length]);
+  const close = () => set({ overlay: null }), cur = step.k === 'summary' ? items.length : step.ti;
+  const multi = from !== undefined && !!sum && from < sum.fromWk;
+  return (
+    <div className="screen" role="dialog" aria-modal="true" aria-label="Block results">
+      <div className="screen-in">
+        <div className="screen-top">
+          <div><div className="k">{multi ? 'Season' : 'Swing'} results · {fmtShort(wkDate(start))} to {fmtShort(wkDate(end - 1, 6))}</div><div className="t">{step.k === 'summary' ? 'The summary' : items[cur]?.name}</div></div>
+          <span className="dots" style={{ margin: '0 auto' }} role="img" aria-label={`Event ${Math.min(cur + 1, items.length)} of ${items.length}`}>{items.slice(Math.max(0, Math.min(cur - 6, items.length - 12)), Math.max(12, cur + 6)).map(t => { const k = items.indexOf(t); return <Ball key={k} size={k === cur ? 28 : 18} empty={k > cur} glow={k === cur} />; })}<b style={{ marginLeft: '.3rem' }}>{step.k !== 'summary' ? `${cur + 1} of ${items.length}` : 'Summary'}</b></span>
+          {step.k !== 'summary' && <button className="btn" onClick={() => { setPlaying(false); setI(steps.length - 1); }}>Skip to summary</button>}
+        </div>
+        {step.k === 'match' && <MatchStage S={S} t={items[step.ti]} list={ms[step.ti]} mi={step.mi} sets={step.sets} />}
+        {step.k === 'event' && <EventReveal S={S} t={items[step.ti]} />}
+        {step.k === 'summary' && <RangeSummary S={S} from={start} multi={multi} items={items} />}
+      </div>
+      <div className="dock">
+        <div className="seg wrap" role="group" aria-label="Watch pace">{PACES.map(([k, t]) => <button key={k} className={pace === k ? 'on' : ''} aria-pressed={pace === k} onClick={() => setPace(k)}>{t}</button>)}</div>
+        {step.k !== 'summary' && <button className="icon" aria-label={playing ? 'Pause' : 'Play'} onClick={() => setPlaying(!playing)}>{playing ? <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="2" width="3.5" height="12" rx="1" /><rect x="9.5" y="2" width="3.5" height="12" rx="1" /></svg> : <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11l9-5.5z" /></svg>}</button>}
+        <span className="grow" />
+        {i > 0 && <button className="btn" onClick={() => { setPlaying(false); setI(i - 1); }}>Back</button>}
+        {step.k !== 'summary'
+          ? <button className="cta" onClick={() => setI(i + 1)}>{step.k === 'event' ? (steps[i + 1]?.k === 'summary' ? 'Summary' : 'Next event') : step.k === 'match' && pace === 'set' && step.sets < parseSets(ms[step.ti][step.mi]).length ? 'Next set' : 'Next'}<span className="go"><Arrow /></span></button>
+          : <button className="cta" onClick={close}>{S.phase === 'yearEnd' ? 'Season review' : 'Back to career'}<span className="go"><Arrow /></span></button>}
+      </div>
+    </div>
+  );
+}
+function Plates({ S, m, done, children }: { S: State; m: UMatch; done: boolean; children: React.ReactNode }) {
+  const me = S.players[S.userId], opp = S.players[m.opp];
+  return (
+    <div className="versus">
+      <div className={`plate ${done && m.won ? 'win' : ''}`}><Avatar p={me} size={110} user={S.u.avatar} />{done && m.won && <span className="wtag">WINNER</span>}<span className="nm">{me.name}</span><small>{me.country} · ranked {m.myRank}</small></div>
+      {children}
+      <div className={`plate ${done && !m.won ? 'win' : ''}`}>{opp ? <Avatar p={opp} size={110} /> : <Avatar name={m.oppName} size={110} />}{done && !m.won && <span className="wtag">WINNER</span>}<span className="nm">{m.oppName}</span><small>{m.oppCountry} · ranked {m.oppRank}{m.oppReal ? '' : ' · fictional'}</small></div>
+    </div>
+  );
+}
+function Board({ S, m, shown, done }: { S: State; m: UMatch; shown: number; done: boolean }) {
+  const all = parseSets(m), sets = all.slice(0, shown), me = S.players[S.userId];
+  if (m.cls === 'wo') return <div className="board"><p className="d" style={{ fontSize: '2rem', margin: 0 }}>Walkover</p><div className="foot">{m.won ? 'Your opponent withdrew' : 'You could not take the court'}</div></div>;
+  return (
+    <div className="board">
+      <div className="grid" style={{ gridTemplateColumns: `auto repeat(${sets.length + (done ? 0 : 1)}, minmax(48px, 72px))` }}>
+        <span />{sets.map((_, k) => <span key={k} className="h">SET {k + 1}</span>)}{!done && <span className="h">SET {sets.length + 1}</span>}
+        <span className="nm">{surname(me.name)}</span>{sets.map((s, k) => <span key={k} className={`sc ${s[0] > s[1] ? 'w' : ''}`}>{s[0]}{s[2] !== undefined && s[0] < s[1] && <sup>{s[2]}</sup>}</span>)}{!done && <span className="sc pend">·</span>}
+        <span className="nm">{surname(m.oppName)}</span>{sets.map((s, k) => <span key={k} className={`sc ${s[1] > s[0] ? 'w' : ''}`}>{s[1]}{s[2] !== undefined && s[1] < s[0] && <sup>{s[2]}</sup>}</span>)}{!done && <span className="sc pend">·</span>}
+      </div>
+      <div className="foot">{roundName(m.round)}{m.qual ? ' · qualifying' : ''} · {done ? `${Math.floor(m.minutes / 60)}h ${String(m.minutes % 60).padStart(2, '0')}m` : 'in progress'} · {m.p < 0.4 ? 'you were the underdog' : m.p > 0.6 ? 'you were the favourite' : 'an even contest'}{done && m.cls === 'ret' ? ' · ended by retirement' : ''}</div>
+    </div>
+  );
+}
+function MatchStage({ S, t, list, mi, sets: shown }: { S: State; t: UTourney; list: UMatch[]; mi: number; sets: number }) {
+  const m = list[mi], all = parseSets(m), done = m.cls === 'wo' || shown >= all.length, cut = all.slice(0, shown);
+  const a = cut.filter(s => s[0] > s[1]).length, b = cut.length - a, opp = surname(m.oppName);
+  const head = done ? (m.won ? (m.cls === 'wo' ? 'Through' : 'Match won') : 'Match lost') : a === b ? `${a} set${a === 1 ? '' : 's'} all` : a > b ? `You lead ${a}-${b}` : `${opp} leads ${b}-${a}`;
+  const games = cut.reduce((g, s) => g + s[0] + s[1], 0), st = m.stats;
   return (
     <>
       <div className="reveal-head">
-        <span className="kicker">{t.name} · {t.surface} · {t.cat}</span>
+        <span className="kicker">{t.name} · {t.surface} · {roundName(m.round)}{m.qual ? ' · qualifying' : ''}</span>
+        <h1 className={`mega ${done ? '' : 'live'}`} key={`${m.id}-${shown}`}>{head}</h1>
+      </div>
+      <Plates S={S} m={m} done={done}><Board S={S} m={m} shown={shown} done={done} /></Plates>
+      <div className="reveal-grid">
+        <section className="glass">
+          <div className="sec-head"><h3>Through the draw</h3></div>
+          <ol className="plain runpath">{list.map((x, k) => <li key={x.id} className={k > mi ? 'future' : k === mi ? (done ? (x.won ? 'now' : 'lost') : 'now live') : x.won ? '' : 'lost'}><span className="r">{roundName(x.round)}{k < mi || (k === mi && done) ? (x.won ? ' · won' : ' · lost') : k === mi ? ' · on court' : ''}</span><br /><b>{k > mi ? 'To be decided' : x.oppName}</b>{(k < mi || (k === mi && done)) && <span className="muted"> {x.score}</span>}</li>)}</ol>
+        </section>
+        <section className="glass" style={{ display: 'flex', flexDirection: 'column', gap: '.8rem' }}>
+          {m.flow && games > 0 ? <Momentum m={m} oppName={m.oppName} upto={games} /> : <p className="muted">{m.cls === 'wo' ? 'No match was played.' : 'Momentum appears as the sets are played.'}</p>}
+          {done && m.cls !== 'wo' && <div><p className="eyebrow" style={{ color: 'var(--ball)' }}>Why it went this way</p><ul className="plain reasons">{m.reasons.map((r, k) => <li key={k}>{r}</li>)}</ul></div>}
+        </section>
+        <section className="glass">
+          <div className="sec-head"><h3>Match facts</h3></div>
+          {done && st ? <div className="facts">
+            {([['Aces', st[0].aces, st[1].aces], ['Double faults', st[0].df, st[1].df], ['1st serve won', pc(st[0].fsWon, st[0].fsIn), pc(st[1].fsWon, st[1].fsIn)], ['Break points', `${st[0].bpWon}/${st[0].bpTot}`, `${st[1].bpWon}/${st[1].bpTot}`], ['Points won', st[0].pts, st[1].pts]] as [string, string | number, string | number][]).map(([k, x, y]) => <div key={k} className="fact"><b className="num">{x}</b><span>{k}</span><b className="num">{y}</b></div>)}
+          </div> : <div className="facts"><div className="fact"><b>{m.myRank}</b><span>Ranking</span><b>{m.oppRank}</b></div><div className="fact"><b>{Math.round(m.p * 100)}%</b><span>Pre-match chance</span><b>{Math.round((1 - m.p) * 100)}%</b></div><div className="fact"><b>{S.players[S.userId].country}</b><span>Country</span><b>{m.oppCountry}</b></div></div>}
+        </section>
+      </div>
+    </>
+  );
+}
+const pc = (x: number, y: number) => (y ? `${Math.round((x / y) * 100)}%` : '–');
+function EventReveal({ S, t }: { S: State; t: UTourney }) {
+  const u = S.u, ms = t.matches.map(id => u.matches.find(m => m.id === id)!).filter(Boolean), m = ms[ms.length - 1];
+  const { assets } = useApp(), slam = S.cal.find(e => e.series === t.series)?.slam, trophy = t.title && slam ? assets[`trophy:${slam}:${S.tour}`] : null;
+  const improved = ROUND_ORDER.indexOf(t.reached) >= 0 && ROUND_ORDER.indexOf(t.reached) < bestBefore(S, t);
+  const before = rankAround(S, t.wk), after = rankAround(S, t.wk + (t.band === 'GS' ? 2 : 1));
+  return (
+    <>
+      <div className="reveal-head">
+        <span className="kicker">{t.name} · {t.surface} · {t.cat} · final result</span>
         <h1 className="mega">{headline(t.reached)}{improved && !t.title && <span className="sticker">Best result yet</span>}</h1>
         {trophy && <img className="trophy" src={trophy} alt="" />}
       </div>
-      {m && <div className="versus">
-        <div className={`plate ${m.won ? 'win' : ''}`}><Avatar p={me} size={110} user={u.avatar} />{m.won && <span className="wtag">WINNER</span>}<span className="nm">{me.name}</span><small>{me.country} · ranked {m.myRank}</small></div>
-        <div className="board">
-          {m.cls === 'wo' ? <p className="d" style={{ fontSize: '2rem', margin: 0 }}>Walkover</p> : <>
-            <div className="grid" style={{ gridTemplateColumns: `auto repeat(${sets.length}, minmax(48px, 72px))` }}>
-              <span />{sets.map((_, k) => <span key={k} className="h">SET {k + 1}</span>)}
-              <span className="nm">{surname(me.name)}</span>{sets.map((s, k) => <span key={k} className={`sc ${s[0] > s[1] ? 'w' : ''}`} style={{ animationDelay: `${k * 0.12}s` }}>{s[0]}{s[2] !== undefined && s[0] < s[1] && <sup>{s[2]}</sup>}</span>)}
-              <span className="nm">{surname(m.oppName)}</span>{sets.map((s, k) => <span key={k} className={`sc ${s[1] > s[0] ? 'w' : ''}`} style={{ animationDelay: `${k * 0.12 + 0.06}s` }}>{s[1]}{s[2] !== undefined && s[1] < s[0] && <sup>{s[2]}</sup>}</span>)}
-            </div>
-            <div className="foot">{roundName(m.round)} · {Math.floor(m.minutes / 60)}h {String(m.minutes % 60).padStart(2, '0')}m · {m.p < 0.4 ? 'you were the underdog' : m.p > 0.6 ? 'you were the favourite' : 'an even contest'}{m.cls === 'ret' ? ' · ended by retirement' : ''}</div>
-          </>}
-        </div>
-        <div className={`plate ${!m.won ? 'win' : ''}`}>{opp ? <Avatar p={opp} size={110} /> : <Avatar name={m.oppName} size={110} />}{!m.won && <span className="wtag">WINNER</span>}<span className="nm">{m.oppName}</span><small>{m.oppCountry} · ranked {m.oppRank}{m.oppReal ? '' : ' · fictional'}</small></div>
-      </div>}
+      {m && <Plates S={S} m={m} done><Board S={S} m={m} shown={99} done /></Plates>}
       <div className="reveal-grid">
         <section className="glass">
           <div className="sec-head"><h3>Your run</h3></div>
@@ -379,30 +474,37 @@ function EventReveal({ S, t }: { S: State; t: UTourney; last: boolean }) {
     </>
   );
 }
-function BlockSummary({ S }: { S: State }) {
-  const sum = S.lastSummary!, u = S.u, moved = sum.rankFrom - sum.rankTo, dev = ABILITIES.filter(a => (sum.dev[a] ?? 0) >= 0.05);
-  const ts = sum.tourneys.map(id => u.tourneys.find(t => t.ed === id)!).filter(Boolean);
+function RangeSummary({ S, from, multi, items }: { S: State; from: number; multi: boolean; items: UTourney[] }) {
+  const sum = S.lastSummary!, u = S.u, end = sum.toWk;
+  const rankFrom = multi ? (u.rankHist.find(h => h.wk >= from)?.rank ?? sum.rankFrom) : sum.rankFrom, rankTo = sum.rankTo, moved = rankFrom - rankTo;
+  const ptsFrom = multi ? (u.rankHist.find(h => h.wk >= from)?.pts ?? sum.ptsFrom) : sum.ptsFrom;
+  const cashDelta = multi ? u.ledger.filter(l => l.wk >= from && l.wk < end).reduce((t, l) => t + l.amt, 0) : sum.cashTo - sum.cashFrom;
+  const dev: Partial<Record<string, number>> = multi ? {} : sum.dev;
+  if (multi) for (const a of u.attr) if (a.wk >= from && a.wk <= end && (a.cause === 'competition' || a.cause === 'training')) dev[a.ab] = (dev[a.ab] ?? 0) + (a.to - a.from);
+  const devs = ABILITIES.filter(a => (dev[a] ?? 0) >= 0.05);
+  const all = u.tourneys.filter(t => t.wk >= from && t.wk < end), w = items.reduce((n, t) => n + t.matches.filter(id => u.matches.find(m => m.id === id)?.won).length, 0), l = items.reduce((n, t) => n + t.matches.length, 0) - w;
+  const ach = multi ? u.ach.filter(a => a.wk >= from && a.wk <= end).map(a => a.name) : sum.newAch;
   return (
     <>
-      <div className="reveal-head"><span className="kicker">Swing complete</span><h1 className="mega">{moved > 0 ? `Up ${moved}` : moved < 0 ? `Down ${-moved}` : 'Holding steady'}</h1></div>
+      <div className="reveal-head"><span className="kicker">{multi ? 'Season played' : 'Swing complete'} · {w}–{l}</span><h1 className="mega">{moved > 0 ? `Up ${moved}` : moved < 0 ? `Down ${-moved}` : 'Holding steady'}</h1></div>
       <div className="reveal-grid" style={{ marginTop: '1.4rem' }}>
         <section className="glass">
           <div className="sec-head"><h3>Ranking</h3></div>
-          <div className="reward"><span className="from">{sum.rankFrom}</span><span style={{ color: 'var(--ball)' }}><Arrow /></span><span className="to">{sum.rankTo}</span></div>
-          <div className="chips" style={{ marginTop: '.8rem' }}><span className="c">{sum.ptsTo} pts</span><span className="c">{sum.ptsTo - sum.ptsFrom >= 0 ? '+' : ''}{sum.ptsTo - sum.ptsFrom} this swing</span></div>
-          <div className="chips" style={{ marginTop: '.8rem' }}><span className="c">Cash {money(sum.cashTo)}</span><span className="c">{sum.cashTo - sum.cashFrom >= 0 ? '+' : '−'}{money(Math.abs(sum.cashTo - sum.cashFrom))}</span></div>
+          <div className="reward"><span className="from">{rankFrom}</span><span style={{ color: 'var(--ball)' }}><Arrow /></span><span className="to">{rankTo}</span></div>
+          <div className="chips" style={{ marginTop: '.8rem' }}><span className="c">{sum.ptsTo} pts</span><span className="c">{sum.ptsTo - ptsFrom >= 0 ? '+' : ''}{sum.ptsTo - ptsFrom}</span></div>
+          <div className="chips" style={{ marginTop: '.8rem' }}><span className="c">Cash {money(sum.cashTo)}</span><span className="c">{cashDelta >= 0 ? '+' : '−'}{money(Math.abs(cashDelta))}</span></div>
         </section>
         <section className="glass">
-          <div className="sec-head"><h3>Events</h3></div>
-          <ul className="plain">{ts.map(t => <li key={t.ed} style={{ display: 'flex', justifyContent: 'space-between', gap: '.6rem' }}><span><b>{t.name}</b></span><span>{played(t) ? headline(t.reached) : <span className="pill warn">{t.status === 'ALT' ? 'Not accepted' : 'Withdrew'}</span>}</span></li>)}</ul>
-          {sum.notes.map((n, k) => <p key={k} className="note">{n}</p>)}
+          <div className="sec-head"><h3>Events</h3><small>{all.length}</small></div>
+          <ul className="plain">{all.map(t => <li key={t.ed} style={{ display: 'flex', justifyContent: 'space-between', gap: '.6rem' }}><button className="link" style={{ color: '#fff', textDecoration: 'none', textAlign: 'left' }} onClick={() => set({ overlay: { kind: 'tourney', ed: t.ed } })}><b>{t.name}</b></button><span>{played(t) ? headline(t.reached) : <span className="pill warn">{t.status === 'ALT' ? 'Not accepted' : 'Withdrew'}</span>}</span></li>)}</ul>
+          {!multi && sum.notes.map((n, k) => <p key={k} className="note">{n}</p>)}
           {sum.follow.map((n, k) => <p key={k} className="note story">{fillText(S, n)}</p>)}
           {sum.world.length > 0 && <p className="muted">Around the tour: {sum.world.join('; ')}.</p>}
         </section>
         <section className="glass">
           <div className="sec-head"><h3>Skills up</h3></div>
-          {dev.length ? <div className="chips">{dev.map(a => <span key={a} className="skillup"><i>▲</i>{ABILITY_NAMES[a]} +{sum.dev[a]!.toFixed(1)}</span>)}</div> : <p className="muted">No measurable growth this swing.</p>}
-          {sum.newAch.length > 0 && <p className="ok-box" style={{ marginTop: '1rem' }}>Milestones: {sum.newAch.join(' · ')}</p>}
+          {devs.length ? <div className="chips">{devs.map(a => <span key={a} className="skillup"><i>▲</i>{ABILITY_NAMES[a]} +{dev[a]!.toFixed(1)}</span>)}</div> : <p className="muted">No measurable growth.</p>}
+          {ach.length > 0 && <p className="ok-box" style={{ marginTop: '1rem' }}>Milestones: {ach.join(' · ')}</p>}
         </section>
       </div>
     </>

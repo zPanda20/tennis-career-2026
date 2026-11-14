@@ -52,7 +52,7 @@ export function App() {
             </main>
             {!fullscreen && <nav className="bottomnav mob" aria-label="Main">{TABS.slice(0, 4).map(([k, t]) => <button key={k} className={tab === k ? 'on' : ''} aria-current={tab === k ? 'page' : undefined} onClick={() => set({ tab: k })}><i />{t}</button>)}</nav>}
             {overlay?.kind === 'planner' && S.phase === 'plan' && <Planner S={S} />}
-            {overlay?.kind === 'reveal' && <Reveal S={S} />}
+            {overlay?.kind === 'reveal' && <Reveal S={S} from={overlay.from} />}
             {overlay?.kind === 'tourney' && <TourneyHub S={S} ed={overlay.ed} />}
             {overlay?.kind === 'match' && <MatchReport S={S} id={overlay.id} />}
             {overlay?.kind === 'player' && <PlayerCard S={S} id={overlay.id} />}
