@@ -92,7 +92,7 @@ export function simulateMatch(a: Player, b: Player, rules: Rules, seed: string, 
   const sets: [number, number, number?, number?][] = [];
   const setsWon = [0, 0], need = rules.bestOf === 3 ? 2 : 3;
   let server = r.chance(0.5) ? 0 : 1, total = 0;
-  const turning: string[] = [];
+  const turning: string[] = [], flow: number[] = []; // flow: winner of each game in order (tiebreaks count as a game)
   // rare acute incident decided up front so the same exposure is never rolled twice
   let retireAt = -1, retiredSide: 0 | 1 | undefined;
   for (const i of [0, 1] as const) if (retireAt < 0 && r.chance(HEALTH.acute * (1 + sides[i].strain / 60))) { retireAt = r.int(20, 110); retiredSide = i; }
@@ -145,7 +145,7 @@ export function simulateMatch(a: Player, b: Player, rules: Rules, seed: string, 
       if (g[0] === 6 && g[1] === 6) {
         const [w, x, y] = tiebreak(server, deciding && rules.tb10 ? 10 : 7);
         if (w < 0) { sets.push([g[0], g[1]]); retired = true; break outer; }
-        g[w]++; sets.push([g[0], g[1], x, y]); setsWon[w]++;
+        g[w]++; flow.push(w); sets.push([g[0], g[1], x, y]); setsWon[w]++;
         server = 1 - setFirst; // player who received first in the tiebreak set serves first in the next set
         if (detail) turning.push(`Set ${sets.length} tiebreak ${Math.max(x, y)}-${Math.min(x, y)}`);
         break;
@@ -153,7 +153,7 @@ export function simulateMatch(a: Player, b: Player, rules: Rules, seed: string, 
       const w = game(server);
       if (w < 0) { sets.push([g[0], g[1]]); retired = true; break outer; }
       if (detail && w !== server && g[0] + g[1] >= 6 && Math.abs(g[0] - g[1]) <= 1) turning.push(`Break at ${g[0]}-${g[1]} in set ${sets.length + 1}`);
-      g[w]++; server = 1 - server;
+      g[w]++; flow.push(w); server = 1 - server;
       if ((g[0] >= 6 || g[1] >= 6) && Math.abs(g[0] - g[1]) >= 2) { sets.push([g[0], g[1]]); setsWon[g[0] > g[1] ? 0 : 1]++; break; }
     }
   }
@@ -170,5 +170,5 @@ export function simulateMatch(a: Player, b: Player, rules: Rules, seed: string, 
   // closeness: 0 one-sided … 1 sustained contest (used for competitive exposure, spec 6.1)
   const share = games ? 1 - wg / games : 0.5;
   const closeness = retired ? 0.3 : clamp((share - 0.22) / 0.26, 0, 1) * 0.75 + (sets.length > need ? 0.2 : 0) + Math.min(0.1, tbs * 0.05);
-  return { winner, sets, score, stats: st, points: total, minutes, fatigue: [load(0), load(1)], cls: retired ? 'ret' : 'played', retiredSide: retired ? retiredSide : undefined, closeness: clamp(closeness, 0, 1), turning: turning.slice(-3) };
+  return { winner, sets, score, stats: st, points: total, minutes, fatigue: [load(0), load(1)], cls: retired ? 'ret' : 'played', retiredSide: retired ? retiredSide : undefined, closeness: clamp(closeness, 0, 1), turning: turning.slice(-3), flow };
 }

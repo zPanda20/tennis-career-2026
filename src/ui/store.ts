@@ -6,7 +6,7 @@ import { buildBackup, validateBackup } from '../core/selectors';
 import * as db from '../persist/db';
 
 export type Tab = 'career' | 'calendar' | 'player' | 'world' | 'records' | 'settings';
-export type Overlay = { kind: 'tourney'; ed: string } | { kind: 'match'; id: string } | { kind: 'player'; id: string } | { kind: 'planner' } | { kind: 'summary' } | null;
+export type Overlay = { kind: 'tourney'; ed: string } | { kind: 'match'; id: string } | { kind: 'player'; id: string } | { kind: 'planner' } | { kind: 'reveal' } | null;
 export interface App {
   view: 'boot' | 'library' | 'create' | 'game'; careers: db.CareerMeta[]; S: State | null; tab: Tab; overlay: Overlay; busy: string | null; save: 'saved' | 'saving' | 'error' | 'readonly'; error: string | null; notice: string | null;
   assets: Record<string, string>; labels: Record<string, string>; storageOk: boolean; reduced: boolean;

@@ -215,9 +215,10 @@ function playMatch(S: State, ed: Edition, aId: string | null, bId: string | null
 function recordUser(S: State, ed: Edition, round: string, qual: boolean, won: boolean, res: MatchResult | null, i: 0 | 1, opp: Player, p: number) {
   const u = S.u, me = S.players[S.userId], myRank = lockRank(S, ed, me.id), oppRank = lockRank(S, ed, opp.id);
   const m: UMatch = {
-    id: `${ed.id}|${round}`, ed: ed.id, year: ed.year, wk: S.wk, round, qual, opp: opp.id, oppName: opp.name, oppRank, oppReal: opp.real, oppCountry: opp.country, myRank, won,
+    id: `${ed.id}|${round}${round === "RR" ? "|" + opp.id : ""}`, ed: ed.id, year: ed.year, wk: S.wk, round, qual, opp: opp.id, oppName: opp.name, oppRank, oppReal: opp.real, oppCountry: opp.country, myRank, won,
     score: res ? res.score : 'w/o', cls: res ? res.cls : 'wo', p, stats: res ? (i === 0 ? res.stats : [res.stats[1], res.stats[0]]) : undefined, minutes: res?.minutes ?? 0,
     reasons: res ? reasons(S, res, i, won, me, opp, myRank, oppRank) : [won ? `${lastName(opp.name)} withdrew before the match. A walkover is not a played match.` : 'You could not take the court.'], turning: res?.turning ?? [], surface: ed.surface, dev: 0, fat: res ? res.fatigue[i] : 0,
+    flow: res ? res.flow.map(g => (g === i ? '1' : '0')).join('') : undefined, sets: res ? res.sets.map(s => (i === 0 ? [s[0], s[1], s[2] !== undefined ? Math.min(s[2], s[3]!) : undefined] : [s[1], s[0], s[2] !== undefined ? Math.min(s[2], s[3]!) : undefined]) as [number, number, number?]) : undefined,
   };
   u.matches.push(m); uT(S, ed.id)?.matches.push(m.id);
   logEv(S, 'MatchCompleted', { id: m.id, won, score: m.score, opp: opp.id });

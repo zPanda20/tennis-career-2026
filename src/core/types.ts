@@ -39,12 +39,12 @@ export interface Edition extends EvTemplate {
 export interface MatchStats { aces: number; df: number; fsIn: number; fsTot: number; fsWon: number; ssWon: number; ssTot: number; bpWon: number; bpTot: number; pts: number; retWon: number }
 export interface MatchResult {
   winner: 0 | 1; sets: [number, number, number?, number?][]; score: string; stats: [MatchStats, MatchStats]; points: number; minutes: number;
-  fatigue: [number, number]; cls: 'played' | 'ret'; retiredSide?: 0 | 1; closeness: number; turning: string[];
+  fatigue: [number, number]; cls: 'played' | 'ret'; retiredSide?: 0 | 1; closeness: number; turning: string[]; flow: number[];
 }
 export interface UMatch {
   id: string; ed: string; year: number; wk: number; round: string; qual: boolean; opp: string; oppName: string; oppRank: number; oppReal: boolean; oppCountry: string;
   myRank: number; won: boolean; score: string; cls: 'played' | 'ret' | 'wo'; p: number; stats?: [MatchStats, MatchStats]; minutes: number; reasons: string[]; turning: string[];
-  surface: Surface; dev: number; fat: number;
+  surface: Surface; dev: number; fat: number; flow?: string; sets?: [number, number, number?][];
 }
 export interface UTourney {
   ed: string; series: string; name: string; cat: string; band: Band; surface: Surface; city: string; country: string; year: number; wk: number; dates: string;

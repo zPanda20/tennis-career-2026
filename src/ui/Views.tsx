@@ -7,6 +7,7 @@ import { ABILITIES, ABILITY_NAMES, Ability, STYLE_NAMES, State, UMatch } from '.
 import { strength } from '../core/world';
 import { Avatar, Bar, BrandMark, EventLogo, Modal, Pill, Section, Stat, SurfaceTag, Who, money, rankTxt } from './bits';
 import { clearPack, importPack } from './pack';
+import { Momentum } from './fx';
 import { dispatch, exportBackup, get, set, useApp } from './store';
 import { exportArchive, exportPdf } from '../export/pdf';
 
@@ -27,7 +28,7 @@ export function Calendar({ S }: { S: State }) {
   }, [S, mode]);
   return (
     <div>
-      <div className="row between"><h2>{S.year} calendar</h2>
+      <div className="row between"><h1>{S.year} calendar</h1>
         <div className="seg" role="group" aria-label="Which events to show">{([['relevant', 'For you'], ['main', 'Main tour'], ['all', 'Everything']] as const).map(([k, t]) => <button key={k} className={mode === k ? 'on' : ''} aria-pressed={mode === k} onClick={() => setMode(k)}>{t}</button>)}</div></div>
       <p className="muted">{S.year === 2026 ? 'Real 2026 events. Lower-tier entries from July onward marked "provisional" reuse first-half venues.' : 'Simulated calendar: the 2026 pattern carried forward, not a confirmed real-world schedule.'} Entry lists lock on the Monday ranking of the event's first week.</p>
       {weeks.map(([w, evs]) => (
@@ -103,7 +104,7 @@ export function World({ S }: { S: State }) {
   const found = useMemo(() => (q.trim().length < 2 ? [] : Object.values(S.players).filter(p => p.name.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 40)), [S, q]);
   return (
     <div>
-      <div className="row between"><h2>{S.tour === 'atp' ? "Men's" : "Women's"} tour</h2><div className="seg wrap" role="group" aria-label="World view">{([['rank', 'Rankings'], ['race', `${S.year} race`], ['champs', 'Champions'], ['rivals', 'Head to head'], ['find', 'Find a player']] as const).map(([k, t]) => <button key={k} className={tab === k ? 'on' : ''} aria-pressed={tab === k} onClick={() => setTab(k)}>{t}</button>)}</div></div>
+      <div className="row between"><h1>{S.tour === 'atp' ? "Men's" : "Women's"} tour</h1><div className="seg wrap" role="group" aria-label="World view">{([['rank', 'Rankings'], ['race', `${S.year} race`], ['champs', 'Champions'], ['rivals', 'Head to head'], ['find', 'Find a player']] as const).map(([k, t]) => <button key={k} className={tab === k ? 'on' : ''} aria-pressed={tab === k} onClick={() => setTab(k)}>{t}</button>)}</div></div>
       {tab === 'rank' && <><p className="muted">Published {fmtDate(wkDate(S.wk))}. Best 18 results of the last 52 weeks.</p>
         <ol className="list rank">{S.order.slice(0, n).map((id, i) => <li key={id} className={id === S.userId ? 'me' : ''}><span className="pos num">{i + 1}</span><Who S={S} id={id} sub={`age ${age(S, S.players[id].born)}`} /><span className="num pts">{S.pts[id].toLocaleString('en-US')}</span></li>)}</ol>
         <div className="row">{n < S.order.length && <button className="btn" onClick={() => setN(n + 100)}>Show more</button>}{S.rank[S.userId] > n && <button className="btn ghost" onClick={() => setN(Math.ceil(S.rank[S.userId] / 50) * 50)}>Show down to my ranking</button>}</div></>}
@@ -158,6 +159,7 @@ export function MatchReport({ S, id }: { S: State; id: string }) {
       <ul className="plain reasons">{m.reasons.map((r, i) => <li key={i}>{r}</li>)}</ul>
       {a && b && <table className="tbl stats-tbl"><caption className="sr">Match statistics</caption><thead><tr><th>{me.name.split(' ').pop()}</th><th></th><th>{m.oppName.split(' ').pop()}</th></tr></thead><tbody>
         {[['Aces', a.aces, b.aces], ['Double faults', a.df, b.df], ['First serves in', pc(a.fsIn, a.fsTot), pc(b.fsIn, b.fsTot)], ['First-serve points won', pc(a.fsWon, a.fsIn), pc(b.fsWon, b.fsIn)], ['Second-serve points won', pc(a.ssWon, a.ssTot), pc(b.ssWon, b.ssTot)], ['Return points won', pc(a.retWon, b.fsTot), pc(b.retWon, a.fsTot)], ['Break points won', `${a.bpWon}/${a.bpTot}`, `${b.bpWon}/${b.bpTot}`], ['Total points', a.pts, b.pts]].map(([k, x, y]) => <tr key={k as string}><td className="num">{x}</td><td className="c">{k}</td><td className="num r">{y}</td></tr>)}</tbody></table>}
+      {m.flow && <div className="glass" style={{ marginTop: '1rem' }}><Momentum m={m} oppName={m.oppName} /></div>}
       {m.turning.length > 0 && <p className="muted">Key moments: {m.turning.join(' · ')}.</p>}
       {m.cls !== 'wo' && <p className="muted">Before the match you were {m.p < 0.35 ? 'the underdog' : m.p > 0.65 ? 'the favourite' : 'evenly matched'}. {m.p > 0.25 && m.p < 0.75 ? 'Matches like this are where most development comes from.' : m.p >= 0.75 ? 'Easy wins help confidence and earnings more than skill.' : 'A heavy mismatch teaches a little, but not efficiently.'} Fatigue from this match: +{Math.round(m.fat)}.</p>}
     </Modal>
@@ -211,7 +213,7 @@ export function Settings({ S }: { S: State }) {
   const pol = (p: Partial<typeof u.pol>) => dispatch({ type: 'ChangeDelegation', pol: { ...u.pol, ...p } }, 'Saving…');
   return (
     <div className="narrow">
-      <h2>Settings</h2>
+      <h1>Settings</h1>
       <Section title="Play">
         <fieldset disabled={ro || S.phase === 'retired'}><legend>Detail</legend><div className="seg">{(['quick', 'detailed'] as const).map(d => <button key={d} className={u.pol.detail === d ? 'on' : ''} aria-pressed={u.pol.detail === d} onClick={() => pol({ detail: d })}>{d === 'quick' ? 'Quick play' : 'Detailed play'}</button>)}</div><p className="muted">Applies to future decisions only. Switching never changes past results, cash or odds.</p></fieldset>
         <label className="check"><input type="checkbox" disabled={ro || S.phase === 'retired'} checked={u.pol.adult} onChange={e => pol({ adult: e.target.checked })} /><span>Adult themes in life events</span></label>

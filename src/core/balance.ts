@@ -76,7 +76,7 @@ export const STYLE_OFF: Record<Style, Record<Ability, number>> = {
   N: { serve: 5, ret: -3, fh: -1, bh: -2, net: 5, move: -1, end: -2, comp: 0 },
 };
 // Default acceptance cut-offs (last direct rank, last qualifying rank) until a series has its own history
-export const CUTS: Record<string, [number, number]> = { GS: [104, 232], T1000: [85, 140], T1000s: [50, 85], T500: [60, 110], T250: [95, 170], UL: [230, 380], SL: [420, 620], EP: [600, 780], F: [8, 8] };
+export const CUTS: Record<string, [number, number]> = { GS: [104, 232], T1000: [85, 140], T1000s: [50, 85], T500: [60, 110], T250: [95, 170], UL: [230, 380], SL: [420, 620], EP: [640, 960], F: [8, 8] };
 export const BAND_NAME: Record<Band, string> = { GS: 'Grand Slam', F: 'Tour Finals', T1000: 'Tour 1000', T500: 'Tour 500', T250: 'Tour 250', UL: 'Upper lower tour', SL: 'Strong lower tour', EP: 'Entry professional' };
 export const BAND_VAL: Record<Band, number> = { GS: 2000, F: 1500, T1000: 1000, T500: 500, T250: 250, UL: 100, SL: 50, EP: 15 };
 export const BLOCKS = [0, 12, 22, 30]; // first week index of blocks A–D (spec 4.2)

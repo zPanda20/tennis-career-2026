@@ -1,6 +1,6 @@
 # Tennis Career 2026
 
-A private, single-player tennis career simulation that runs entirely in the browser. Create a 19-year-old professional on 1 January 2026, enter the men's or women's tour among the real 2026 field, and play the career through to retirement.
+A private, single-player tennis career simulation that runs entirely in the browser, with a "Centre Court" game interface that re-tints to the hard, clay or grass swing you are in. Create a 19-year-old professional on 1 January 2026, enter the men's or women's tour among the real 2026 field, and play the career through to retirement.
 
 Built from the *Tennis Career 2026* design document (Version 1.0).
 

@@ -4,27 +4,28 @@ import { genName } from '../core/names';
 import { Rng } from '../core/rng';
 import { ABILITIES, ABILITY_NAMES, Ability, Setup } from '../core/types';
 import { Avatar, Pill, rankTxt } from './bits';
+import { Arrow } from './fx';
 import { importBackup, newCareer, openCareer, removeCareer, set, useApp } from './store';
 
 export function Library() {
   const { careers, storageOk } = useApp(), file = useRef<HTMLInputElement>(null);
   const active = careers.filter(c => c.status === 'active'), retired = careers.filter(c => c.status === 'retired');
   return (
-    <main className="page narrow">
-      <div className="hero">
-        <p className="eyebrow">A tennis career, from nineteen to retirement</p>
-        <h1 className="display">Tennis Career 2026</h1>
-        <p className="lede">Create a player, enter the 2026 tennis world and find out what career they can build.</p>
-        <div className="row">
-          {active[0] && <button className="btn primary" onClick={() => openCareer(active[0].id)}>Continue {active[0].name}</button>}
-          <button className={`btn ${active[0] ? '' : 'primary'}`} onClick={() => set({ view: 'create' })}>Start a new career</button>
+    <main className="page">
+      <div className="landing" style={{ minHeight: active.length || retired.length ? '68vh' : '92vh' }}>
+        <span className="kicker" style={{ alignSelf: 'flex-start' }}>From nineteen to retirement</span>
+        <h1 className="mega"><span>Tennis</span><span>Career</span><span className="ol">2026</span></h1>
+        <p className="lede">Create a player, step onto the 2026 tour among the real field, and find out what career you can build.</p>
+        <div className="row" style={{ gap: '1.2rem', marginTop: '1.4rem' }}>
+          {active[0] && <button className="cta" onClick={() => openCareer(active[0].id)}>Continue {active[0].name.split(' ')[0]}<span className="go"><Arrow /></span></button>}
+          <button className={active[0] ? 'btn' : 'cta'} onClick={() => set({ view: 'create' })}>Start a new career{!active[0] && <span className="go"><Arrow /></span>}</button>
           <button className="btn ghost" onClick={() => file.current?.click()}>Import a backup</button>
           <input ref={file} type="file" accept="application/json,.json" hidden onChange={e => { const f = e.target.files?.[0]; if (f) importBackup(f); e.target.value = ''; }} />
         </div>
         {!storageOk && <p className="warn-box" role="alert">This browser cannot store careers right now (private browsing or blocked storage). You can still play, but export a backup before closing the tab.</p>}
       </div>
-      {active.length > 0 && <section className="sec"><h3>Active careers</h3><ul className="list">{active.map(c => <CareerRow key={c.id} c={c} />)}</ul></section>}
-      {retired.length > 0 && <section className="sec"><h3>Completed careers <small>read-only archives</small></h3><ul className="list">{retired.map(c => <CareerRow key={c.id} c={c} />)}</ul></section>}
+      {active.length > 0 && <section className="sec"><div className="sec-head"><h3>Active careers</h3></div><ul className="list">{active.map(c => <CareerRow key={c.id} c={c} />)}</ul></section>}
+      {retired.length > 0 && <section className="sec"><div className="sec-head"><h3>Completed careers</h3><small>read-only archives</small></div><ul className="list">{retired.map(c => <CareerRow key={c.id} c={c} />)}</ul></section>}
       <p className="fine">A free private hobby game. Careers are saved in this browser only; export a backup from Settings to keep a durable copy. Results from 1 January 2026 onward are simulated and player ratings are game estimates.</p>
     </main>
   );
@@ -65,7 +66,7 @@ export function Create() {
       <div className="create-main">
         <button className="btn ghost small" onClick={() => set({ view: 'library' })}>← Back to careers</button>
         <ol className="steps" aria-label="Setup steps">{steps.map((t, i) => <li key={t} className={i === step ? 'on' : i < step ? 'done' : ''} aria-current={i === step ? 'step' : undefined}>{t}</li>)}</ol>
-        {step === 0 && <div className="card"><h2>Choose a tour</h2><p className="muted">Both tours have their own players, calendar and competitive balance.</p>
+        {step === 0 && <div className="card"><h1 style={{ fontSize: '3.4rem' }}>Choose your tour</h1><p className="muted">Both tours have their own players, calendar and competitive balance.</p>
           <div className="choice-grid two">{(['atp', 'wta'] as const).map(t => <button key={t} className={`choice ${s.tour === t ? 'on' : ''}`} aria-pressed={s.tour === t} onClick={() => up({ tour: t, pronouns: t === 'atp' ? 'he/him' : 'she/her' })}><b>{t === 'atp' ? "Men's tour" : "Women's tour"}</b><span>{t === 'atp' ? 'Best of five sets at the majors. Starts among Alcaraz, Sinner and the 2026 field.' : 'Best of three throughout. Starts among Sabalenka, Swiatek and the 2026 field.'}</span></button>)}</div>
           <button className="btn ghost" onClick={() => { randomise(); setStep(4); }}>Skip ahead with a random identity and suggested focus</button></div>}
         {step === 1 && <div className="card"><h2>Identity</h2>
@@ -103,12 +104,12 @@ export function Create() {
           <p className="muted">Creating the career builds the world once. It cannot be re-rolled.</p></div>}
         <div className="row end">
           {step > 0 && <button className="btn" onClick={() => setStep(step - 1)}>Back</button>}
-          {step < 4 ? <button className="btn primary" disabled={step === 1 && s.name.trim().length < 2} onClick={() => setStep(step + 1)}>Next</button>
-            : <button className="btn primary" disabled={!valid} onClick={() => newCareer({ ...s, name: s.name.trim(), seed: `${crypto.randomUUID?.() ?? Math.random()}` })}>Create career</button>}
+          {step < 4 ? <button className="cta" disabled={step === 1 && s.name.trim().length < 2} onClick={() => setStep(step + 1)}>Next<span className="go"><Arrow /></span></button>
+            : <button className="cta" disabled={!valid} onClick={() => newCareer({ ...s, name: s.name.trim(), seed: `${crypto.randomUUID?.() ?? Math.random()}` })}>Create career<span className="go"><Arrow /></span></button>}
         </div>
       </div>
       <aside className="card preview" aria-label="Player preview">
-        <Avatar name={s.name || 'New Player'} user={s.avatar} size={88} />
+        <Avatar name={s.name || 'New Player'} user={s.avatar} size={120} />
         <h3>{s.name || 'New player'}</h3>
         <p className="muted">{COUNTRY_NAMES[s.country]} · {s.tour === 'atp' ? "Men's tour" : "Women's tour"}</p>
         <p>{s.hand === 'R' ? 'Right-handed' : 'Left-handed'} · age 19</p>
