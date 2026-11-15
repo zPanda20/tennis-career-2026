@@ -1,4 +1,6 @@
 // Weekly development, loads, recovery, health and money, plus the year-end turnover (spec 5–7, 10, 11, 14.4, 15).
+import { yearEndNews } from './news';
+import { ensureGoals, failGoals } from './goals';
 import { DEV, ECON, HEALTH, RECOVERY, RETIRE_AGE, TRAIN } from './balance';
 import { Content, ageOn, iso, travelClass, wkDate } from './content';
 import { BRANDS } from './names';
@@ -197,6 +199,7 @@ export function yearEnd(S: State, C: Content) {
   const need = S.active.length - keep.length, nr = rngOf(S.seed, 'rookies', y);
   for (let i = 0; i < need; i++) { const p = newcomer(S, nr, taken, y + 1); S.players[p.id] = p; keep.push(p.id); rookies.push(p.id); }
   S.active = keep; S.world.rookies[y + 1] = rookies;
+  yearEndNews(S, S.world.retired.filter(x => x.year === y).map(x => x.id)); failGoals(S, y);
   // drop retired background players that never met the user to keep saves small
   const met = new Set(u.matches.map(m => m.opp)); const notable = new Set<string>(S.world.champs.flatMap(c => [c.w, c.f ?? '']));
   for (const y2 of Object.values(S.world.yearEnd)) for (const e of y2) notable.add(e.id);
@@ -212,6 +215,6 @@ export function yearEnd(S: State, C: Content) {
   if (lastAge >= RETIRE_AGE) S.pending = { type: 'forcedRetire', text: `You turned ${RETIRE_AGE} during the ${y} season. The game's age ceiling means no new events are scheduled beyond it, so your career closes with this season.` };
   else if (ageOn(me.born, new Date(Date.UTC(S.year, 11, 31))) >= RETIRE_AGE) u.finalSeasonWarned = true;
   S.phase = 'yearEnd';
-  publish(S);
+  publish(S); if (S.pending.type !== 'forcedRetire') ensureGoals(S);
 }
 export { strength, weeksIn, ABILITY_NAMES };

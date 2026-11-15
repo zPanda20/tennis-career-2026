@@ -70,11 +70,14 @@ export interface UserCareer {
   startAb: Abil; startRank: number; evSeen: Record<string, number>; follow: { dueBlock: number; ev: string; choice: number }[]; blockMods: { train?: number; recov?: number };
   portrait?: string;
   devYear: { comp: number; train: number }; injWeeksYear: number; no1Weeks: number; hardship: number; finalSeasonWarned?: boolean; lastOfferYear: number; rivals: string[];
+  rivalNo?: string[]; goals?: Goal[];
 }
+export interface Goal { id: string; year: number; kind: 'rank' | 'title' | 'wins' | 'major'; target: number; bands?: Band[]; label: string; reward: number; done?: number; failed?: boolean }
+export interface News { wk: number; year: number; kind: 'champ' | 'rank' | 'rival' | 'upset' | 'teen' | 'retire' | 'yearEnd' | 'you'; text: string; ids: string[]; band?: Band }
 export interface Pending { type: 'injury' | 'yearEnd' | 'forcedRetire'; injury?: string; coachOffers?: Coach[]; sponsorOffers?: Sponsor[]; text?: string }
 export interface BlockPlan { weeks: Record<number, string>; route: string; lifeEv?: string; lifeChoice?: number }
 export interface BlockSummary { year: number; block: number; fromWk: number; toWk: number; rankFrom: number; rankTo: number; ptsFrom: number; ptsTo: number; tourneys: string[]; notes: string[]; dev: Partial<Abil>; cashFrom: number; cashTo: number; injuries: string[]; newAch: string[]; world: string[]; follow: string[] }
-export interface WorldRec { champs: { ed: string; name: string; year: number; band: Band; cat: string; w: string; f?: string; wk: number }[]; yearEnd: Record<number, { id: string; pts: number }[]>; no1: Record<string, number>; retired: { id: string; year: number }[]; rookies: Record<number, string[]> }
+export interface WorldRec { champs: { ed: string; name: string; year: number; band: Band; cat: string; w: string; f?: string; wk: number }[]; yearEnd: Record<number, { id: string; pts: number }[]>; no1: Record<string, number>; retired: { id: string; year: number }[]; rookies: Record<number, string[]>; news?: News[]; mile?: Record<string, number>; lastNo1?: string }
 
 export interface State {
   v: { schema: number; engine: string; balance: string; content: string; rng: string };

@@ -9,6 +9,8 @@ import { Avatar, BrandMark, EvName, Flag, Stat, money, rankTxt } from './bits';
 import { Arrow, Ball, BallRun, Momentum, Ring, SWING_ENDS, SWING_SHORT, SURF_COLOR } from './fx';
 import { dispatch, get, set, useApp } from './store';
 import { getSetting, setSetting } from '../persist/db';
+import { GoalsCard, NewsCard, NewsList, NewsTicker, RivalAlert, RivalTag, nextMeeting, useWatchControls } from './Extras';
+import { newsSince } from '../core/news';
 
 const PRIORITIES: [Priority, string, string][] = [['prep', 'Focused preparation', 'More useful training; morale can dip under sustained pressure'], ['recovery', 'Recovery', 'Faster recovery on free weeks; less skill training'], ['social', 'Social life', 'Morale rises; a little sharpness lost to late nights'], ['relationship', 'Relationship time', 'Support and morale; relationships deepen'], ['professional', 'Professional commitments', 'Reputation and sponsor relations; some training time']];
 const INTENS: [Intensity, string, string][] = [['relaxed', 'Relaxed', 'Maintenance, kind to the body'], ['normal', 'Normal', 'The sustainable default'], ['intense', 'Intense', 'More growth, more overload risk']];
@@ -99,14 +101,18 @@ export function Home({ S }: { S: State }) {
         </div>
       </section>
 
+      <NewsTicker S={S} />
       <div className="home-grid">
         <div className="col">
+          {S.phase === 'plan' && <RivalAlert S={S} />}
           {S.lastSummary && S.phase !== 'yearEnd' && <LastBlock S={S} />}
           {S.lastSummary?.notes.map((n, i) => <p key={i} className="note">{n}</p>)}
           {S.lastSummary?.follow.map((n, i) => <p key={i} className="note story">{fillText(S, n)}</p>)}
           {!S.lastSummary && S.phase === 'plan' && <div className="glass"><p className="eyebrow">Welcome to the tour</p><p className="story">You start 2026 ranked {S.rank[me.id]}, on the lower tour. Plan your first swing, play the weeks, and watch the ring fill.</p></div>}
+          <NewsCard S={S} />
         </div>
         <div className="col">
+          {S.phase !== 'retired' && <GoalsCard S={S} title={S.phase === 'yearEnd' ? `Goals for ${S.year}` : undefined} />}
           <section className="glass">
             <div className="sec-head"><h3>Condition</h3></div>
             <div className="gauges">{cond.map(c => <div key={c.k} className={`gauge ${c.warn ? 'warn' : ''}`}><Ring value={c.v / 100} size={64} warn={c.warn} label={`${c.k}: ${c.word}`}>{Math.round(c.v)}</Ring><b>{c.k}</b>{c.warn ? <span className="flag">{c.word}</span> : <small>{c.word}</small>}</div>)}</div>
@@ -179,6 +185,7 @@ function YearEnd({ S }: { S: State }) {
       <span className="kicker">Season review</span>
       <h1 className="mega"><span>{s.year}</span><span className="ol">year-end {s.rank}</span></h1>
       <div className="stats"><Stat k="Record" v={`${s.w}–${s.l}`} sub={`${s.events} events`} /><Stat k="Titles" v={s.titles} sub={`${s.finals} finals`} /><Stat k="Best major" v={s.majorsBest === '–' ? '–' : headline(s.majorsBest)} /><Stat k="Prize" v={money(s.prize)} /><Stat k="Growth" v={`+${s.dev.toFixed(1)}`} sub={`${Math.round((s.devComp / (s.dev || 1)) * 100)}% from matches`} /><Stat k="Weeks injured" v={s.injWeeks} /></div>
+      {(u.goals ?? []).some(g => g.year === s.year) && <div style={{ marginTop: '1rem' }}><GoalsCard S={S} year={s.year} title={`${s.year} season goals`} /></div>}
       {u.finalSeasonWarned && <p className="warn-box">Next season is your final eligible season: the age ceiling closes a career at the end of the season in which a player turns 40.</p>}
       <h2 style={{ marginTop: '1.2rem' }}>Coaching</h2>
       <div className="choice-grid" role="radiogroup" aria-label="Coach for next season">
@@ -246,7 +253,7 @@ export function Planner({ S }: { S: State }) {
                   <span className="body">
                     <span><span className="title">{r.label}</span><span className="muted" style={{ display: 'block', marginTop: '.25rem' }}>{r.intent}</span></span>
                     <span className="weekballs" role="img" aria-label={`Plays ${wk.size} of ${weeks.length} weeks`}>{weeks.map(w => <Ball key={w} size={22} empty={!wk.has(w)} />)}</span>
-                    <span style={{ display: 'flex', flexDirection: 'column', gap: '.45rem' }}>{r.picks.map(o => <span key={o.ed.id} className="ev"><span><b><EvName name={o.ed.name} surface={o.ed.surface} /></b> <small>{fmtShort(wkDate(o.ed.startWk))}</small></span><span className={`pill ${STATUS[o.status][1]}`}>{STATUS[o.status][0]}</span></span>)}{!r.picks.length && <span className="muted">No suitable events. A training block.</span>}</span>
+                    <span style={{ display: 'flex', flexDirection: 'column', gap: '.45rem' }}>{r.picks.map(o => <span key={o.ed.id} className="ev"><span><b><EvName name={o.ed.name} surface={o.ed.surface} /></b> <small>{fmtShort(wkDate(o.ed.startWk))}</small> <RivalTag S={S} ed={o.ed} /></span><span className={`pill ${STATUS[o.status][1]}`}>{STATUS[o.status][0]}</span></span>)}{!r.picks.length && <span className="muted">No suitable events. A training block.</span>}</span>
                     <span className="meters">{meters(S, r, budget).map(m => <span key={m.k}><span className="k">{m.k}</span><Pips n={m.n} label={`${m.k}: ${m.w}`} /></span>)}</span>
                   </span>
                 </button>);
@@ -276,11 +283,12 @@ export function Planner({ S }: { S: State }) {
 
         {step === last && <>
           <h1>Ready to play</h1>
+          {(() => { const nm = nextMeeting(S, weeks, plan); return nm ? <p className="rival-note">⚔ <b>Next meeting:</b> your rival {S.players[nm.id].name} is {nm.how === 'entered' ? 'entered at' : nm.how === 'likely' ? 'likely at' : 'a possible entry at'} <EvName name={nm.ed.name} surface={nm.ed.surface} />.</p> : null; })()}
           <div className="panel2" style={{ marginTop: '1.2rem' }}>
             <section className="glass">
               <div className="sec-head"><h3>Your schedule</h3><small>{picks.length} {picks.length === 1 ? 'event' : 'events'}</small></div>
               <span className="weekballs" role="img" aria-label={`Plays ${playedWeeks.size} of ${weeks.length} weeks`}>{weeks.map(w => <Ball key={w} size={24} empty={!playedWeeks.has(w)} />)}</span>
-              <ul className="list" style={{ marginTop: '.8rem' }}>{picks.sort((a, b) => a.ed.startWk - b.ed.startWk).map(o => <li key={o.ed.id} className="rowbtn static"><span className="grow"><b><EvName name={o.ed.name} surface={o.ed.surface} /></b><small>{fmtShort(wkDate(o.ed.startWk))} · {o.ed.cat} · {o.ed.surface}</small></span><span className={`pill ${STATUS[o.status][1]}`}>{STATUS[o.status][0]}</span></li>)}</ul>
+              <ul className="list" style={{ marginTop: '.8rem' }}>{picks.sort((a, b) => a.ed.startWk - b.ed.startWk).map(o => <li key={o.ed.id} className="rowbtn static"><span className="grow"><b><EvName name={o.ed.name} surface={o.ed.surface} /></b> <RivalTag S={S} ed={o.ed} /><small>{fmtShort(wkDate(o.ed.startWk))} · {o.ed.cat} · {o.ed.surface}</small></span><span className={`pill ${STATUS[o.status][1]}`}>{STATUS[o.status][0]}</span></li>)}</ul>
               {!picks.length && <p className="muted">A training block with no events.</p>}
             </section>
             <section className="glass">
@@ -386,6 +394,13 @@ export function Reveal({ S, from }: { S: State; from?: number }) {
     return () => clearTimeout(id);
   }, [playing, i, pace, steps.length]);
   const close = () => set({ overlay: null }), cur = step.k === 'summary' ? items.length : step.ti;
+  const toEnd = () => { if (step.k !== 'match') return; const j = steps.findIndex((s, k) => k > i && !(s.k === 'match' && s.ti === step.ti && s.mi === step.mi)); setI(j < 0 ? steps.length - 1 : j - 1); };
+  useWatchControls({
+    toggle: () => { if (step.k !== 'summary') setPlaying(p => !p); },
+    next: () => { if (step.k === 'summary') close(); else setI(x => Math.min(x + 1, steps.length - 1)); },
+    back: () => { setPlaying(false); setI(x => Math.max(0, x - 1)); },
+    end: toEnd, summary: () => { setPlaying(false); setI(steps.length - 1); }, close,
+  });
   const multi = from !== undefined && !!sum && from < sum.fromWk;
   const nextLabel = step.k === 'event' ? (steps[i + 1]?.k === 'summary' ? 'Summary' : 'Next event') : step.k === 'match' && step.g !== undefined && steps[i + 1]?.k === 'match' && (steps[i + 1] as any).mi === step.mi ? 'Next game' : step.k === 'match' && pace === 'set' && step.sets < parseSets(ms[step.ti][step.mi]).length ? 'Next set' : 'Next';
   return (
@@ -403,8 +418,8 @@ export function Reveal({ S, from }: { S: State; from?: number }) {
       <div className="dock">
         <label className="pace">Watch<select value={pace} onChange={e => setPace(e.target.value as Pace)} aria-label="Watch pace">{PACES.map(([k, t, d]) => <option key={k} value={k}>{t} · {d}</option>)}</select></label>
         {step.k !== 'summary' && <button className="icon" aria-label={playing ? 'Pause' : 'Play'} onClick={() => setPlaying(!playing)}>{playing ? <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="2" width="3.5" height="12" rx="1" /><rect x="9.5" y="2" width="3.5" height="12" rx="1" /></svg> : <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11l9-5.5z" /></svg>}</button>}
-        {step.k === 'match' && step.g !== undefined && <button className="btn small" onClick={() => { const j = steps.findIndex((s, k) => k > i && !(s.k === 'match' && s.ti === step.ti && s.mi === step.mi)); setI(j < 0 ? steps.length - 1 : j - 1); }}>To end of match</button>}
-        <span className="grow" />
+        {step.k === 'match' && step.g !== undefined && <button className="btn small" onClick={toEnd}>To end of match</button>}
+        <span className="grow keys-hint" aria-hidden="true"><kbd>Space</kbd> play/pause <kbd>←</kbd><kbd>→</kbd> step <kbd>Shift</kbd>+<kbd>→</kbd> end of match <kbd>S</kbd> summary · 🎮 A next · B back · X pause</span>
         {i > 0 && <button className="btn" onClick={() => { setPlaying(false); setI(i - 1); }}>Back</button>}
         {step.k !== 'summary'
           ? <button className="cta" onClick={() => setI(i + 1)}>{nextLabel}<span className="go"><Arrow /></span></button>
@@ -544,7 +559,6 @@ function RangeSummary({ S, from, multi, items }: { S: State; from: number; multi
           <ul className="plain">{all.map(t => <li key={t.ed} style={{ display: 'flex', justifyContent: 'space-between', gap: '.6rem' }}><button className="link" style={{ color: '#fff', textDecoration: 'none', textAlign: 'left' }} onClick={() => set({ overlay: { kind: 'tourney', ed: t.ed } })}><b><EvName name={t.name} surface={t.surface} /></b></button><span>{played(t) ? headline(t.reached) : <span className="pill warn">{t.status === 'ALT' ? 'Not accepted' : 'Withdrew'}</span>}</span></li>)}</ul>
           {!multi && sum.notes.map((n, k) => <p key={k} className="note">{n}</p>)}
           {sum.follow.map((n, k) => <p key={k} className="note story">{fillText(S, n)}</p>)}
-          {sum.world.length > 0 && <p className="muted">Around the tour: {sum.world.join('; ')}.</p>}
         </section>
         <section className="glass">
           <div className="sec-head"><h3>Skills up</h3></div>
@@ -552,6 +566,7 @@ function RangeSummary({ S, from, multi, items }: { S: State; from: number; multi
           {ach.length > 0 && <p className="ok-box" style={{ marginTop: '1rem' }}>Milestones: {ach.join(' · ')}</p>}
         </section>
       </div>
+      {(() => { const ns = newsSince(S, from).filter(n => n.wk < end + 1 && n.kind !== 'you').slice(-8).reverse(); return ns.length ? <section className="glass" style={{ marginTop: '1.2rem' }}><div className="sec-head"><h3>Around the tour</h3><small>while you were playing</small></div><NewsList S={S} items={ns} /></section> : null; })()}
     </>
   );
 }

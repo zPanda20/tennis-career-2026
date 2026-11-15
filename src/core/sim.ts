@@ -10,6 +10,8 @@ import { achieve, addLedger, logEv, note, playEvents, runEntries, snapshot } fro
 import type { BlockPlan, BlockSummary, Policies, State } from './types';
 import { flushDev, weeklyUpkeep, yearEnd } from './upkeep';
 import { publish } from './world';
+import { weeklyNews } from './news';
+import { checkGoals, ensureGoals } from './goals';
 
 export type Command =
   | { id: string; type: 'CommitBlock'; plan: BlockPlan; pol: Policies }
@@ -17,7 +19,8 @@ export type Command =
   | { id: string; type: 'YearEnd'; coach: string | 'keep'; sponsors: string[]; retire: boolean }
   | { id: string; type: 'Retire' }
   | { id: string; type: 'ChangeDelegation'; pol: Policies }
-  | { id: string; type: 'SetPortrait'; data: string | null };
+  | { id: string; type: 'SetPortrait'; data: string | null }
+  | { id: string; type: 'SetRival'; opp: string; yes: boolean };
 
 const absBlock = (S: State) => (S.year - START_YEAR) * 4 + S.block;
 function applyFx(S: State, fx: Fx): string[] {
@@ -38,12 +41,12 @@ const fxWords = (fx: Fx) => [fx.mo && (fx.mo > 0 ? 'morale up' : 'morale down'),
   fx.fr && (fx.fr > 0 ? 'friendship stronger' : 'friendship strained'), fx.pa && (fx.pa > 0 ? 'relationship stronger' : 'relationship strained'), fx.ag && (fx.ag > 0 ? 'reputation up' : 'reputation down')].filter(Boolean).join(', ');
 
 export function advanceWeek(S: State, C: Content) {
-  publish(S, true);
+  publish(S, true); weeklyNews(S);
   const u = S.u, r = S.rank[S.userId];
   u.rankHist.push({ wk: S.wk, rank: r, pts: S.pts[S.userId] });
   if (r <= 100) achieve(S, 'top100', 'First top-100 ranking'); if (r <= 50) achieve(S, 'top50', 'First top-50 ranking'); if (r <= 10) achieve(S, 'top10', 'First top-10 ranking');
   if (r === 1) { achieve(S, 'no1', 'World No. 1'); u.no1Weeks++; }
-  runEntries(S); (globalThis as any).__tcAfterEntries?.(S); playEvents(S); weeklyUpkeep(S);
+  runEntries(S); (globalThis as any).__tcAfterEntries?.(S); playEvents(S); checkGoals(S); weeklyUpkeep(S);
   S.wk++; S.week++;
   if (S.week >= weeksIn(S.year)) yearEnd(S, C);
 }
@@ -81,9 +84,16 @@ export function execute(S: State, C: Content, cmd: Command): State {
   const u = S.u, p = S.players[S.userId];
   switch (cmd.type) {
     case 'ChangeDelegation': u.pol = { ...cmd.pol }; logEv(S, 'DelegationChanged', { detail: cmd.pol.detail, priority: cmd.pol.priority }); break;
+    case 'SetRival': {
+      if (!S.players[cmd.opp] || cmd.opp === S.userId) throw new Error('Unknown player.');
+      u.rivals = u.rivals.filter(x => x !== cmd.opp); u.rivalNo = (u.rivalNo ?? []).filter(x => x !== cmd.opp);
+      (cmd.yes ? u.rivals : u.rivalNo).push(cmd.opp);
+      logEv(S, 'RivalSet', { opp: cmd.opp, yes: cmd.yes }); break;
+    }
     case 'SetPortrait': { if (cmd.data && (cmd.data.length > 400000 || !cmd.data.startsWith('data:image/'))) throw new Error('That image could not be used.'); u.portrait = cmd.data ?? undefined; logEv(S, 'PortraitChanged'); break; }
     case 'CommitBlock': {
       if (S.phase !== 'plan') throw new Error('No block can be committed right now.');
+      ensureGoals(S);
       const weeks = blockWeeks(S), valid: Record<number, string> = {};
       for (const [k, id] of Object.entries(cmd.plan.weeks)) { const ed = S.cal.find(e => e.id === id); if (ed && weeks.includes(+k) && ed.startWk === +k) valid[+k] = id; }
       const taken = new Set<number>();
@@ -134,7 +144,7 @@ export function execute(S: State, C: Content, cmd: Command): State {
         slots.add(sp.slot); u.sponsors.push(sp); u.sponsorHistory.push(sp); logEv(S, 'ContractChanged', { kind: 'sponsor', id: sp.id, name: sp.name });
       }
       (u as any).appear = u.sponsors.reduce((t, s) => t + s.appearances, 0);
-      S.pending = undefined; S.phase = 'plan'; snapshot(S, `season-${S.year - 1}`, true); break;
+      S.pending = undefined; S.phase = 'plan'; snapshot(S, `season-${S.year - 1}`, true); ensureGoals(S); break;
     }
     case 'Retire': retire(S, 'voluntary'); break;
   }

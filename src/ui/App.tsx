@@ -1,3 +1,4 @@
+import { RivalCard } from './Extras';
 import { useEffect, useState } from 'react';
 import { fmtDate, ageOn, wkDate } from '../core/content';
 import { Avatar, Flag, money, rankTxt } from './bits';
@@ -61,6 +62,7 @@ export function App() {
             {overlay?.kind === 'tourney' && <TourneyHub S={S} ed={overlay.ed} />}
             {overlay?.kind === 'match' && <MatchReport S={S} id={overlay.id} />}
             {overlay?.kind === 'player' && <PlayerCard S={S} id={overlay.id} />}
+            {overlay?.kind === 'rival' && <RivalCard S={S} id={overlay.id} />}
           </>);
       })()}
       {view !== 'game' && (error || notice) && <div className={`banner float ${error ? 'crit' : ''}`} role={error ? 'alert' : 'status'}><span>{error ?? notice}</span><button className="icon" aria-label="Dismiss" onClick={() => set({ error: null, notice: null })}>✕</button></div>}

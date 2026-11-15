@@ -270,3 +270,54 @@ b .evn, .evn { font-weight:inherit; }
 .pace { display:flex; align-items:center; gap:.6rem; font-size:.78rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); } .pace select { min-height:42px; width:auto; max-width:360px; border-radius:999px; font-size:.92rem; text-transform:none; letter-spacing:0; color:#fff; }
 .board .sc.live { background:rgba(255,255,255,.16); color:#fff; box-shadow:inset 0 0 0 2px var(--ball); }
 @media (max-width: 980px) { .pace { width:100%; } .pace select { max-width:none; flex:1; } }
+
+/* ---------- rivals ---------- */
+.tag.rival { border-color:rgba(255,138,76,.6); color:#FFC7A6; background:rgba(255,138,76,.12); }
+.rival-top { display:flex; gap:1.1rem; align-items:center; flex-wrap:wrap; margin-bottom:1rem; }
+.h2h-big { display:grid; grid-template-columns:auto auto auto; align-items:baseline; column-gap:.35rem; font-family:var(--display); font-style:italic; font-weight:800; font-size:3.4rem; line-height:1; }
+.h2h-big span { color:var(--muted); } .h2h-big span.lead { color:var(--ball); } .h2h-big i { font-style:normal; color:var(--muted); font-size:2rem; }
+.h2h-big small { grid-column:1 / -1; margin-top:.3rem; text-align:center; font:800 .66rem var(--sans); letter-spacing:.14em; text-transform:uppercase; font-style:normal; }
+.rival-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; } @media (max-width:760px) { .rival-grid { grid-template-columns:1fr; } }
+.facts { list-style:none; padding:0; margin:1rem 0 .6rem; display:grid; gap:.45rem; }
+.facts li { display:flex; gap:.6rem; align-items:flex-start; line-height:1.3; } .facts small { text-transform:uppercase; letter-spacing:.1em; font-size:.66rem; font-weight:800; }
+.facts .mk { width:22px; height:22px; flex:none; border-radius:50%; display:grid; place-items:center; background:rgba(255,255,255,.1); color:var(--muted); font-weight:900; font-size:.8rem; margin-top:.15rem; }
+.facts li.good .mk { background:var(--ball); color:var(--ink); }
+.rival-alert { padding:.4rem .6rem; border:1px solid rgba(255,138,76,.45); } .rival-alert .rowbtn { min-height:60px; }
+.rival-note { margin:.8rem 0 0; padding:.7rem 1rem; border-radius:14px; background:rgba(255,138,76,.14); border:1px solid rgba(255,138,76,.4); }
+.rival-open { margin:.2rem 0 1rem; }
+
+/* ---------- goals ---------- */
+.goals { display:grid; gap:.55rem; margin:0; }
+.goal { display:flex; align-items:center; gap:.75rem; padding:.55rem .6rem; border-radius:14px; background:rgba(255,255,255,.05); }
+.goal .grow { display:flex; flex-direction:column; gap:.25rem; min-width:0; } .goal .track { height:7px; margin:.15rem 0; }
+.gmark { width:26px; height:26px; flex:none; border-radius:50%; border:2px solid rgba(255,255,255,.35); display:grid; place-items:center; font-weight:900; font-size:.85rem; }
+.goal.done .gmark { background:var(--ball); border-color:var(--ball); color:var(--ink); } .goal.failed .gmark { border-color:rgba(255,181,71,.6); color:var(--warn); } .goal.failed b { color:var(--muted); }
+.reward-chip { font:800 .8rem var(--sans); padding:.2rem .6rem; border-radius:99px; background:rgba(255,255,255,.1); white-space:nowrap; } .reward-chip.got { background:rgba(221,242,71,.2); color:var(--ball); }
+
+/* ---------- trophy cabinet ---------- */
+.cabinet { display:grid; grid-template-columns:repeat(auto-fill, minmax(118px, 1fr)); gap:.2rem .6rem; padding:1rem .8rem .4rem; border-radius:18px;
+  background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(0,0,0,.25)); }
+.trophy-slot { display:flex; flex-direction:column; align-items:center; text-align:center; gap:.25rem; border:0; background:none; padding:.4rem .2rem .6rem; min-height:150px; border-radius:12px 12px 0 0; color:#fff; box-shadow:0 6px 0 rgba(255,255,255,.14), 0 12px 0 rgba(0,0,0,.35); margin-bottom:14px; }
+.trophy-slot:hover { background:rgba(255,255,255,.06); } .trophy-slot .tr-art { height:86px; display:flex; align-items:flex-end; justify-content:center; }
+.trophy-slot img { max-height:86px; max-width:100px; object-fit:contain; filter:drop-shadow(0 6px 10px rgba(0,0,0,.5)); }
+.trophy-slot.major .tr-art { filter:drop-shadow(0 0 14px rgba(255,214,90,.45)); } .tr-name { font-weight:800; font-size:.86rem; line-height:1.15; } .trophy-slot small { font-size:.7rem; }
+.cup.gold { --c1:#C99A2E; --c2:#FFE69A; } .cup.silver { --c1:#9AA5B4; --c2:#F2F6FA; } .cup.bronze { --c1:#9C5D2E; --c2:#E7AE7E; } .cup.ghost { --c1:rgba(255,255,255,.12); --c2:rgba(255,255,255,.2); }
+.cabinet.empty { grid-template-columns:1fr; } .trophy-slot.ghost { color:var(--muted); }
+
+/* ---------- news ---------- */
+.news { list-style:none; padding:0; margin:0; display:grid; gap:.1rem; }
+.nw { display:flex; gap:.7rem; align-items:baseline; padding:.5rem .2rem; border-top:1px solid var(--faint); line-height:1.35; } .nw:first-child { border-top:0; }
+.nw .ic { width:1.4rem; flex:none; text-align:center; color:var(--ball); } .nw.rival .ic, .nw.rival .grow { color:#FFC7A6; } .nw.upset .ic { color:var(--warn); } .nw small { white-space:nowrap; }
+.ticker { display:flex; align-items:stretch; margin:0 0 1.2rem; border-radius:14px; overflow:hidden; background:rgba(0,0,0,.4); border:1px solid var(--faint); height:40px; }
+.tk-label { flex:none; display:flex; align-items:center; padding:0 .9rem; background:var(--ball); color:var(--ink); font:800 italic .95rem var(--display); text-transform:uppercase; letter-spacing:.06em; }
+.tk-track { position:relative; flex:1; overflow:hidden; mask-image:linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
+.tk-run { position:absolute; left:0; top:0; height:100%; display:flex; align-items:center; gap:2.4rem; white-space:nowrap; animation:tk 70s linear infinite; padding-left:1rem; }
+.ticker:hover .tk-run { animation-play-state:paused; }
+.tk { font-weight:700; font-size:.9rem; } .tk i { font-style:normal; color:var(--ball); margin-right:.45rem; } .tk.rival { color:#FFC7A6; }
+@keyframes tk { from { transform:translateX(0); } to { transform:translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { .tk-run { animation:none; overflow-x:auto; } }
+.reduced .tk-run { animation:none; }
+
+/* ---------- watch controls ---------- */
+.keys-hint { font-size:.74rem; color:var(--muted); text-align:center; line-height:1.9; } .keys-hint kbd { display:inline-block; font:700 .7rem var(--sans); padding:.05rem .4rem; margin:0 .15rem; border-radius:6px; border:1px solid rgba(255,255,255,.3); background:rgba(255,255,255,.08); color:#fff; }
+@media (max-width:900px), (pointer:coarse) { .keys-hint { font-size:0; } .keys-hint kbd { display:none; } }

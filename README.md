@@ -44,3 +44,7 @@ The game ships without player photos or logos. A private image pack can be loade
 Doubles, team events, manual point-by-point play, tactics, cloud saves, and the "pause for a decision" entry-fallback policy. Real players use the same generic injury and retirement rules as generated players. See `TUNING.md` for the balance report.
 
 A free private hobby project. Not affiliated with or endorsed by any tour, tournament, player or brand.
+
+## Watching controls
+Space plays or pauses, ← and → step back and forward, Shift+→ (or E) jumps to the end of the match, S skips to the summary.
+Controller: A next, B back, X or Start play/pause, RB end of match, Y summary, d-pad left/right to step.

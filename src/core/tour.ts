@@ -1,4 +1,5 @@
 // Tournament entry, draws and round-by-round play for every event of the selected tour (spec 8, 9, 13).
+import { champNews, upsetNews } from './news';
 import { BAND_VAL, DEV, ECON, FINALS_POINTS, POINTS, PRIZE, PRIZE_MULT, QUAL_POINTS, ROUND_KEYS } from './balance';
 import { fmtDate, iso, travelClass, wkDate } from './content';
 import { expectedWin, simulateMatch, Rules } from './match';
@@ -209,6 +210,7 @@ function playMatch(S: State, ed: Edition, aId: string | null, bId: string | null
   post(S, a, res.winner === 0, res, 0, pA, pR, ed); post(S, b, res.winner === 1, res, 1, 1 - pA, 1 - pR, ed);
   if (res.cls === 'ret') injure(S, S.players[l], 'acute', true);
   lose(l, round);
+  if (!qual && res.cls === 'played') upsetNews(S, ed, l, w, round, lockRank(S, ed, l), lockRank(S, ed, w));
   if ((ed as any).hasUser) ed.log!.push({ r: round, a: aId, b: bId, w, s: res.score, cls: res.cls });
   return w;
 }
@@ -321,6 +323,7 @@ function finish(S: State, ed: Edition) {
     if (pts > 0) P[id].res.push({ ed: ed.id, pts, exp: endWk + 52, yr: ed.year, cls: 't', q: isQ ? 1 : undefined });
   }
   P[champ].titles++; if (ed.band === 'GS') P[champ].majors++;
+  champNews(S, ed, champ, ed.runnerUp);
   if (BAND_VAL[ed.band] >= 250 || (ed as any).hasUser) S.world.champs.push({ ed: ed.id, name: ed.name, year: ed.year, band: ed.band, cat: ed.cat, w: champ, f: ed.runnerUp, wk: S.wk });
   const t = uT(S, ed.id);
   if (t && ed.lost![uid] && ed.lost![uid] !== 'WD') closeUser(S, ed, t, ed.lost![uid], false);
@@ -346,6 +349,7 @@ function playFinals(S: State, ed: Edition) {
   add(f1, FINALS_POINTS.sf, 150000); add(f2, FINALS_POINTS.sf, 150000);
   const champ = playMatch(S, ed, f1, f2, 'F', false, (id, rr) => { ed.lost![id] = rr; })!; add(champ, FINALS_POINTS.f, PRIZE.F.champ);
   ed.done = true; ed.champion = champ; ed.runnerUp = champ === f1 ? f2 : f1; P[champ].titles++;
+  champNews(S, ed, champ, ed.runnerUp);
   for (const id of ids) if (pts[id]) P[id].res.push({ ed: ed.id, pts: pts[id], exp: ed.startWk + 53, yr: ed.year, cls: 'f' });
   S.world.champs.push({ ed: ed.id, name: ed.name, year: ed.year, band: 'F', cat: ed.cat, w: champ, f: ed.runnerUp, wk: S.wk });
   const t = uT(S, ed.id);

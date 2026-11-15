@@ -10,6 +10,8 @@ import { clearPack, importPack } from './pack';
 import { Momentum } from './fx';
 import { EvName, Flag, portraitFromFile } from './bits';
 import { dispatch, exportBackup, get, set, useApp } from './store';
+import { RivalsSection, TrophyCabinet } from './Extras';
+import { RIVAL_MEETINGS } from '../core/rivals';
 import { exportArchive, exportPdf } from '../export/pdf';
 
 const ABILITY_HELP: Record<Ability, string> = { serve: 'First and second serve effectiveness', ret: 'Neutralising serves and starting rallies', fh: 'Forehand rally control and finishing', bh: 'Backhand stability and attacking quality', net: 'Approach conversion and volleys', move: 'Court coverage and recovery between shots', end: 'Resistance to match fatigue', comp: 'Performance stability under pressure' };
@@ -74,8 +76,10 @@ export function PlayerView({ S }: { S: State }) {
         </Section>
         <Section title="Surface familiarity"><Bar label="Hard" value={me.fam.hard} tone="hard" /><Bar label="Clay" value={me.fam.clay} tone="clay" /><Bar label="Grass" value={me.fam.grass} tone="grass" /><p className="help">Comfort on a surface: a small performance adjustment that grows with matches and surface preparation.</p></Section>
         <Section title="Ranking history"><RankChart S={S} /></Section>
+        <RivalsSection S={S} />
       </div>
       <div className="col">
+        <TrophyCabinet S={S} />
         <Section title="Career record" aside={<small>simulated career only</small>}>
           <div className="stats"><Stat k="Played matches" v={`${t.w}–${t.l}`} sub={`walkovers ${t.woW} received, ${t.woL} given`} /><Stat k="Titles" v={t.titles} sub={`${t.majors} major · ${t.tourTitles - t.majors} other main tour · ${t.lowerTitles} lower tour`} /><Stat k="Runner-up" v={t.runnerUps} /><Stat k="Prize money" v={money(t.prize)} /><Stat k="Main draw" v={`${t.mdW}–${t.mdL}`} /><Stat k="Qualifying" v={`${t.qualW}–${t.qualL}`} /><Stat k="Hard" v={`${t.bySurface.hard.w}–${t.bySurface.hard.l}`} /><Stat k="Clay" v={`${t.bySurface.clay.w}–${t.bySurface.clay.l}`} /><Stat k="Grass" v={`${t.bySurface.grass.w}–${t.bySurface.grass.l}`} /><Stat k="Weeks at No. 1" v={t.weeksNo1} /></div>
           <p className="muted">Started on 1 January 2026 ranked {u.startRank} with background points from before the career. Those are starting history, not simulated-career results.</p>
@@ -111,7 +115,7 @@ export function World({ S }: { S: State }) {
         <div className="row">{n < S.order.length && <button className="btn" onClick={() => setN(n + 100)}>Show more</button>}{S.rank[S.userId] > n && <button className="btn ghost" onClick={() => setN(Math.ceil(S.rank[S.userId] / 50) * 50)}>Show down to my ranking</button>}</div></>}
       {tab === 'race' && <><p className="muted">Points earned in {S.year}. The top eight qualify for the Tour Finals.</p><ol className="list rank">{race.map(([id, pts], i) => <li key={id} className={`${id === S.userId ? 'me' : ''} ${i === 7 ? 'cut' : ''}`}><span className="pos num">{i + 1}</span><Who S={S} id={id} /><span className="num pts">{pts.toLocaleString('en-US')}</span></li>)}</ol>{!race.length && <p className="muted">No results yet this season.</p>}</>}
       {tab === 'champs' && <ul className="list">{S.world.champs.filter(c => BAND_VAL[c.band] >= 250).slice().reverse().slice(0, 120).map(c => <li key={c.ed} className="rowbtn static"><span className="grow"><b>{c.name} {c.year}</b><small>{c.cat}</small></span><Who S={S} id={c.w} sub={c.f ? `beat ${S.players[c.f]?.name ?? 'unknown'}` : undefined} /></li>)}{!S.world.champs.length && <p className="muted">No tournaments completed yet.</p>}</ul>}
-      {tab === 'rivals' && <ul className="list">{riv.slice(0, 60).map(r => <li key={r.opp} className="rowbtn static">{S.players[r.opp] ? <Who S={S} id={r.opp} sub={`last met ${r.last}`} /> : <span className="grow"><b>{r.name}</b></span>}<span className="num pts">{r.w}–{r.l}</span></li>)}{!riv.length && <p className="muted">No played matches yet. Walkovers never count toward head-to-head records.</p>}</ul>}
+      {tab === 'rivals' && <ul className="list">{riv.slice(0, 60).map(r => <li key={r.opp} className="rowbtn static">{S.players[r.opp] ? <Who S={S} id={r.opp} sub={<>last met {r.last}{S.u.rivals.includes(r.opp) && <span className="tag rival">rival</span>}</>} /> : <span className="grow"><b>{r.name}</b></span>}{r.w + r.l >= RIVAL_MEETINGS && S.players[r.opp] && <button className="btn small" onClick={() => set({ overlay: { kind: 'rival', id: r.opp } })}>Rival card</button>}<span className="num pts">{r.w}–{r.l}</span></li>)}{!riv.length && <p className="muted">No played matches yet. Walkovers never count toward head-to-head records.</p>}</ul>}
       {tab === 'find' && <><label className="search">Search players, including retired ones<input value={q} onChange={e => setQ(e.target.value)} placeholder="Type a name" /></label><ul className="list">{found.map(p => <li key={p.id} className="rowbtn static"><Who S={S} id={p.id} rank={S.rank[p.id]} sub={p.retired ? `retired ${p.retired}` : undefined} /></li>)}</ul></>}
     </div>
   );
@@ -126,6 +130,7 @@ export function PlayerCard({ S, id }: { S: State; id: string }) {
         <p className="muted">{p.retired ? '' : `${rankTxt(S.rank[id])} · `}career high {p.bestRank < 9999 ? p.bestRank : '–'} · {p.titles} titles since 2026{p.majors ? `, ${p.majors} majors` : ''}</p>
         {!p.real && !p.user && <Pill>Fictional player generated for this world</Pill>}{!p.retired && p.injuredUntil > S.wk && <Pill tone="warn">Currently unavailable</Pill>}</div></div>
       <Section title="Abilities" aside={<small>{p.real ? 'authored game estimates, not measurements' : p.user ? '' : 'generated'}</small>}><div className="mini-ab">{ABILITIES.map(a => <Stat key={a} k={ABILITY_NAMES[a]} v={Math.round(p.ab[a])} />)}</div></Section>
+      {!p.user && w + l >= RIVAL_MEETINGS && <button className="btn rival-open" onClick={() => set({ overlay: { kind: 'rival', id } })}>⚔ {S.u.rivals.includes(id) ? 'Rival card' : 'Open rival card'}</button>}
       {!p.user && <Section title={`Your record: ${w}–${l}`}>{ms.length ? <ul className="list">{ms.slice().reverse().map(m => <li key={m.id}><button className="rowbtn" onClick={() => set({ overlay: { kind: 'match', id: m.id } })}><span className="grow"><b>{m.won ? 'Won' : 'Lost'} {m.score}</b><small>{S.u.tourneys.find(t => t.ed === m.ed)?.name} {m.year} · {roundName(m.round)}</small></span></button></li>)}</ul> : <p className="muted">You have not played each other.</p>}</Section>}
     </Modal>
   );
