@@ -14,7 +14,7 @@ export type Focus = Ability | 'physical' | 'surface' | 'balanced';
 
 export interface RankRec { ed: string; pts: number; exp: number; yr: number; cls: 't' | 'f' | 'bg'; q?: number }
 
-export interface Player {
+export interface Player { edge?: number;
   id: string; name: string; country: string; born: string; bornApprox?: boolean; hand: 'R' | 'L'; tour: Tour; real: boolean; user?: boolean;
   ab: Abil; ceil: Abil; lr: number; curve: number; resil: number; injSus: number; declineAge: number; style: Style;
   fam: Record<Surface, number>;

@@ -123,9 +123,9 @@ export function wildcardOffers(S: State): WcOffer[] {
       const [cut] = cutsFor(S, ed); if (rank > Math.max(cut, 60) * 4) continue; // not wildly out of reach
       const bigger = S.cal.filter(e => e.startWk === w || (e.weeks === 2 && e.startWk === w - 1)).filter(e => !e.cancelled && BAND_VAL[e.band] > BAND_VAL[ed.band]).sort((a, b) => BAND_VAL[b.band] - BAND_VAL[a.band])[0];
       if (!bigger) continue;
-      if (!rngOf(S.seed, 'wcoffer', ed.id).chance(0.45)) continue;
+      if (!rngOf(S.seed, 'wcoffer', ed.id).chance(0.16)) continue;
       out.push({ ed, bigger, status });
     }
   }
-  return out.sort((a, b) => BAND_VAL[b.ed.band] - BAND_VAL[a.ed.band]).slice(0, 2).sort((a, b) => a.ed.startWk - b.ed.startWk);
+  return out.sort((a, b) => BAND_VAL[b.ed.band] - BAND_VAL[a.ed.band]).slice(0, 1);
 }

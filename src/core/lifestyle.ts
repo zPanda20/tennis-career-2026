@@ -1,7 +1,7 @@
 // Life off court: where you live, the home you keep, the staff around you and the time you invest in your people.
 import { ECON, START_YEAR } from './balance';
 import { clamp } from './rng';
-import type { Ability, State } from './types';
+import type { Ability, Coach, State } from './types';
 
 // ---------- home base ----------
 export interface Base { id: string; city: string; country: string; mult: number; note: string }
@@ -56,10 +56,15 @@ export const staffMonthly = (S: State) => (S.u.staff ?? []).reduce((t, s) => t +
 export const livingMonthly = (S: State) => ECON.essentials * baseOf(S).mult;
 export const lifestyleMonthly = (S: State) => homeMonthly(S) + staffMonthly(S);
 
+// ---------- coach tiers: better coaches develop faster, sharpen their speciality more and prepare you better for matches ----------
+export const SPEC_MULT: Record<Coach['tier'], number> = { starter: 1.15, tour: 1.2, elite: 1.3, master: 1.4, legend: 1.5 };
+/** Match-day preparation: scouting and tactics, as a small condition edge in every match (surface familiarity at its best is 0.01). */
+export const MATCH_PREP: Record<Coach['tier'], number> = { starter: 0, tour: 0.001, elite: 0.002, master: 0.003, legend: 0.0045 };
 // ---------- training and health modifiers used by the weekly upkeep ----------
 export function trainMult(S: State, k: Ability): number {
   const c = S.u.coach; let m = 1;
-  if (c.spec === k || (c.spec === 'physical' && (k === 'move' || k === 'end'))) m *= c.spec === 'physical' ? 1.2 : 1.3;
+  const sp = SPEC_MULT[c.tier];
+  if (c.spec === k || (c.spec === 'physical' && (k === 'move' || k === 'end'))) m *= c.spec === 'physical' ? 1 + (sp - 1) * 0.7 : sp;
   const fit = staffLevel(S, 'fitness'), psy = staffLevel(S, 'psych'), hit = staffLevel(S, 'hitting');
   if (fit && (k === 'move' || k === 'end')) m *= 1 + 0.12 * fit;
   if (psy && k === 'comp') m *= 1 + 0.15 * psy;
@@ -71,6 +76,7 @@ export const injuryMult = (S: State) => 1 - 0.12 * staffLevel(S, 'physio');
 /** The user's weekly off-court effects. Called from the weekly upkeep. */
 export function lifestyleWeek(S: State, played: boolean) {
   const p = S.players[S.userId], u = S.u, h = HOMES[u.home?.tier ?? 0];
+  p.edge = MATCH_PREP[u.coach.tier] * (0.6 + u.rel.coach / 125);
   if (!played) {
     p.fatigue -= h.recov + staffLevel(S, 'fitness') * 1;
     p.strain -= staffLevel(S, 'physio') * 0.5;

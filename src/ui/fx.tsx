@@ -1,6 +1,7 @@
 // Centre Court visual vocabulary: tennis balls, rings, the season track, the court backdrop, the momentum wave.
 import { BLOCKS } from '../core/balance';
 import type { State, Surface, UMatch } from '../core/types';
+import { absOf, wkDate } from '../core/content';
 
 export const SURF_COLOR: Record<Surface, string> = { hard: '#5DB8FF', clay: '#FF8A4C', grass: '#8EE06A' };
 export const BLOCK_SURF: Surface[] = ['hard', 'clay', 'grass', 'hard'];
@@ -8,6 +9,11 @@ export const SWING_NAME: Record<number, string> = { 0: 'The Australian swing', 1
 export const SWING_SHORT: Record<number, [string, string]> = { 0: ['The Aussie', 'swing'], 1: ['The clay', 'swing'], 2: ['The grass', 'swing'], 3: ['The hard-court', 'swing'] };
 export const SWING_ENDS: Record<number, string> = { 0: 'Builds to the Australian Open, then Indian Wells and Miami', 1: 'Ends at the French Open', 2: 'Builds to Wimbledon', 3: 'Through the US Open to the Tour Finals' };
 
+/** Season colour for an absolute week: the swing it falls in (Aussie hard, clay, grass, late hard). */
+export function seasonOf(abs: number): Surface {
+  const d = wkDate(abs), y = d.getUTCFullYear(), w = abs - absOf(y, 0);
+  return w >= 0 && w < BLOCKS[1] ? 'hard' : w < BLOCKS[2] ? 'clay' : w < BLOCKS[3] ? 'grass' : 'hard';
+}
 export function tintOf(S: State | null): Surface {
   if (!S || S.phase === 'retired' || S.phase === 'yearEnd') return 'hard';
   return BLOCK_SURF[S.block] ?? 'hard';

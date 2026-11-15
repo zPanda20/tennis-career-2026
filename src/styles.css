@@ -1,7 +1,7 @@
 /* Centre Court theme. The whole interface is tinted by the swing the player is in (hard, clay, grass). */
 :root, .s-hard { --bg:#050E1E; --deep:#0B2344; --mid:#1E5C9E; --glow:#5DB8FF; --line:rgba(214,236,255,0.17); }
-.s-clay { --bg:#160803; --deep:#3B1609; --mid:#9A4320; --glow:#FF8A4C; --line:rgba(255,228,212,0.16); }
-.s-grass { --bg:#04120A; --deep:#0D2E18; --mid:#2F7A3A; --glow:#8EE06A; --line:rgba(224,255,226,0.15); }
+.s-clay { --bg:#3A1408; --deep:#7A3015; --mid:#C2582C; --glow:#FF9A62; --line:rgba(255,232,218,0.2); }
+.s-grass { --bg:#0B2A12; --deep:#1A5426; --mid:#3F9A42; --glow:#A6EC7E; --line:rgba(232,255,232,0.2); }
 :root { --ball:#DDF247; --ink:#11150A; --text:#FFFFFF; --muted:rgba(255,255,255,0.76); --faint:rgba(255,255,255,0.14); --glass:rgba(0,0,0,0.34); --glass-hi:rgba(255,255,255,0.07);
   --warn:#FFB547; --crit:#FF6B6B; --ok:#8EE06A; --hard:#5DB8FF; --clay:#FF8A4C; --grass:#8EE06A;
   --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif; --sans:"Manrope","Segoe UI",system-ui,-apple-system,sans-serif; --r:24px; color-scheme: dark; }
@@ -339,8 +339,8 @@ b .evn, .evn { font-weight:inherit; }
 .wco.on { background:rgba(221,242,71,.07); border-radius:14px; } .wco-btns { display:flex; gap:.5rem; align-items:center; }
 .acts { display:grid; gap:.45rem; } .act { display:flex; gap:.8rem; align-items:center; padding:.6rem .5rem; border-radius:14px; background:rgba(255,255,255,.04); } .act.used { opacity:.6; }
 .act .fx, .home .fx, .role .fx { display:block; color:var(--ball); font-weight:700; font-size:.76rem; margin-top:.15rem; }
-.who { flex:none; width:4.6rem; text-align:center; font:800 .64rem var(--sans); letter-spacing:.1em; text-transform:uppercase; padding:.25rem 0; border-radius:99px; background:rgba(255,255,255,.12); }
-.who.w-coach { background:rgba(93,184,255,.25); color:#CFE9FF; } .who.w-friend { background:rgba(142,224,106,.22); color:#D3F5C4; } .who.w-partner { background:rgba(255,138,76,.25); color:#FFD9C4; }
+.whochip { flex:none; width:4.6rem; text-align:center; font:800 .64rem var(--sans); letter-spacing:.1em; text-transform:uppercase; padding:.25rem 0; border-radius:99px; background:rgba(255,255,255,.12); }
+.whochip.w-coach { background:rgba(93,184,255,.25); color:#CFE9FF; } .whochip.w-friend { background:rgba(142,224,106,.22); color:#D3F5C4; } .whochip.w-partner { background:rgba(255,138,76,.25); color:#FFD9C4; }
 .bases { display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:.45rem; } .base { display:flex; flex-direction:column; gap:.15rem; text-align:left; padding:.6rem .7rem; border-radius:14px; border:1px solid var(--faint); background:rgba(255,255,255,.04); color:#fff; }
 .base.on { border-color:var(--ball); background:rgba(221,242,71,.1); } .base:disabled:not(.on) { opacity:.55; }
 .homes { display:grid; gap:.45rem; } .home { display:flex; gap:.8rem; align-items:center; padding:.6rem .5rem; border-radius:14px; background:rgba(255,255,255,.04); flex-wrap:wrap; } .home.on { outline:1px solid var(--ball); } .home-btns { display:flex; gap:.4rem; flex-wrap:wrap; }
@@ -350,3 +350,16 @@ b .evn, .evn { font-weight:inherit; }
 .home .grow { flex:1 1 14rem; min-width:0; }
 .cm { grid-template-columns:1fr auto; row-gap:.2rem; column-gap:.6rem; } .cm .track { grid-column:1 / -1; grid-row:2; height:6px; } .cm small { text-align:right; }
 @media (max-width:520px) { .cm { grid-template-columns:1fr auto; } .cm small { text-align:right; } }
+.small-seg { margin:0 0 .7rem; } .small-seg button { min-height:34px; font-size:.82rem; padding:0 .9rem; }
+.life-bottom { margin-top:1.4rem; }
+.chart .best { fill:var(--ball); font:800 12px var(--sans); }
+
+.champs-year { margin:1.4rem 0 .4rem; font-family:var(--display); font-style:italic; font-size:1.6rem; }
+.champ-row { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:1rem; align-items:center; padding:.45rem .7rem; border-top:1px solid var(--faint); }
+.champ-row:first-child { border-top:0; } .champ-row .ev small { display:block; } .champ-row .ev .tag { margin-left:.4rem; }
+.champ-row.gs { background:linear-gradient(90deg, rgba(255,214,90,.1), transparent 60%); }
+@media (max-width:640px) { .champ-row { grid-template-columns:1fr; gap:.1rem; } }
+.h2h-row { display:flex; gap:.8rem; align-items:center; padding:.35rem .7rem; border-top:1px solid var(--faint); } .h2h-row:first-child { border-top:0; }
+.h2h-row .pts { min-width:3.2rem; text-align:right; font-family:var(--display); font-style:italic; font-size:1.3rem; }
+.tour-tools { display:flex; gap:.8rem; align-items:flex-end; flex-wrap:wrap; margin:.8rem 0; }
+.list-glass { padding:.4rem .3rem; } .h2h-row .pts.up { color:var(--ball); }

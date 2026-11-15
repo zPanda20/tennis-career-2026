@@ -1,5 +1,6 @@
 // Rival cards, season goals, the trophy cabinet, tour news and console-style watch controls.
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { getSetting, setSetting } from '../persist/db';
 import { blockWeeks, estimate } from '../core/agent';
 import { fmtShort, wkDate } from '../core/content';
 import { goalProgress } from '../core/goals';
@@ -150,13 +151,15 @@ function Cup({ m, size = 64 }: { m: string; size?: number }) {
   );
 }
 export function TrophyCabinet({ S }: { S: State }) {
-  const { assets } = useApp(), u = S.u;
-  const titles = useMemo(() => u.tourneys.filter(t => t.title).sort((a, b) => ORDER.indexOf(a.band) - ORDER.indexOf(b.band) || b.year - a.year || b.wk - a.wk), [S]);
+  const { assets } = useApp(), u = S.u, [sort, setSortRaw] = useState<'best' | 'recent'>(() => (getSetting('trophySort', 'best') as 'best' | 'recent'));
+  const setSort = (v: 'best' | 'recent') => { setSetting('trophySort', v); setSortRaw(v); };
+  const titles = useMemo(() => u.tourneys.filter(t => t.title).sort((a, b) => sort === 'recent' ? b.wk - a.wk : ORDER.indexOf(a.band) - ORDER.indexOf(b.band) || b.wk - a.wk), [S, sort]);
   const slamOf = (t: UTourney) => S.cal.find(e => e.series === t.series)?.slam ?? (t.name.startsWith('Australian') ? 'ao' : t.name.startsWith('French') ? 'rg' : t.name === 'Wimbledon' ? 'wim' : t.name === 'US Open' ? 'uso' : undefined);
   const finals = u.tourneys.filter(t => t.final && !t.title && (t.band === 'GS' || t.band === 'F' || t.band === 'T1000')).length;
   return (
     <section className="sec">
       <div className="sec-head"><h3>Trophy cabinet</h3><small>{titles.length} {titles.length === 1 ? 'title' : 'titles'}{finals ? ` · ${finals} big finals lost` : ''}</small></div>
+      {titles.length > 1 && <div className="seg small-seg" role="group" aria-label="Sort trophies"><button className={sort === 'best' ? 'on' : ''} aria-pressed={sort === 'best'} onClick={() => setSort('best')}>Biggest first</button><button className={sort === 'recent' ? 'on' : ''} aria-pressed={sort === 'recent'} onClick={() => setSort('recent')}>Most recent</button></div>}
       {titles.length ? <div className="cabinet">{titles.map(t => {
         const slam = t.band === 'GS' ? slamOf(t) : undefined, img = slam ? assets[`trophy:${slam}:${S.tour}`] : undefined;
         return (

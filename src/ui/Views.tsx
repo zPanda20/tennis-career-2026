@@ -1,3 +1,4 @@
+import { COACH_TIER_NAME } from '../core/world';
 import { useMemo, useState } from 'react';
 import { BAND_NAME, BAND_VAL, RULES_SUMMARY } from '../core/balance';
 import { estimate } from '../core/agent';
@@ -50,15 +51,26 @@ export function Calendar({ S }: { S: State }) {
   );
 }
 
+/** Ranking history on a log scale fitted to this player's own range, so a climb from 900 to 300 or from 12 to 1 reads equally clearly. */
 export function RankChart({ S }: { S: State }) {
   const h = S.u.rankHist; if (h.length < 3) return null;
-  const W = 640, H = 180, x0 = h[0].wk, x1 = Math.max(h[h.length - 1].wk, x0 + 10), ly = (r: number) => 14 + ((Math.log10(Math.max(1, r)) / 3) * (H - 34));
-  const step = Math.max(1, Math.floor(h.length / 320)), pts = h.filter((_, i) => i % step === 0).map(p => `${(((p.wk - x0) / (x1 - x0)) * (W - 50) + 40).toFixed(1)},${ly(p.rank).toFixed(1)}`).join(' ');
+  const ranks = h.map(p => p.rank), best = Math.min(...ranks), worst = Math.max(...ranks), bi = ranks.indexOf(best);
+  const lo = Math.log10(Math.max(1, best / 1.25)), hi = Math.log10(Math.max(best * 2, worst * 1.2)), W = 640, H = 200, top = 14, bot = H - 24;
+  const ly = (r: number) => top + ((Math.log10(Math.max(1, r)) - lo) / (hi - lo)) * (bot - top);
+  const x0 = h[0].wk, x1 = Math.max(h[h.length - 1].wk, x0 + 10), lx = (wk: number) => ((wk - x0) / (x1 - x0)) * (W - 56) + 46;
+  const NICE = [1, 2, 3, 5, 10, 20, 30, 50, 100, 150, 200, 300, 500, 750, 1000, 1500, 2000];
+  let ticks = NICE.filter(r => r >= 10 ** lo && r <= 10 ** hi); while (ticks.length > 6) ticks = ticks.filter((_, i) => i % 2 === 0);
+  const step = Math.max(1, Math.floor(h.length / 320)), pts = h.filter((_, i) => i % step === 0 || i === h.length - 1).map(p => `${lx(p.wk).toFixed(1)},${ly(p.rank).toFixed(1)}`).join(' ');
+  const years = Array.from({ length: Math.floor((x1 - x0) / 52) + 1 }, (_, i) => i).filter((_, i, a) => a.length < 12 || i % 2 === 0);
+  const area = `${lx(h[0].wk)},${bot} ${pts} ${lx(h[h.length - 1].wk)},${bot}`;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="chart" role="img" aria-label={`Ranking history from ${h[0].rank} to ${h[h.length - 1].rank}, best ${Math.min(...h.map(p => p.rank))}`}>
-      {[1, 10, 100, 1000].map(r => <g key={r}><line x1="40" x2={W - 10} y1={ly(r)} y2={ly(r)} className="grid" /><text x="34" y={ly(r) + 4} textAnchor="end">{r}</text></g>)}
-      {Array.from({ length: Math.floor((x1 - x0) / 52) + 1 }, (_, i) => <text key={i} x={((i * 52) / (x1 - x0)) * (W - 50) + 40} y={H - 4} className="yr">{2026 + i}</text>).filter((_, i, a) => a.length < 12 || i % 2 === 0)}
+    <svg viewBox={`0 0 ${W} ${H}`} className="chart" role="img" aria-label={`Ranking history from ${h[0].rank} to ${h[h.length - 1].rank}, best ${best}`}>
+      <defs><linearGradient id="rkfill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="var(--ball)" stopOpacity=".28" /><stop offset="1" stopColor="var(--ball)" stopOpacity="0" /></linearGradient></defs>
+      {ticks.map(r => <g key={r}><line x1="46" x2={W - 10} y1={ly(r)} y2={ly(r)} className="grid" /><text x="40" y={ly(r) + 4} textAnchor="end">{r}</text></g>)}
+      {years.map(i => <text key={i} x={lx(x0 + i * 52)} y={H - 4} className="yr">{2026 + i}</text>)}
+      <polygon points={area} fill="url(#rkfill)" />
       <polyline points={pts} className="line" />
+      <circle cx={lx(h[bi].wk)} cy={ly(best)} r="5" fill="var(--ball)" /><text x={Math.min(W - 60, lx(h[bi].wk) + 8)} y={Math.max(top + 10, ly(best) - 6)} className="best">best {best}</text>
     </svg>
   );
 }
@@ -86,7 +98,7 @@ export function PlayerView({ S }: { S: State }) {
         </Section>
         {u.seasons.length > 0 && <Section title="Seasons"><SeasonTable S={S} /></Section>}
         <Section title="Team and contracts">
-          <p><b>Coach:</b> {u.coach.name} · {u.coach.tier} tier · since {u.coach.since} · {money(u.coach.cost)} a month · trust {Math.round(u.rel.coach)}/100</p>
+          <p><b>Coach:</b> {u.coach.name} · {COACH_TIER_NAME[u.coach.tier]} tier · since {u.coach.since} · {money(u.coach.cost)} a month · trust {Math.round(u.rel.coach)}/100</p>
           {u.sponsors.length ? u.sponsors.map(s => <p key={s.id}><BrandMark sp={s} /> <small>{s.slot} · {money(s.monthly)} a month · through {s.until - 1}</small></p>) : <p className="muted">No sponsorship contracts yet. Offers arrive at the year-end review as results and ranking improve.</p>}
         </Section>
         <Section title="Health">{u.injuries.length ? <ul className="plain">{u.injuries.slice().reverse().slice(0, 8).map(i => <li key={i.id}><b>{i.date}</b> · {i.sev} {i.loc} · {i.weeks} {i.weeks === 1 ? 'week' : 'weeks'} out{i.perm ? ` · lasting loss: ${i.perm.map(p => `${ABILITY_NAMES[p.ab]} −${p.loss}`).join(', ')}` : ''}</li>)}</ul> : <p className="muted">No injuries recorded.</p>}</Section>
@@ -114,10 +126,31 @@ export function World({ S }: { S: State }) {
         <ol className="list rank">{S.order.slice(0, n).map((id, i) => <li key={id} className={id === S.userId ? 'me' : ''}><span className="pos num">{i + 1}</span><Who S={S} id={id} sub={`age ${age(S, S.players[id].born)}`} /><span className="num pts">{S.pts[id].toLocaleString('en-US')}</span></li>)}</ol>
         <div className="row">{n < S.order.length && <button className="btn" onClick={() => setN(n + 100)}>Show more</button>}{S.rank[S.userId] > n && <button className="btn ghost" onClick={() => setN(Math.ceil(S.rank[S.userId] / 50) * 50)}>Show down to my ranking</button>}</div></>}
       {tab === 'race' && <><p className="muted">Points earned in {S.year}. The top eight qualify for the Tour Finals.</p><ol className="list rank">{race.map(([id, pts], i) => <li key={id} className={`${id === S.userId ? 'me' : ''} ${i === 7 ? 'cut' : ''}`}><span className="pos num">{i + 1}</span><Who S={S} id={id} /><span className="num pts">{pts.toLocaleString('en-US')}</span></li>)}</ol>{!race.length && <p className="muted">No results yet this season.</p>}</>}
-      {tab === 'champs' && <ul className="list">{S.world.champs.filter(c => BAND_VAL[c.band] >= 250).slice().reverse().slice(0, 120).map(c => <li key={c.ed} className="rowbtn static"><span className="grow"><b>{c.name} {c.year}</b><small>{c.cat}</small></span><Who S={S} id={c.w} sub={c.f ? `beat ${S.players[c.f]?.name ?? 'unknown'}` : undefined} /></li>)}{!S.world.champs.length && <p className="muted">No tournaments completed yet.</p>}</ul>}
-      {tab === 'rivals' && <ul className="list">{riv.slice(0, 60).map(r => <li key={r.opp} className="rowbtn static">{S.players[r.opp] ? <Who S={S} id={r.opp} sub={<>last met {r.last}{S.u.rivals.includes(r.opp) && <span className="tag rival">rival</span>}</>} /> : <span className="grow"><b>{r.name}</b></span>}{r.w + r.l >= RIVAL_MEETINGS && S.players[r.opp] && <button className="btn small" onClick={() => set({ overlay: { kind: 'rival', id: r.opp } })}>Rival card</button>}<span className="num pts">{r.w}–{r.l}</span></li>)}{!riv.length && <p className="muted">No played matches yet. Walkovers never count toward head-to-head records.</p>}</ul>}
-      {tab === 'find' && <><label className="search">Search players, including retired ones<input value={q} onChange={e => setQ(e.target.value)} placeholder="Type a name" /></label><ul className="list">{found.map(p => <li key={p.id} className="rowbtn static"><Who S={S} id={p.id} rank={S.rank[p.id]} sub={p.retired ? `retired ${p.retired}` : undefined} /></li>)}</ul></>}
+      {tab === 'champs' && <Champions S={S} />}
+      {tab === 'rivals' && (riv.length ? <div className="glass list-glass">{riv.slice(0, 80).map(r => <div key={r.opp} className="h2h-row">{S.players[r.opp] ? <Who S={S} id={r.opp} rank={S.rank[r.opp]} sub={<>last met {r.last}{S.u.rivals.includes(r.opp) && <span className="tag rival">rival</span>}</>} /> : <span className="grow"><b>{r.name}</b></span>}{r.w + r.l >= RIVAL_MEETINGS && S.players[r.opp] && <button className="btn small" onClick={() => set({ overlay: { kind: 'rival', id: r.opp } })}>Rival card</button>}<span className={`pts ${r.w > r.l ? 'up' : ''}`}>{r.w}–{r.l}</span></div>)}</div> : <p className="muted">No played matches yet. Walkovers never count toward head-to-head records.</p>)}
+      {tab === 'find' && <><label className="search">Search players, including retired ones<input value={q} onChange={e => setQ(e.target.value)} placeholder="Type a name" /></label>{found.length > 0 && <div className="glass list-glass">{found.map(p => <div key={p.id} className="h2h-row"><Who S={S} id={p.id} rank={S.rank[p.id]} sub={p.retired ? `retired ${p.retired}` : `${p.titles} titles since 2026`} /></div>)}</div>}</>}
     </div>
+  );
+}
+
+const LEVELS: [string, string, (b: string) => boolean][] = [['big', 'Majors and Masters', b => ['GS', 'F', 'T1000'].includes(b)], ['tour', 'All tour events', b => BAND_VAL[b as keyof typeof BAND_VAL] >= 250], ['all', 'Every level', () => true]];
+function Champions({ S }: { S: State }) {
+  const [lv, setLv] = useState('tour'), years = [...new Set(S.world.champs.map(c => c.year))].sort((a, b) => b - a), [yr, setYr] = useState(years[0] ?? S.year);
+  const f = LEVELS.find(l => l[0] === lv)![2], rows = S.world.champs.filter(c => c.year === yr && f(c.band)).slice().reverse();
+  if (!S.world.champs.length) return <p className="muted">No tournaments completed yet.</p>;
+  return (
+    <>
+      <div className="tour-tools">
+        <label>Season<select value={yr} onChange={e => setYr(Number(e.target.value))}>{years.map(y => <option key={y}>{y}</option>)}</select></label>
+        <div className="seg small-seg" role="group" aria-label="Event level" style={{ margin: 0 }}>{LEVELS.map(([k, t]) => <button key={k} className={lv === k ? 'on' : ''} aria-pressed={lv === k} onClick={() => setLv(k)}>{t}</button>)}</div>
+      </div>
+      <div className="glass list-glass">{rows.map(c => { const ed = S.cal.find(e => e.id === c.ed) ?? S.cal.find(e => e.name === c.name); return (
+        <div key={c.ed} className={`champ-row ${c.band === 'GS' ? 'gs' : ''}`}>
+          <span className="ev"><b>{ed ? <EvName name={c.name} surface={ed.surface} /> : c.name}</b>{c.w === S.userId && <span className="pill ok">You</span>}<small>{c.cat}</small></span>
+          <Who S={S} id={c.w} sub={c.f ? `beat ${S.players[c.f]?.name ?? 'unknown'}` : undefined} />
+        </div>); })}
+        {!rows.length && <p className="muted" style={{ padding: '1rem' }}>No champions at this level in {yr}.</p>}</div>
+    </>
   );
 }
 

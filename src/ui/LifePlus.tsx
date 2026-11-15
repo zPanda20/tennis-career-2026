@@ -2,7 +2,7 @@ import { useState } from 'react';
 // Off-court management: coach cards, time with your people, home base, housing, staff, plus planner wildcard offers and sponsor offer cards.
 import { WcOffer } from '../core/agent';
 import { fmtShort, wkDate } from '../core/content';
-import { BASES, HOMES, LIFE_ACTIONS, ROLES, STAFF, actionUsed, baseOf, hometown, homePrice, homeRent, homeUpkeep, livingMonthly, staffLevel } from '../core/lifestyle';
+import { MATCH_PREP, SPEC_MULT, BASES, HOMES, LIFE_ACTIONS, ROLES, STAFF, actionUsed, baseOf, hometown, homePrice, homeRent, homeUpkeep, livingMonthly, staffLevel } from '../core/lifestyle';
 import { ABILITY_NAMES, Coach, Sponsor, STYLE_NAMES, State } from '../core/types';
 import { COACH_TIER_NAME } from '../core/world';
 import { BrandMark, EvName, Flag, money } from './bits';
@@ -11,8 +11,11 @@ import { dispatch, useApp } from './store';
 const pctOf = (v: number, lo: number, hi: number) => Math.max(4, Math.min(100, ((v - lo) / (hi - lo)) * 100));
 const specName = (s?: Coach['spec']) => (!s ? 'General' : s === 'physical' ? 'Physical conditioning' : ABILITY_NAMES[s]);
 export function CoachMeters({ c }: { c: Coach }) {
+  const prep = MATCH_PREP[c.tier];
   const rows: [string, number, string][] = [
-    ['Development', pctOf(c.dev, 0.92, 1.26), c.dev >= 1.18 ? 'exceptional' : c.dev >= 1.12 ? 'outstanding' : c.dev >= 1.07 ? 'strong' : c.dev >= 1.02 ? 'solid' : 'modest'],
+    ['Development', pctOf(c.dev, 0.84, 1.28), `${Math.round(c.dev * 100)}% training effect`],
+    [`Speciality: ${specName(c.spec)}`, pctOf(SPEC_MULT[c.tier], 1.1, 1.5), `+${Math.round((SPEC_MULT[c.tier] - 1) * 100)}% on it`],
+    ['Match preparation', pctOf(prep, -0.0006, 0.0045), prep ? ['', 'some', 'good', 'excellent', 'elite'][[0, 0.001, 0.002, 0.003, 0.0045].indexOf(prep)] + ' scouting' : 'none'],
     ['Recovery care', pctOf(c.recovery, 0.15, 1), c.recovery > 0.75 ? 'very careful' : c.recovery > 0.5 ? 'careful' : c.recovery > 0.35 ? 'average' : 'pushes hard'],
     ['Fit with your game', pctOf(c.fit, -0.06, 0.06), c.fit > 0.02 ? 'suits your game' : c.fit < -0.02 ? 'different philosophy' : 'neutral'],
   ];
@@ -23,7 +26,7 @@ export function CoachCard({ c, current, trust }: { c: Coach; current?: boolean; 
   return (
     <span className="coachcard">
       <span className="row between" style={{ margin: 0, gap: '.5rem' }}><span><b className="cc-name">{name}</b><small style={{ display: 'block' }}>{persona}</small></span><span className={`tier t-${c.tier}`}>{COACH_TIER_NAME[c.tier]}</span></span>
-      <span className="cc-spec">Speciality: <b>{specName(c.spec)}</b> · prefers {STYLE_NAMES[c.style].toLowerCase()}s</span>
+      <span className="cc-spec">Prefers {STYLE_NAMES[c.style].toLowerCase()}s</span>
       <CoachMeters c={c} />
       <span className="cc-foot"><b>{money(c.cost)}</b> a month{current ? ` · contract through ${c.until}` : ''}{trust !== undefined ? ` · trust ${Math.round(trust)}/100` : c.tier === 'legend' ? ' · demanding: trust starts lower' : ''}</span>
     </span>
@@ -81,7 +84,7 @@ export function PeopleTime({ S, ro }: { S: State; ro: boolean }) {
         const used = actionUsed(S, a.id), why = a.ok?.(S), cost = a.cost(S), poor = cost > S.u.cash;
         return (
           <div key={a.id} className={`act ${used ? 'used' : ''}`}>
-            <span className={`who w-${a.who}`}>{a.who === 'coach' ? 'Coach' : a.who === 'friend' ? 'Friend' : 'Partner'}</span>
+            <span className={`whochip w-${a.who}`}>{a.who === 'coach' ? 'Coach' : a.who === 'friend' ? 'Friend' : 'Partner'}</span>
             <div className="grow"><b>{a.title}</b><small style={{ display: 'block' }}>{a.text}</small><small className="fx">{a.fx}</small></div>
             <button className="btn small" disabled={!can || used || !!why || poor} title={why ?? undefined} onClick={() => dispatch({ type: 'LifeAction', action: a.id }, 'Saving')}>{used ? 'Done' : why ? 'Not now' : cost ? money(cost) : 'Free'}</button>
           </div>);

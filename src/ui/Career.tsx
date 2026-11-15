@@ -2,12 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { BAND_NAME, ECON, POINTS } from '../core/balance';
 import { Option, Route, WcOffer, blockWeeks, coachReport, eventsInWeek, featuredEvent, fillText, optionFor, routes, wildcardOffers } from '../core/agent';
 import { CoachCard, SponsorOffer, WildcardOffers } from './LifePlus';
-import { absOf, fmtShort, wkDate } from '../core/content';
+import { absOf, fmtDate, fmtShort, wkDate } from '../core/content';
 import { roundName } from '../core/selectors';
 import { weeklyGuaranteed } from '../core/tour';
 import { ABILITIES, ABILITY_NAMES, Band, Focus, Intensity, Policies, Priority, State, UMatch, UTourney } from '../core/types';
 import { Avatar, BrandMark, EvName, Flag, Stat, money, rankTxt } from './bits';
-import { Arrow, Ball, BallRun, Momentum, Ring, SWING_ENDS, SWING_SHORT, SURF_COLOR } from './fx';
+import { Arrow, Ball, BallRun, Momentum, Ring, SWING_ENDS, SWING_SHORT, SURF_COLOR, seasonOf, tintOf } from './fx';
 import { dispatch, get, set, useApp } from './store';
 import { getSetting, setSetting } from '../persist/db';
 import { GoalsCard, NewsCard, NewsList, NewsTicker, RivalAlert, RivalTag, nextMeeting, useWatchControls } from './Extras';
@@ -409,10 +409,10 @@ export function Reveal({ S, from }: { S: State; from?: number }) {
   const multi = from !== undefined && !!sum && from < sum.fromWk;
   const nextLabel = step.k === 'event' ? (steps[i + 1]?.k === 'summary' ? 'Summary' : 'Next event') : step.k === 'match' && step.g !== undefined && steps[i + 1]?.k === 'match' && (steps[i + 1] as any).mi === step.mi ? 'Next game' : step.k === 'match' && pace === 'set' && step.sets < parseSets(ms[step.ti][step.mi]).length ? 'Next set' : 'Next';
   return (
-    <div className="screen" role="dialog" aria-modal="true" aria-label="Block results">
+    <div className={`screen s-${step.k === 'summary' || !items[cur] ? tintOf(S) : seasonOf(items[cur].wk)}`} role="dialog" aria-modal="true" aria-label="Block results">
       <div className="screen-in">
         <div className="screen-top">
-          <div><div className="k">{multi ? 'Season' : 'Swing'} results · {fmtShort(wkDate(start))} to {fmtShort(wkDate(end - 1, 6))}</div><div className="t">{step.k === 'summary' ? 'The summary' : items[cur] && <EvName name={items[cur].name} surface={items[cur].surface} />}</div></div>
+          <div><div className="k">{multi ? 'Season' : 'Swing'} results · {multi ? fmtDate(wkDate(start)) : fmtShort(wkDate(start))} to {multi ? fmtDate(wkDate(end - 1, 6)) : fmtShort(wkDate(end - 1, 6))}</div><div className="t">{step.k === 'summary' ? 'The summary' : items[cur] && <EvName name={items[cur].name} surface={items[cur].surface} />}</div></div>
           <span className="dots" style={{ margin: '0 auto' }} role="img" aria-label={`Event ${Math.min(cur + 1, items.length)} of ${items.length}`}>{items.slice(Math.max(0, Math.min(cur - 6, items.length - 12)), Math.max(12, cur + 6)).map(t => { const k = items.indexOf(t); return <Ball key={k} size={k === cur ? 28 : 18} empty={k > cur} glow={k === cur} />; })}<b style={{ marginLeft: '.3rem' }}>{step.k !== 'summary' ? `${cur + 1} of ${items.length}` : 'Summary'}</b></span>
           {step.k !== 'summary' && <button className="btn" onClick={() => { setPlaying(false); setI(steps.length - 1); }}>Skip to summary</button>}
         </div>

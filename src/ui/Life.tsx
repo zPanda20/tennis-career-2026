@@ -59,16 +59,6 @@ export function Life({ S }: { S: State }) {
           </section>
 
           <PeopleTime S={S} ro={ro} />
-          <section className="glass">
-            <div className="sec-head"><h3>Decisions and consequences</h3>{pending > 0 && <small>{pending} may still come back</small>}</div>
-            {u.choices.length ? <ul className="plain timeline">{u.choices.slice().reverse().map(c => (
-              <li key={c.id}>
-                <span className="num">{c.date.slice(0, 7)}</span> <b>{c.title}</b>{c.personal && <span className="tag">personal</span>}<br />
-                <span>{c.label}.</span> <small>{c.fx}</small>
-                {c.follow?.done && <p className="note story" style={{ marginTop: '.4rem' }}>{fillText(S, c.follow.text)}</p>}
-                {c.follow && !c.follow.done && <small className="muted"> · this may come back later</small>}
-              </li>))}</ul> : <p className="muted">No life decisions yet. One may come up when you plan each swing.</p>}
-          </section>
         </div>
 
         <div className="col">
@@ -90,6 +80,18 @@ export function Life({ S }: { S: State }) {
       <div className="manage-grid">
         <div className="col"><Team S={S} ro={ro} /></div>
         <div className="col"><HomeBase S={S} ro={ro} /><Housing S={S} ro={ro} /></div>
+      </div>
+      <div className="life-bottom">
+          <section className="glass">
+            <div className="sec-head"><h3>Decisions and consequences</h3>{pending > 0 && <small>{pending} may still come back</small>}</div>
+            {u.choices.length ? <ul className="plain timeline">{u.choices.slice().reverse().map(c => (
+              <li key={c.id}>
+                <span className="num">{c.date.slice(0, 7)}</span> <b>{c.title}</b>{c.personal && <span className="tag">personal</span>}<br />
+                <span>{c.label}.</span> <small>{c.fx}</small>
+                {c.follow?.done && <p className="note story" style={{ marginTop: '.4rem' }}>{fillText(S, c.follow.text)}</p>}
+                {c.follow && !c.follow.done && <small className="muted"> · this may come back later</small>}
+              </li>))}</ul> : <p className="muted">No life decisions yet. One may come up when you plan each swing.</p>}
+          </section>
       </div>
     </div>
   );

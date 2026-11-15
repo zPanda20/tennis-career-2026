@@ -174,7 +174,7 @@ export function sponsorOffers(S: State): Sponsor[] {
 }
 export function coachOffers(S: State): Coach[] {
   const u = S.u, rank = S.rank[S.userId], r = rngOf(S.seed, 'coach', S.year), p = S.players[S.userId];
-  const tiers: Coach['tier'][] = rank <= 25 ? ['legend', 'master', 'elite'] : rank <= 60 ? ['master', 'elite', 'tour'] : rank <= 150 ? ['elite', 'tour', 'tour'] : rank <= 350 ? ['tour', 'tour', 'starter'] : ['starter', 'tour', 'starter'];
+  const tiers: Coach['tier'][] = rank <= 10 ? ['legend', 'master', 'elite'] : rank <= 60 ? ['master', 'elite', 'tour'] : rank <= 150 ? ['elite', 'tour', 'tour'] : rank <= 350 ? ['tour', 'tour', 'starter'] : ['starter', 'tour', 'starter'];
   return tiers.map(t => { const c = makeCoach(r, t, p.country, S.year + 1, p.style); c.until = S.year + 1 + r.int(1, 2); return c; }).filter(c => c.tier !== u.coach.tier || c.dev > u.coach.dev - 0.03);
 }
 

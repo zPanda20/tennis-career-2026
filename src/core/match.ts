@@ -14,6 +14,7 @@ export function sideOf(p: Player, surface: Surface, rested = false): Side {
   if (p.style === 'B') { fhW += 0.02; netW = Math.max(0, netW - 0.02); }
   const rally = a.fh * fhW + a.bh * w.bh + a.move * moveW + a.comp * w.comp + a.net * netW;
   let cond = clamp((p.fam[surface] - 50) / 50, -1, 1) * COND.fam;
+  cond += p.edge ?? 0; // the user's coach: match preparation
   if (!rested) {
     cond -= clamp((p.fatigue - 30) / 60, 0, 1) * COND.fatigue;
     cond += clamp((p.conf - 50) / 50, -1, 1) * COND.conf;

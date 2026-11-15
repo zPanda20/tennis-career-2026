@@ -129,7 +129,7 @@ const PERSONAS: [string, Coach['spec'] | 'stroke'][] = [['patient technician', '
 const LEGEND_PERSONAS = ['former world No. 2', 'former major champion', 'former world No. 4', 'renowned academy founder', 'former Davis Cup captain'];
 export const COACH_TIER_NAME: Record<Coach['tier'], string> = { starter: 'Starter', tour: 'Tour', elite: 'Elite', master: 'World-class', legend: 'Legendary' };
 export function makeCoach(r: Rng, tier: Coach['tier'], country: string, year: number, style: Style): Coach {
-  const dev = { starter: [0.95, 1.05], tour: [1.05, 1.13], elite: [1.1, 1.18], master: [1.14, 1.21], legend: [1.18, 1.24] }[tier];
+  const dev = { starter: [0.86, 0.92], tour: [0.95, 1.01], elite: [1.04, 1.1], master: [1.12, 1.18], legend: [1.2, 1.26] }[tier];
   const cost = { starter: [200, 450], tour: [600, 1200], elite: [1400, 2200], master: [2800, 4500], legend: [6000, 9500] }[tier];
   const st = r.chance(tier === 'legend' ? 0.35 : 0.5) ? style : pickStyle(r);
   const [persona0, sp] = r.pick(PERSONAS), spec = sp === 'stroke' ? (r.chance(0.5) ? 'fh' : 'bh') : sp;
