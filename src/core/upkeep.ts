@@ -1,5 +1,6 @@
 // Weekly development, loads, recovery, health and money, plus the year-end turnover (spec 5–7, 10, 11, 14.4, 15).
 import { yearEndNews } from './news';
+import { homeOf, injuryMult, lifestyleMonthly, lifestyleWeek, livingMonthly, trainMult } from './lifestyle';
 import { ensureGoals, failGoals } from './goals';
 import { DEV, ECON, HEALTH, RECOVERY, RETIRE_AGE, TRAIN } from './balance';
 import { Content, ageOn, iso, travelClass, wkDate } from './content';
@@ -66,7 +67,7 @@ function develop(S: State, p: Player, played: boolean) {
     const h = clamp((p.ceil[k] - p.ab[k]) / DEV.headroomDiv, 0, 1); if (h <= 0) continue;
     let wc = DEV.use[k];
     if (p.wkSurf === 'clay' && k === 'move') wc += 0.03; if (p.wkSurf === 'grass' && (k === 'serve' || k === 'net')) wc += 0.025;
-    let wt = DEV.use[k];
+    let wt = DEV.use[k] * (isU ? trainMult(S, k) : 1);
     if (focus !== 'balanced' && focus !== 'surface') wt = focus === 'physical' ? (k === 'move' || k === 'end' ? 0.35 : 0.05) : k === focus ? 0.55 + 0.45 * DEV.use[k] : 0.45 * DEV.use[k];
     if (focus === 'surface') wt *= 0.6;
     const g1 = comp * wc * h * 8 / 8, g2 = train * wt * h, g = Math.min(g1 + g2, p.ceil[k] - p.ab[k]);
@@ -93,7 +94,8 @@ export function weeklyUpkeep(S: State) {
         p.sharp = Math.max(35, p.sharp - (pr === 'prep' && isU ? 1.5 : 3)); p.conf += p.conf > 50 ? -0.5 : p.conf < 50 ? 0.5 : 0;
       }
       if (isU) {
-        if (played) { const ed = S.cal.find(e => e.id === p.commit[wk]); if (ed && travelClass(p.country, ed.country) === 2) { p.fatigue += 3; p.strain += 1; } }
+        if (played) { const ed = S.cal.find(e => e.id === p.commit[wk]), tc = ed ? travelClass(homeOf(S), ed.country) : 0; if (tc === 2) { p.fatigue += 3; p.strain += 1; } else if (tc === 1) p.fatigue += 1; }
+        lifestyleWeek(S, played);
         if (pr === 'social') { p.morale += 0.6; p.sharp -= 0.4; } else if (pr === 'relationship') { p.morale += 0.4; u.rel.friend = Math.min(100, u.rel.friend + 0.5); if (u.rel.partner !== null) u.rel.partner = Math.min(100, u.rel.partner + 0.7); }
         else if (pr === 'professional') { p.fatigue += 1; u.rel.agent = Math.min(100, u.rel.agent + 0.4); } else if (pr === 'prep') { p.morale -= p.morale > 45 ? 0.35 : 0; }
         p.morale += p.morale < 55 ? 0.3 : 0;
@@ -104,7 +106,7 @@ export function weeklyUpkeep(S: State) {
       let pr2 = HEALTH.base + HEALTH.perFat * Math.max(0, p.fatigue - 40) + HEALTH.perStrain * Math.max(0, p.strain - 30);
       pr2 *= p.injSus / Math.sqrt(p.resil);
       const age = ageOf(S, p); if (age > 31) pr2 *= 1 + (age - 31) * 0.06;
-      if (isU) pr2 *= (played ? 1 : it.risk) * (1 - 0.15 * u.coach.recovery);
+      if (isU) pr2 *= (played ? 1 : it.risk) * (1 - 0.15 * u.coach.recovery) * injuryMult(S);
       if ((p as any).vuln > wk) pr2 *= 1.6;
       const r = rngOf(S.seed, 'health', id, wk);
       if (r.chance(Math.min(HEALTH.cap, pr2))) injure(S, p, p.strain > 45 ? 'overuse' : r.chance(0.3) ? 'illness' : 'acute');
@@ -115,7 +117,8 @@ export function weeklyUpkeep(S: State) {
   // the user's weekly money (spec 11.3/11.4): one ledger for both play settings
   const m = 12 / 52;
   if (S.year === 2026) addLedger(S, 'Starter support', ECON.support * m);
-  addLedger(S, 'Living costs', -ECON.essentials * m); addLedger(S, 'Coaching', -u.coach.cost * m);
+  addLedger(S, 'Living costs', -livingMonthly(S) * m); addLedger(S, 'Coaching', -u.coach.cost * m);
+  const hm = lifestyleMonthly(S); if (hm) addLedger(S, 'Home and staff', -hm * m);
   const sp = u.sponsors.reduce((t, s) => t + s.monthly, 0); if (sp) addLedger(S, 'Sponsorship', sp * m);
   if (u.cash < 0) { addLedger(S, 'Basic support scheme', -u.cash); u.hardship++; }
 }
@@ -143,26 +146,36 @@ export function flushDev(S: State) {
   }
   (u as any).devAcc = {};
 }
+/** Sponsor offers come in three shapes, so the choice is a real trade-off:
+ *  retainer: big monthly money, small bonuses, many appearance days (less training);
+ *  performance: little monthly money, large bonuses for titles at both main-tour and lower-tour level;
+ *  loyalty: a signing payment and a long contract at a steady rate. */
 export function sponsorOffers(S: State): Sponsor[] {
   const u = S.u, rank = S.rank[S.userId], r = rngOf(S.seed, 'sponsor', S.year), out: Sponsor[] = [];
-  const base = rank <= 5 ? r.range(60000, 110000) : rank <= 10 ? r.range(35000, 70000) : rank <= 30 ? r.range(12000, 30000) : rank <= 100 ? r.range(3000, 9000) : rank <= 250 ? r.range(600, 2000) : rank <= 500 ? r.range(150, 500) : 0;
-  const rep = 1 + (u.rel.agent - 50) / 250;
+  const base = rank <= 5 ? r.range(60000, 110000) : rank <= 10 ? r.range(35000, 70000) : rank <= 30 ? r.range(12000, 30000) : rank <= 100 ? r.range(3000, 9000) : rank <= 250 ? r.range(600, 2000) : rank <= 500 ? r.range(150, 500) : rank <= 800 ? r.range(60, 160) : 0;
+  if (!base) return out;
+  const rep = 1 + (u.rel.agent - 50) / 250, r10 = (n: number) => Math.round(n / 10) * 10;
   for (const slot of ['apparel', 'racket', 'partner'] as const) {
     if (u.sponsors.some(s => s.slot === slot && s.until > S.year)) continue;
     if (slot === 'partner' && rank > 150) continue;
-    const share = slot === 'apparel' ? 0.45 : slot === 'racket' ? 0.2 : 0.35;
-    for (let i = 0; i < 2; i++) {
-      const brand = r.int(0, BRANDS[slot].length - 1), monthly = Math.round((base * share * rep * r.range(0.8, 1.2)) / 10) * 10, years = r.int(1, 3);
-      if (out.some(o => o.slot === slot && o.brand === brand)) continue;
-      out.push({ id: `sp-${S.year}-${slot}-${i}`, slot, brand, name: BRANDS[slot][brand], monthly: monthly || (slot === 'partner' ? 0 : r.int(4, 12) * 10), titleBonus: Math.round(monthly * 1.2), appearances: monthly > 5000 ? r.int(2, 5) : r.int(0, 2), since: S.year + 1, until: S.year + 1 + years });
+    const share = slot === 'apparel' ? 0.45 : slot === 'racket' ? 0.2 : 0.35, kinds = r.shuffle(['retainer', 'performance', 'loyalty'] as const).slice(0, slot === 'partner' ? 2 : 3), used = new Set<number>();
+    for (const kind of kinds) {
+      let brand = r.int(0, BRANDS[slot].length - 1); for (let k = 0; used.has(brand) && k < 6; k++) brand = r.int(0, BRANDS[slot].length - 1); if (used.has(brand)) continue; used.add(brand);
+      const m0 = base * share * rep * r.range(0.85, 1.15);
+      const monthly = r10(kind === 'retainer' ? m0 * 1.4 : kind === 'performance' ? m0 * 0.4 : m0 * 0.95);
+      const tourBonus = r10(Math.max(kind === 'performance' ? 400 : 100, kind === 'retainer' ? m0 * 0.5 : kind === 'performance' ? m0 * 4.5 : m0 * 1.3));
+      const lowerBonus = r10(Math.max(kind === 'performance' ? 150 : 40, kind === 'retainer' ? m0 * 0.12 : kind === 'performance' ? m0 * 1.6 : m0 * 0.35));
+      const years = kind === 'loyalty' ? r.int(3, 4) : kind === 'retainer' ? 2 : r.int(1, 2);
+      const appearances = kind === 'retainer' ? r.int(4, 7) : kind === 'performance' ? r.int(0, 1) : r.int(2, 3);
+      out.push({ id: `sp-${S.year}-${slot}-${kind}`, kind, slot, brand, name: BRANDS[slot][brand], monthly: Math.max(10, monthly), titleBonus: tourBonus, lowerBonus, signing: kind === 'loyalty' ? r10(m0 * 5) : undefined, appearances, since: S.year + 1, until: S.year + 1 + years });
     }
   }
   return out;
 }
 export function coachOffers(S: State): Coach[] {
   const u = S.u, rank = S.rank[S.userId], r = rngOf(S.seed, 'coach', S.year), p = S.players[S.userId];
-  const tiers: Coach['tier'][] = rank <= 60 ? ['elite', 'elite', 'tour'] : rank <= 250 ? ['tour', 'tour', 'starter'] : ['starter', 'tour', 'starter'];
-  return tiers.slice(0, r.int(2, 3)).map(t => { const c = makeCoach(r, t, p.country, S.year + 1, p.style); c.until = S.year + 1 + r.int(1, 2); return c; }).filter(c => c.tier !== u.coach.tier || c.dev > u.coach.dev - 0.03);
+  const tiers: Coach['tier'][] = rank <= 25 ? ['legend', 'master', 'elite'] : rank <= 60 ? ['master', 'elite', 'tour'] : rank <= 150 ? ['elite', 'tour', 'tour'] : rank <= 350 ? ['tour', 'tour', 'starter'] : ['starter', 'tour', 'starter'];
+  return tiers.map(t => { const c = makeCoach(r, t, p.country, S.year + 1, p.style); c.until = S.year + 1 + r.int(1, 2); return c; }).filter(c => c.tier !== u.coach.tier || c.dev > u.coach.dev - 0.03);
 }
 
 /** Season rollover: summary, world turnover, aging, offers and next year's calendar. */

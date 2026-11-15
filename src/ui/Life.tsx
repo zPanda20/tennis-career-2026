@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import { fillText } from '../core/agent';
 import type { Priority, State } from '../core/types';
-import { Avatar, Flag } from './bits';
-import { COUNTRIES } from '../core/countries';
+import { Avatar } from './bits';
 import { Ring, SWING_SHORT } from './fx';
 import { dispatch, useApp } from './store';
+import { HomeBase, Housing, PeopleTime, Team } from './LifePlus';
 
 const PRI: [Priority, string, string][] = [
   ['prep', 'Focused preparation', 'Most useful training. Morale can slowly dip under sustained pressure.'],
@@ -58,6 +58,7 @@ export function Life({ S }: { S: State }) {
               </div>))}</div>
           </section>
 
+          <PeopleTime S={S} ro={ro} />
           <section className="glass">
             <div className="sec-head"><h3>Decisions and consequences</h3>{pending > 0 && <small>{pending} may still come back</small>}</div>
             {u.choices.length ? <ul className="plain timeline">{u.choices.slice().reverse().map(c => (
@@ -84,11 +85,11 @@ export function Life({ S }: { S: State }) {
               <ul className="plain" style={{ marginTop: '.8rem' }}>{history.slice(-6).reverse().map((h, i) => <li key={i}><small>{h.year} · {SWING_SHORT[h.block].join(' ').toLowerCase()}</small> · {PRI.find(p => p[0] === h.pri)![1]}</li>)}</ul>
             </> : <p className="muted">Your choices appear here after each swing you plan.</p>}
           </section>
-          <section className="glass">
-            <div className="sec-head"><h3>Home</h3></div>
-            <p><Flag c={me.country} size={22} /> Representing {COUNTRIES[me.country]?.name ?? me.country}. Long trips away from home cost more energy, and long stretches on the road wear on morale and relationships.</p>
-          </section>
         </div>
+      </div>
+      <div className="manage-grid">
+        <div className="col"><Team S={S} ro={ro} /></div>
+        <div className="col"><HomeBase S={S} ro={ro} /><Housing S={S} ro={ro} /></div>
       </div>
     </div>
   );

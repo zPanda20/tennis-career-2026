@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BAND_NAME, ECON, POINTS } from '../core/balance';
-import { Option, Route, blockWeeks, coachReport, eventsInWeek, featuredEvent, fillText, optionFor, routes } from '../core/agent';
+import { Option, Route, WcOffer, blockWeeks, coachReport, eventsInWeek, featuredEvent, fillText, optionFor, routes, wildcardOffers } from '../core/agent';
+import { CoachCard, SponsorOffer, WildcardOffers } from './LifePlus';
 import { absOf, fmtShort, wkDate } from '../core/content';
 import { roundName } from '../core/selectors';
 import { weeklyGuaranteed } from '../core/tour';
@@ -188,15 +189,15 @@ function YearEnd({ S }: { S: State }) {
       {(u.goals ?? []).some(g => g.year === s.year) && <div style={{ marginTop: '1rem' }}><GoalsCard S={S} year={s.year} title={`${s.year} season goals`} /></div>}
       {u.finalSeasonWarned && <p className="warn-box">Next season is your final eligible season: the age ceiling closes a career at the end of the season in which a player turns 40.</p>}
       <h2 style={{ marginTop: '1.2rem' }}>Coaching</h2>
-      <div className="choice-grid" role="radiogroup" aria-label="Coach for next season">
-        <button className={`choice ${coach === 'keep' ? 'on' : ''}`} role="radio" aria-checked={coach === 'keep'} onClick={() => setCoach('keep')}><b>Stay with {u.coach.name.split(' (')[0]}</b><span>{u.coach.tier} tier · {money(u.coach.cost)} a month · trust {Math.round(u.rel.coach)}/100</span></button>
-        {pend.coachOffers?.map(c => <button key={c.id} className={`choice ${coach === c.id ? 'on' : ''}`} role="radio" aria-checked={coach === c.id} onClick={() => setCoach(c.id)}><b>{c.name.split(' (')[0]}</b><span>{c.name.split(' (')[1]?.replace(')', '')} · {c.tier} tier · {money(c.cost)} a month · {c.dev >= 1.15 ? 'outstanding' : c.dev >= 1.08 ? 'strong' : c.dev >= 1.02 ? 'solid' : 'modest'} development record · {c.recovery > 0.66 ? 'careful with workloads' : c.recovery > 0.4 ? 'average on recovery' : 'pushes hard'} · {c.fit > 0.02 ? 'suits your game' : c.fit < -0.02 ? 'different philosophy' : 'neutral fit'}</span></button>)}
+      <div className="choice-grid coachgrid" role="radiogroup" aria-label="Coach for next season">
+        <button className={`choice coachpick ${coach === 'keep' ? 'on' : ''}`} role="radio" aria-checked={coach === 'keep'} onClick={() => setCoach('keep')}><small className="eyebrow" style={{ margin: 0 }}>Stay with your coach</small><CoachCard c={u.coach} current trust={u.rel.coach} /></button>
+        {pend.coachOffers?.map(c => <button key={c.id} className={`choice coachpick ${coach === c.id ? 'on' : ''}`} role="radio" aria-checked={coach === c.id} onClick={() => setCoach(c.id)}><small className="eyebrow" style={{ margin: 0 }}>Offer · contract through {c.until - 1}</small><CoachCard c={c} /></button>)}
       </div>
       {slots.length > 0 && <><h2 style={{ marginTop: '1.2rem' }}>Sponsor offers</h2>{slots.map(sl => (
         <div key={sl} className="choice-grid" role="radiogroup" aria-label={`${sl} sponsor`}>
           <p className="eyebrow cap">{sl === 'partner' ? 'Commercial partner' : sl}</p>
           <button className={`choice slim ${!sp[sl] ? 'on' : ''}`} role="radio" aria-checked={!sp[sl]} onClick={() => setSp({ ...sp, [sl]: '' })}><b>No deal</b></button>
-          {pend.sponsorOffers!.filter(o => o.slot === sl).map(o => <button key={o.id} className={`choice slim ${sp[sl] === o.id ? 'on' : ''}`} role="radio" aria-checked={sp[sl] === o.id} onClick={() => setSp({ ...sp, [sl]: o.id })}><BrandMark sp={o} /><span>{money(o.monthly)} a month · {money(o.titleBonus)} per main-tour title · {o.appearances} appearance {o.appearances === 1 ? 'day' : 'days'} a year · through {o.until - 1}</span></button>)}
+          {pend.sponsorOffers!.filter(o => o.slot === sl).map(o => <button key={o.id} className={`choice slim ${sp[sl] === o.id ? 'on' : ''}`} role="radio" aria-checked={sp[sl] === o.id} onClick={() => setSp({ ...sp, [sl]: o.id })}><SponsorOffer o={o} /></button>)}
         </div>))}</>}
       <label className="check"><input type="checkbox" checked={ret} onChange={e => setRet(e.target.checked)} /><span>Retire now instead of playing {S.year}<small>Closes and freezes the career.</small></span></label>
       <div className="row"><button className="cta" disabled={ro} onClick={() => { if (ret && !confirm('Retire now? This cannot be undone.')) return; dispatch({ type: 'YearEnd', coach, sponsors: Object.values(sp).filter(Boolean), retire: ret }, ret ? 'Closing your career' : `Welcome to ${S.year}`).then(ok => ok && ret && set({ tab: 'records' })); }}>{ret ? 'Retire' : `Start ${S.year}`}<span className="go"><Arrow /></span></button></div>
@@ -219,6 +220,9 @@ export function Planner({ S }: { S: State }) {
   const u = S.u, rs = useMemo(() => { const all = routes(S), some = all.filter(r => r.picks.length || r.key === 'recovery'); return some.length ? some : all.slice(0, 1); }, [S]), ev = useMemo(() => featuredEvent(S), [S]), weeks = useMemo(() => blockWeeks(S), [S]);
   const rec = rs.find(r => r.recommended) ?? rs[0];
   const [step, setStep] = useState(0), [key, setKey] = useState<string>(rec.key), [plan, setPlan] = useState<Record<number, string>>(rec.weeks);
+  const wcOffers = useMemo(() => wildcardOffers(S), [S]), [wc, setWc] = useState<string[]>([]);
+  const acceptWc = (o: WcOffer, yes: boolean) => { const next = { ...plan }; if (yes) { next[o.ed.startWk] = o.ed.id; setWc([...wc, o.ed.id]); } else { if (next[o.ed.startWk] === o.ed.id) delete next[o.ed.startWk]; setWc(wc.filter(x => x !== o.ed.id)); } setPlan(next); setKey('custom'); };
+  const isWc = (id: string) => wc.includes(id) && Object.values(plan).includes(id);
   const [pol, setPol] = useState<Policies>({ ...u.pol }), [life, setLife] = useState<number | null>(null), [custom, setCustom] = useState(false), [train, setTrain] = useState(false);
   const income = Math.max(0, weeklyGuaranteed(S)) * weeks.length, budget = u.cash + income;
   const optById = (id: string): Option | null => { const ed = S.cal.find(e => e.id === id); return ed ? optionFor(S, ed) : null; };
@@ -230,7 +234,7 @@ export function Planner({ S }: { S: State }) {
   const choose = (r: Route) => { setKey(r.key); setPlan({ ...r.weeks }); setCustom(false); };
   const setWeek = (w: number, id: string) => { const next = { ...plan }; if (id) { next[w] = id; const ed = S.cal.find(e => e.id === id)!; if (ed.weeks === 2) delete next[w + 1]; if (ed.band === 'GS' && optionFor(S, ed).status !== 'accepted') delete next[w - 1]; } else delete next[w]; setPlan(next); setKey('custom'); };
   const steps = ev ? ['Route', 'Decision', 'Play'] : ['Route', 'Play'], last = steps.length - 1;
-  const commit = () => dispatch({ type: 'CommitBlock', plan: { weeks: plan, route: key, lifeEv: ev?.id, lifeChoice: life ?? undefined }, pol }, 'Playing the swing').then(ok => { const s = get().S; set({ overlay: ok && (s?.phase === 'plan' || s?.phase === 'yearEnd') && s.lastSummary?.tourneys.some(id => played(s.u.tourneys.find(t => t.ed === id)!)) ? { kind: 'reveal' } : null }); });
+  const commit = () => dispatch({ type: 'CommitBlock', plan: { weeks: plan, route: key, wc: wc.filter(isWc), lifeEv: ev?.id, lifeChoice: life ?? undefined }, pol }, 'Playing the swing').then(ok => { const s = get().S; set({ overlay: ok && (s?.phase === 'plan' || s?.phase === 'yearEnd') && s.lastSummary?.tourneys.some(id => played(s.u.tourneys.find(t => t.ed === id)!)) ? { kind: 'reveal' } : null }); });
   const playedWeeks = new Set<number>(); for (const o of picks) { playedWeeks.add(o.ed.startWk); if (o.ed.weeks === 2) playedWeeks.add(o.ed.startWk + 1); }
   const close = () => set({ overlay: null });
   return (
@@ -259,6 +263,7 @@ export function Planner({ S }: { S: State }) {
                 </button>);
             })}
           </div>
+          <WildcardOffers S={S} offers={wcOffers} plan={plan} wc={wc} accept={acceptWc} />
           <div className="row"><button className="link" aria-expanded={custom} onClick={() => setCustom(!custom)}>{custom ? 'Hide week-by-week schedule' : 'Build my own schedule week by week'}</button></div>
           {custom && <div className="glass weeks">
             {weeks.map(w => {
@@ -288,7 +293,7 @@ export function Planner({ S }: { S: State }) {
             <section className="glass">
               <div className="sec-head"><h3>Your schedule</h3><small>{picks.length} {picks.length === 1 ? 'event' : 'events'}</small></div>
               <span className="weekballs" role="img" aria-label={`Plays ${playedWeeks.size} of ${weeks.length} weeks`}>{weeks.map(w => <Ball key={w} size={24} empty={!playedWeeks.has(w)} />)}</span>
-              <ul className="list" style={{ marginTop: '.8rem' }}>{picks.sort((a, b) => a.ed.startWk - b.ed.startWk).map(o => <li key={o.ed.id} className="rowbtn static"><span className="grow"><b><EvName name={o.ed.name} surface={o.ed.surface} /></b> <RivalTag S={S} ed={o.ed} /><small>{fmtShort(wkDate(o.ed.startWk))} · {o.ed.cat} · {o.ed.surface}</small></span><span className={`pill ${STATUS[o.status][1]}`}>{STATUS[o.status][0]}</span></li>)}</ul>
+              <ul className="list" style={{ marginTop: '.8rem' }}>{picks.sort((a, b) => a.ed.startWk - b.ed.startWk).map(o => <li key={o.ed.id} className="rowbtn static"><span className="grow"><b><EvName name={o.ed.name} surface={o.ed.surface} /></b> <RivalTag S={S} ed={o.ed} /><small>{fmtShort(wkDate(o.ed.startWk))} · {o.ed.cat} · {o.ed.surface}</small></span>{isWc(o.ed.id) ? <span className="pill ok">Wildcard</span> : <span className={`pill ${STATUS[o.status][1]}`}>{STATUS[o.status][0]}</span>}</li>)}</ul>
               {!picks.length && <p className="muted">A training block with no events.</p>}
             </section>
             <section className="glass">

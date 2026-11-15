@@ -52,8 +52,9 @@ export interface UTourney {
   matches: string[]; prov?: boolean; note?: string; champion?: string; log?: MatchLite[];
 }
 export interface Injury { id: string; wk: number; year: number; date: string; loc: string; kind: 'acute' | 'overuse' | 'illness'; sev: 'minor' | 'moderate' | 'major' | 'severe'; estMin: number; estMax: number; weeks: number; rehab: 'conservative' | 'specialist' | 'early'; perm?: { ab: Ability; loss: number }[]; returnedWk?: number; desc: string }
-export interface Coach { id: string; name: string; tier: 'starter' | 'tour' | 'elite'; dev: number; recovery: number; style: Style; fit: number; cost: number; since: number; until: number; trust: number }
-export interface Sponsor { id: string; slot: 'apparel' | 'racket' | 'partner'; brand: number; name: string; monthly: number; titleBonus: number; appearances: number; since: number; until: number }
+export type CoachTier = 'starter' | 'tour' | 'elite' | 'master' | 'legend';
+export interface Coach { spec?: Ability | 'physical'; persona?: string; id: string; name: string; tier: CoachTier; dev: number; recovery: number; style: Style; fit: number; cost: number; since: number; until: number; trust: number }
+export interface Sponsor { kind?: 'retainer' | 'performance' | 'loyalty'; lowerBonus?: number; signing?: number; id: string; slot: 'apparel' | 'racket' | 'partner'; brand: number; name: string; monthly: number; titleBonus: number; appearances: number; since: number; until: number }
 export interface Ledger { wk: number; year: number; cat: string; amt: number; ref?: string }
 export interface Choice { id: string; ev: string; choice: number; wk: number; year: number; date: string; title: string; label: string; fx: string; personal: boolean; follow?: { dueBlock: number; text: string; done?: boolean } }
 export interface AttrChange { wk: number; year: number; ab: Ability; from: number; to: number; cause: 'competition' | 'training' | 'aging' | 'injury'; note?: string }
@@ -71,11 +72,12 @@ export interface UserCareer {
   portrait?: string;
   devYear: { comp: number; train: number }; injWeeksYear: number; no1Weeks: number; hardship: number; finalSeasonWarned?: boolean; lastOfferYear: number; rivals: string[];
   rivalNo?: string[]; goals?: Goal[];
+  home?: { base: string; tier: number; owned: boolean }; staff?: { role: 'physio' | 'fitness' | 'hitting' | 'psych'; level: 1 | 2; name: string; since: number }[]; lifeUsed?: Record<string, number>;
 }
 export interface Goal { id: string; year: number; kind: 'rank' | 'title' | 'wins' | 'major'; target: number; bands?: Band[]; label: string; reward: number; done?: number; failed?: boolean }
 export interface News { wk: number; year: number; kind: 'champ' | 'rank' | 'rival' | 'upset' | 'teen' | 'retire' | 'yearEnd' | 'you'; text: string; ids: string[]; band?: Band }
 export interface Pending { type: 'injury' | 'yearEnd' | 'forcedRetire'; injury?: string; coachOffers?: Coach[]; sponsorOffers?: Sponsor[]; text?: string }
-export interface BlockPlan { weeks: Record<number, string>; route: string; lifeEv?: string; lifeChoice?: number }
+export interface BlockPlan { wc?: string[]; weeks: Record<number, string>; route: string; lifeEv?: string; lifeChoice?: number }
 export interface BlockSummary { year: number; block: number; fromWk: number; toWk: number; rankFrom: number; rankTo: number; ptsFrom: number; ptsTo: number; tourneys: string[]; notes: string[]; dev: Partial<Abil>; cashFrom: number; cashTo: number; injuries: string[]; newAch: string[]; world: string[]; follow: string[] }
 export interface WorldRec { champs: { ed: string; name: string; year: number; band: Band; cat: string; w: string; f?: string; wk: number }[]; yearEnd: Record<number, { id: string; pts: number }[]>; no1: Record<string, number>; retired: { id: string; year: number }[]; rookies: Record<number, string[]>; news?: News[]; mile?: Record<string, number>; lastNo1?: string }
 

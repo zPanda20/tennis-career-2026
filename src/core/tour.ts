@@ -1,5 +1,6 @@
 // Tournament entry, draws and round-by-round play for every event of the selected tour (spec 8, 9, 13).
 import { champNews, upsetNews } from './news';
+import { homeOf, lifestyleMonthly, livingMonthly } from './lifestyle';
 import { BAND_VAL, DEV, ECON, FINALS_POINTS, POINTS, PRIZE, PRIZE_MULT, QUAL_POINTS, ROUND_KEYS } from './balance';
 import { fmtDate, iso, travelClass, wkDate } from './content';
 import { expectedWin, simulateMatch, Rules } from './match';
@@ -18,12 +19,12 @@ export function achieve(S: State, id: string, name: string, ref?: string) {
   S.u.ach.push({ id, name, wk: S.wk, year: S.year, date: iso(wkDate(S.wk)), ref }); S.sumAcc?.newAch.push(name); logEv(S, 'Achievement', { id, name });
 }
 export function eventCost(S: State, ed: Edition): number {
-  const cls = travelClass(S.players[S.userId].country, ed.country), [lo, hi] = cls === 0 ? ECON.local : cls === 1 ? ECON.regional : ECON.inter;
+  const cls = travelClass(homeOf(S), ed.country), [lo, hi] = cls === 0 ? ECON.local : cls === 1 ? ECON.regional : ECON.inter;
   return Math.round((lo + (hi - lo) * rngOf(S.seed, 'cost', ed.id).next()) * (ed.weeks === 2 ? 1.4 : 1));
 }
-export const weeklyGuaranteed = (S: State) => ((S.year === 2026 ? ECON.support : 0) + S.u.sponsors.reduce((t, s) => t + s.monthly, 0) - ECON.essentials - S.u.coach.cost) * 12 / 52;
+export const weeklyGuaranteed = (S: State) => ((S.year === 2026 ? ECON.support : 0) + S.u.sponsors.reduce((t, s) => t + s.monthly, 0) - livingMonthly(S) - lifestyleMonthly(S) - S.u.coach.cost) * 12 / 52;
 /** Local and regional trips are always possible (the basic support scheme covers a shortfall); long-haul trips need real money (spec 11.4). */
-export function canAfford(S: State, cost: number, ed?: Edition) { return (ed !== undefined && travelClass(S.players[S.userId].country, ed.country) <= 1) || S.u.cash + Math.max(0, weeklyGuaranteed(S)) * 4 - cost >= 0; }
+export function canAfford(S: State, cost: number, ed?: Edition) { return (ed !== undefined && travelClass(homeOf(S), ed.country) <= 1) || S.u.cash + Math.max(0, weeklyGuaranteed(S)) * 4 - cost >= 0; }
 
 function minVal(rank: number) { return rank <= 20 ? 250 : rank <= 70 ? 100 : rank <= 180 ? 50 : 15; }
 function playProb(p: Player, rank: number, band: Band, q: boolean, wk: number): number {
@@ -93,8 +94,18 @@ export function runEntries(S: State) {
     else { s.q--; ed.q.push(p.id); if (s.q === 0) ed.qcut = S.rank[p.id]; }
     p.commit[wk] = ed.id; if (ed.weeks === 2) p.commit[wk + 1] = ed.id; lock(ed, p.id);
   };
+  // an accepted home wildcard is placed before anyone else enters, so the spot is guaranteed
+  const hwc = regs.find(e => S.plan?.wc?.includes(e.id) && S.plan.weeks[wk] === e.id);
+  if (hwc && avail(user, wk) && free(user, wk)) {
+    const s = slots.get(hwc.id)!; if (s.w > 0) s.w--; else s.d = Math.max(0, s.d - 1);
+    hwc.md.push(uid); hwc.wcs.push(uid); user.commit[wk] = hwc.id; if (hwc.weeks === 2) user.commit[wk + 1] = hwc.id; lock(hwc, uid);
+    (hwc as any).hardWc = uid; openTourney(S, hwc, 'WC', 'home wildcard');
+    user.fatigue = clamp(user.fatigue + 5, 0, 100); user.morale = clamp(user.morale + 2, 0, 100);
+    note(S, `${hwc.name}: you accepted a wildcard. The draw will put you against one of the top seeds.`);
+  }
   for (const id of S.order) {
     const p = P[id], rank = S.rank[id];
+    if (id === uid && hwc && p.commit[wk] === hwc.id) continue;
     if (!avail(p, wk) || !free(p, wk)) {
       if (id === uid && S.plan?.weeks[wk]) { const ed = regs.find(e => e.id === S.plan!.weeks[wk]); if (ed) { openTourney(S, ed, 'WD'); note(S, `${ed.name}: entry withdrawn (${p.injuredUntil > wk ? 'injury' : 'schedule conflict'}).`); } }
       continue;
@@ -108,7 +119,7 @@ export function runEntries(S: State) {
       if (!kind && S.u.pol.fallback === 'nearest') {
         const wi = BAND_VAL[want.band];
         const opts = regs.filter(e => e !== want && take(e, p) && (ed!.weeks === 1 || free(p, wk + 1)) && e.weeks === 1 && BAND_VAL[e.band] <= wi && canAfford(S, eventCost(S, e), e))
-          .map(e => ({ e, s: -Math.abs(Math.log(BAND_VAL[e.band] / wi)) * 2 - travelClass(p.country, e.country) - (take(e, p) === 'Q' ? 0.5 : 0) })).sort((a, b) => b.s - a.s);
+          .map(e => ({ e, s: -Math.abs(Math.log(BAND_VAL[e.band] / wi)) * 2 - travelClass(homeOf(S), e.country) - (take(e, p) === 'Q' ? 0.5 : 0) })).sort((a, b) => b.s - a.s);
         if (opts.length) { ed = opts[0].e; kind = take(ed, p); note(S, `Your agent entered you in ${ed.name} instead.`); }
       }
       if (kind && ed) { assign(ed, p, kind); openTourney(S, ed, kind, kind === 'WC' ? 'wildcard' : undefined); }
@@ -135,6 +146,13 @@ export function runEntries(S: State) {
     S.memo[ed.series] = { cut: ed.cut, qcut: ed.qcut };
     const bm = (S.bandMemo[ed.band] ??= { cut: 0, qcut: 0, n: 0 });
     if (ed.cut < 9999) { bm.cut = (bm.cut * bm.n + ed.cut) / (bm.n + 1); bm.qcut = (bm.qcut * bm.n + Math.min(ed.qcut, ed.cut * 1.8)) / (bm.n + 1); bm.n = Math.min(bm.n + 1, 40); }
+    // late entries: players without an event that week fill thin fields, nearest first, so events are rarely called off
+    if (ed.md.length + Math.min(ed.q.length, ed.qSpots) < Math.min(ed.draw, 16)) {
+      const want = Math.min(ed.draw, 16) - ed.md.length - Math.min(ed.q.length, ed.qSpots), v = BAND_VAL[ed.band];
+      const late = S.order.filter(id => id !== uid && avail(P[id], wk) && free(P[id], wk) && minVal(S.rank[id]) <= v * 4 && (ed.weeks === 1 || free(P[id], wk + 1)))
+        .sort((a, b) => travelClass(P[a].country, ed.country) - travelClass(P[b].country, ed.country) || S.rank[a] - S.rank[b]).slice(0, want);
+      for (const id of late) { ed.md.push(id); P[id].commit[wk] = ed.id; if (ed.weeks === 2) P[id].commit[wk + 1] = ed.id; lock(ed, id); }
+    }
     if (ed.md.length + Math.min(ed.q.length, ed.qSpots) < 6) { // failed field validation: event not held (spec 8.3)
       ed.cancelled = true;
       for (const id of [...ed.md, ...ed.q]) { delete P[id].commit[wk]; delete P[id].commit[wk + 1]; }
@@ -264,6 +282,15 @@ function startBracket(S: State, ed: Edition) {
   for (const [lo, hi] of [[2, 4], [4, 8], [8, 16], [16, 32]]) if (seeds.length >= hi) { const part = r.shuffle(seeds.slice(lo, hi)); seeds.splice(lo, hi - lo, ...part); }
   const list = [...seeds, ...rest];
   ed.slots = seedOrder(bracket).map(k => list[k - 1] ?? null); ed.round = 0; ed.lost = {};
+  const hw = (ed as any).hardWc as string | undefined;
+  if (hw && ed.slots.includes(hw)) { // a home wildcard draws a top seed in round one
+    const sl = ed.slots, ui = sl.indexOf(hw);
+    for (const sd of seeds.slice(0, 8)) {
+      const si = sl.indexOf(sd); if (si < 0 || sd === hw) continue; const oi = si ^ 1;
+      if (oi === ui) break; if (!sl[oi]) continue; // a seed with a bye is skipped
+      [sl[oi], sl[ui]] = [sl[ui], sl[oi]]; break;
+    }
+  }
   (ed as any).hasUser = ed.md.includes(S.userId); if ((ed as any).hasUser) ed.log = [];
   for (const id of ed.md) if (P[id].injuredUntil > S.wk) ed.lost[id] = 'WD';
 }
@@ -291,8 +318,8 @@ function closeUser(S: State, ed: Edition, t: UTourney, reached: string, inQual: 
   logEv(S, 'PointsAwarded', { ed: ed.id, pts: t.pts, prize: t.prize, reached });
   if (t.title) {
     achieve(S, 'firstTitle', 'First title', ed.id);
-    const bonus = u.sponsors.reduce((s, sp) => s + sp.titleBonus, 0) * (BAND_VAL[ed.band] >= 250 ? 1 : 0.2);
-    if (bonus) addLedger(S, 'Sponsor title bonus', bonus, ed.id);
+    const main = BAND_VAL[ed.band] >= 250, bonus = u.sponsors.reduce((s, sp) => s + (main ? sp.titleBonus : sp.lowerBonus ?? sp.titleBonus * 0.2), 0);
+    if (bonus) addLedger(S, main ? 'Sponsor title bonus' : 'Sponsor bonus (lower-tour title)', bonus, ed.id);
     if (ed.band === 'GS') {
       achieve(S, 'firstMajor', 'First major title', ed.id);
       const majors = u.tourneys.filter(x => x.title && x.band === 'GS');

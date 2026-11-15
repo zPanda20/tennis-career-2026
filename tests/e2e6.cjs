@@ -1,0 +1,36 @@
+// Features test: life management (coach actions, staff, home, base), wildcard offers, coach and sponsor cards.
+const { chromium } = require('playwright');
+(async () => {
+  const [out] = process.argv.slice(2);
+  const b = await chromium.launch(), p = await (await b.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
+  const errs = []; p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); }); p.on('pageerror', e => errs.push('PAGEERROR ' + e.message)); p.on('dialog', d => d.accept());
+  const idle = () => p.waitForSelector('.busy', { state: 'detached', timeout: 300000 });
+  const shot = (n, full) => p.screenshot({ path: `${out}/${n}.png`, fullPage: !!full });
+  const R = {};
+  await p.goto('http://localhost:4173/'); await p.click('text=Start a new career'); await p.click('text=Skip ahead with a random identity');
+  await p.click('button:has-text("Create career")'); await idle(); await p.waitForTimeout(300);
+  await p.click('.navpill button:has-text("Life")'); await p.waitForTimeout(300); await shot('h1-life', true);
+  const trust0 = await p.locator('.coachcard .cc-foot').first().innerText();
+  await p.locator('.act:has-text("review the plan") button').click(); await idle(); await p.waitForTimeout(200);
+  R.trust = trust0.match(/trust \d+/)?.[0] + ' -> ' + (await p.locator('.coachcard .cc-foot').first().innerText()).match(/trust \d+/)?.[0];
+  R.reviewDone = await p.locator('.act:has-text("review the plan") button').innerText();
+  await p.locator('.role:has-text("Physiotherapist") .seg button').nth(1).click(); await idle();
+  R.staff = await p.locator('.role .seg button.on').allInnerTexts();
+  await p.locator('.home:has-text("Apartment") button:has-text("Rent")').click(); await idle();
+  R.home = await p.locator('.home.on b').first().innerText();
+  const cash0 = await p.locator('.hud, header').first().innerText().catch(() => '');
+  await p.selectOption(".manage-grid select", "barcelona"); await p.click("button:has-text(\"Move ·\")"); await idle(); await p.waitForTimeout(200);
+  R.base = await p.locator(".manage-grid p b").first().innerText(); R.homeAfterMove = await p.locator('.home.on b').first().innerText();
+  await shot('h2-life-after', true);
+  await p.click('.navpill button:has-text("Career")'); await p.click('button:has-text("Plan the swing")'); await p.waitForTimeout(300);
+  R.wcOffers = await p.locator('.wco').count(); await shot('h3-planner', true);
+  await p.keyboard.press('Escape'); await p.locator('button[aria-label="Back to career"]').click().catch(() => {});
+  await p.click('button:has-text("Simulate to season\'s end")'); await idle(); await p.waitForSelector('.screen[aria-label="Block results"]', { timeout: 300000 });
+  await p.keyboard.press('s'); await p.keyboard.press('ArrowRight'); await p.waitForTimeout(400);
+  R.coachCards = await p.locator('.coachpick').count(); R.tiers = await p.locator('.coachpick .tier').allInnerTexts(); R.sponsorCards = await p.locator('.spoffer').count(); R.kinds = await p.locator('.spoffer .tier').allInnerTexts();
+  await shot('h4-yearend', true);
+  await p.setViewportSize({ width: 390, height: 844 }); await p.click('.bottomnav button:has-text("Life")'); await p.waitForTimeout(300); await shot('h5-mobile-life', true);
+  R.overflow = await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+  console.log(JSON.stringify({ errs, ...R }));
+  await b.close();
+})().catch(e => { console.error('E2E6 FAILED', e); process.exit(1); });

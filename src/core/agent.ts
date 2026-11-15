@@ -2,6 +2,7 @@
 // Nothing here consumes simulation randomness that changes outcomes; everything derives from committed state.
 import { BAND_VAL, BLOCKS, CUTS, DEV, ECON, PRIZE, PRIZE_MULT } from './balance';
 import { absOf, travelClass, weeksIn } from './content';
+import { homeOf } from './lifestyle';
 import { expectedWin } from './match';
 import { EVENTS, LifeEv } from './narrative';
 import { rngOf } from './rng';
@@ -36,7 +37,7 @@ export function optionFor(S: State, ed: Edition): Option {
   const C = 0.1 + 0.9 * Math.exp(-(((p - 0.5) / DEV.cWidth) ** 2));
   const P = PRIZE[ed.band]; let ePrize = P.floor, reach = 1;
   for (const k of ['R32', 'R16', 'QF', 'SF', 'F', 'W']) { reach *= p; ePrize += reach * Math.max(0, P.champ * (PRIZE_MULT[k] ?? 0) - (k === 'R32' ? P.floor : P.champ * (PRIZE_MULT[{ R16: 'R32', QF: 'R16', SF: 'QF', F: 'SF', W: 'F' }[k] as string] ?? 0))); }
-  return { ed, status, p, C, cost: eventCost(S, ed), tc: travelClass(me.country, ed.country), oppRank, ePrize: Math.round(ePrize * (status === 'accepted' ? 1 : 0.45)) };
+  return { ed, status, p, C, cost: eventCost(S, ed), tc: travelClass(homeOf(S), ed.country), oppRank, ePrize: Math.round(ePrize * (status === 'accepted' ? 1 : 0.45)) };
 }
 export const eventsInWeek = (S: State, wk: number) => S.cal.filter(e => e.startWk === wk && e.band !== 'F' && !e.cancelled && !e.done && e.entryWk >= S.wk);
 
@@ -106,4 +107,25 @@ export function featuredEvent(S: State): LifeEv | null {
 export function fillText(S: State, t: string): string {
   const u = S.u, rel = u.rel as any;
   return t.replace(/\{coach\}/g, u.coach.name.split(' (')[0]).replace(/\{friend\}/g, rel.friendName ?? 'a close friend').replace(/\{partner\}/g, u.rel.partnerName ?? 'your partner').replace(/\{agent\}/g, rel.agentName ?? 'your agent');
+}
+
+/** Home wildcards: now and then an event near your base, a level above where you would get in, offers you a main-draw wildcard.
+ *  It happens in weeks when a bigger event elsewhere pulls the stronger players away, and the draw gives you a top seed in round one. */
+export interface WcOffer { ed: Edition; bigger: Edition; status: EntryStatus }
+export function wildcardOffers(S: State): WcOffer[] {
+  const me = S.players[S.userId], home = homeOf(S), rank = S.rank[S.userId] ?? 1500, out: WcOffer[] = [];
+  for (const w of blockWeeks(S)) {
+    const evs = eventsInWeek(S, w);
+    for (const ed of evs) {
+      if (ed.band === 'GS' || ed.band === 'F' || BAND_VAL[ed.band] < 50 || ed.weeks === 2) continue;
+      if (travelClass(home, ed.country) !== 0 && ed.country !== me.country) continue;
+      const status = estimate(S, ed); if (status === 'accepted') continue;
+      const [cut] = cutsFor(S, ed); if (rank > Math.max(cut, 60) * 4) continue; // not wildly out of reach
+      const bigger = S.cal.filter(e => e.startWk === w || (e.weeks === 2 && e.startWk === w - 1)).filter(e => !e.cancelled && BAND_VAL[e.band] > BAND_VAL[ed.band]).sort((a, b) => BAND_VAL[b.band] - BAND_VAL[a.band])[0];
+      if (!bigger) continue;
+      if (!rngOf(S.seed, 'wcoffer', ed.id).chance(0.45)) continue;
+      out.push({ ed, bigger, status });
+    }
+  }
+  return out.sort((a, b) => BAND_VAL[b.ed.band] - BAND_VAL[a.ed.band]).slice(0, 2).sort((a, b) => a.ed.startWk - b.ed.startWk);
 }

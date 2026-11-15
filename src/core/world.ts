@@ -124,12 +124,18 @@ function realToPlayer(rp: RealPlayer, tour: Tour, r: Rng): Player {
   if (rp.outUntil) { p.injuredUntil = rp.outUntil; p.sharp = 35; }
   return p;
 }
-const ROUTINE_COACHES = ['patient technician', 'former tour player', 'fitness-minded mentor', 'tactical analyst', 'old-school disciplinarian'];
+// Each coach has a persona with a speciality: the ability (or physical side) their sessions develop fastest.
+const PERSONAS: [string, Coach['spec'] | 'stroke'][] = [['patient technician', 'stroke'], ['former tour player', 'comp'], ['fitness-minded mentor', 'physical'], ['tactical analyst', 'ret'], ['old-school disciplinarian', 'end'], ['serve specialist', 'serve'], ['net-play enthusiast', 'net'], ['movement coach', 'move']];
+const LEGEND_PERSONAS = ['former world No. 2', 'former major champion', 'former world No. 4', 'renowned academy founder', 'former Davis Cup captain'];
+export const COACH_TIER_NAME: Record<Coach['tier'], string> = { starter: 'Starter', tour: 'Tour', elite: 'Elite', master: 'World-class', legend: 'Legendary' };
 export function makeCoach(r: Rng, tier: Coach['tier'], country: string, year: number, style: Style): Coach {
-  const dev = tier === 'starter' ? r.range(0.95, 1.05) : tier === 'tour' ? r.range(1.05, 1.15) : r.range(1.1, 1.25);
-  const cost = tier === 'starter' ? r.int(200, 450) : tier === 'tour' ? r.int(600, 1200) : r.int(1400, 2000);
-  const st = r.chance(0.5) ? style : pickStyle(r);
-  return { id: `c${Math.floor(r.next() * 1e9)}`, name: `${supportName(r, r.chance(0.6) ? country : 'USA', r.chance(0.25))} (${r.pick(ROUTINE_COACHES)})`, tier, dev: Math.round(dev * 1000) / 1000, recovery: Math.round(r.range(0.3, 1) * 100) / 100, style: st, fit: st === style ? 0.05 : r.range(-0.05, 0.03), cost, since: year, until: year, trust: 55 };
+  const dev = { starter: [0.95, 1.05], tour: [1.05, 1.13], elite: [1.1, 1.18], master: [1.14, 1.21], legend: [1.18, 1.24] }[tier];
+  const cost = { starter: [200, 450], tour: [600, 1200], elite: [1400, 2200], master: [2800, 4500], legend: [6000, 9500] }[tier];
+  const st = r.chance(tier === 'legend' ? 0.35 : 0.5) ? style : pickStyle(r);
+  const [persona0, sp] = r.pick(PERSONAS), spec = sp === 'stroke' ? (r.chance(0.5) ? 'fh' : 'bh') : sp;
+  const persona = tier === 'legend' ? r.pick(LEGEND_PERSONAS) : persona0;
+  const recovery = sp === 'physical' ? r.range(0.75, 1) : persona0 === 'old-school disciplinarian' ? r.range(0.2, 0.45) : r.range(0.3, 1);
+  return { id: `c${Math.floor(r.next() * 1e9)}`, name: `${supportName(r, r.chance(0.6) ? country : 'USA', r.chance(0.25))} (${persona})`, tier, dev: Math.round(r.range(dev[0], dev[1]) * 1000) / 1000, recovery: Math.round(recovery * 100) / 100, style: st, fit: st === style ? 0.05 : r.range(-0.05, 0.03), cost: r.int(cost[0], cost[1]), since: year, until: year, trust: tier === 'legend' ? 45 : 55, spec: spec as Coach['spec'], persona };
 }
 
 export function createCareer(setup: Setup, c: Content, nowUtc: string): State {

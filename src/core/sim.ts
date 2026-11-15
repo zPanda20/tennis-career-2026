@@ -1,7 +1,8 @@
 // Commands (spec 18.2, 19.2). Each command is validated, runs once, and appends to the event ledger.
 // Randomness derives from stable IDs, so re-running a prepared command after an interruption gives the same result.
 import { BLOCKS, ECON, START_YEAR } from './balance';
-import { blockWeeks } from './agent';
+import { blockWeeks, routes, wildcardOffers } from './agent';
+import { BASES, HOMES, STAFF, StaffRole, applyLifeAction, baseOf, homePrice } from './lifestyle';
 import { Content, absOf, iso, wkDate, weeksIn } from './content';
 import { Fx, evById } from './narrative';
 import { supportName } from './names';
@@ -20,7 +21,11 @@ export type Command =
   | { id: string; type: 'Retire' }
   | { id: string; type: 'ChangeDelegation'; pol: Policies }
   | { id: string; type: 'SetPortrait'; data: string | null }
-  | { id: string; type: 'SetRival'; opp: string; yes: boolean };
+  | { id: string; type: 'SetRival'; opp: string; yes: boolean }
+  | { id: string; type: 'LifeAction'; action: string }
+  | { id: string; type: 'SetHome'; tier: number; buy: boolean }
+  | { id: string; type: 'SetBase'; base: string }
+  | { id: string; type: 'SetStaff'; role: StaffRole; level: 0 | 1 | 2 };
 
 const absBlock = (S: State) => (S.year - START_YEAR) * 4 + S.block;
 function applyFx(S: State, fx: Fx): string[] {
@@ -90,6 +95,37 @@ export function execute(S: State, C: Content, cmd: Command): State {
       (cmd.yes ? u.rivals : u.rivalNo).push(cmd.opp);
       logEv(S, 'RivalSet', { opp: cmd.opp, yes: cmd.yes }); break;
     }
+    case 'LifeAction': {
+      if (S.phase !== 'plan') throw new Error('Plan your next swing first.');
+      const cost = applyLifeAction(S, cmd.action); if (cost) addLedger(S, 'Personal and professional choices', -cost);
+      logEv(S, 'LifeAction', { action: cmd.action, cost }); break;
+    }
+    case 'SetHome': {
+      if (S.phase !== 'plan' && S.phase !== 'yearEnd') throw new Error('Not right now.');
+      const h = (u.home ??= { base: 'home', tier: 0, owned: false }), t = Math.max(0, Math.min(HOMES.length - 1, Math.round(cmd.tier)));
+      if (h.owned && h.tier) addLedger(S, 'Property sale', Math.round(homePrice(S, h.tier) * 0.85));
+      if (t && cmd.buy) { const price = homePrice(S, t); if (u.cash < price) throw new Error('Not affordable right now.'); addLedger(S, 'Property purchase', -price); }
+      h.tier = t; h.owned = !!t && cmd.buy; logEv(S, 'HomeChanged', { tier: t, buy: cmd.buy }); break;
+    }
+    case 'SetBase': {
+      if (S.phase !== 'plan' && S.phase !== 'yearEnd') throw new Error('Not right now.');
+      const h = (u.home ??= { base: 'home', tier: 0, owned: false }); if (h.base === cmd.base) break;
+      if (cmd.base !== 'home' && !BASES.some(b => b.id === cmd.base)) throw new Error('Unknown city.');
+      if (h.owned && h.tier) addLedger(S, 'Property sale', Math.round(homePrice(S, h.tier) * 0.85));
+      const from = h.base; h.base = cmd.base; h.tier = 0; h.owned = false;
+      addLedger(S, 'Relocation', -Math.round((2500 + 1500 * baseOf(S).mult) / 10) * 10);
+      p.morale = Math.max(0, p.morale - 3);
+      if (from === 'home') u.rel.friend = Math.max(0, u.rel.friend - 8); if (cmd.base === 'home') u.rel.friend = Math.min(100, u.rel.friend + 5);
+      note(S, `You moved your base to ${baseOf(S).city}. Your home there starts as a rented room.`);
+      logEv(S, 'BaseChanged', { from, to: cmd.base }); break;
+    }
+    case 'SetStaff': {
+      if (S.phase !== 'plan' && S.phase !== 'yearEnd') throw new Error('Not right now.');
+      if (!STAFF[cmd.role]) throw new Error('Unknown role.');
+      u.staff = (u.staff ?? []).filter(x => x.role !== cmd.role);
+      if (cmd.level) { const r = rngOf(S.seed, 'staff', cmd.role, S.wk, cmd.level); u.staff.push({ role: cmd.role, level: cmd.level, name: supportName(r, r.chance(0.5) ? p.country : baseOf(S).country, r.chance(0.4)), since: S.year }); }
+      logEv(S, 'StaffChanged', { role: cmd.role, level: cmd.level }); break;
+    }
     case 'SetPortrait': { if (cmd.data && (cmd.data.length > 400000 || !cmd.data.startsWith('data:image/'))) throw new Error('That image could not be used.'); u.portrait = cmd.data ?? undefined; logEv(S, 'PortraitChanged'); break; }
     case 'CommitBlock': {
       if (S.phase !== 'plan') throw new Error('No block can be committed right now.');
@@ -98,7 +134,10 @@ export function execute(S: State, C: Content, cmd: Command): State {
       for (const [k, id] of Object.entries(cmd.plan.weeks)) { const ed = S.cal.find(e => e.id === id); if (ed && weeks.includes(+k) && ed.startWk === +k) valid[+k] = id; }
       const taken = new Set<number>();
       for (const k of Object.keys(valid).map(Number).sort((a, b) => a - b)) { const ed = S.cal.find(e => e.id === valid[k])!; if (taken.has(k)) { delete valid[k]; continue; } taken.add(k); if (ed.weeks === 2) taken.add(k + 1); }
-      S.plan = { ...cmd.plan, weeks: valid }; u.pol = { ...cmd.pol }; S.sumAcc = newSummary(S); S.blockStartRank = { ...S.rank };
+      const offers = new Set(wildcardOffers(S).map(o => o.ed.id)), wc = (cmd.plan.wc ?? []).filter(id => offers.has(id) && Object.values(valid).includes(id));
+      const rec = routes(S).find(r => r.recommended);
+      if (rec && cmd.plan.route === rec.key) { u.rel.coach = Math.min(100, u.rel.coach + 1.5); u.coach.trust = u.rel.coach; } // following the coach's pick builds trust
+      S.plan = { ...cmd.plan, weeks: valid, wc }; u.pol = { ...cmd.pol }; S.sumAcc = newSummary(S); S.blockStartRank = { ...S.rank };
       logEv(S, 'BlockCommitted', { year: S.year, block: S.block, route: cmd.plan.route, events: Object.values(valid), priority: cmd.pol.priority, intensity: cmd.pol.intensity, focus: cmd.pol.focus });
       if (cmd.plan.lifeEv !== undefined && cmd.plan.lifeChoice !== undefined) {
         const ev = evById(cmd.plan.lifeEv), ch = ev.choices[cmd.plan.lifeChoice];
@@ -135,13 +174,13 @@ export function execute(S: State, C: Content, cmd: Command): State {
       const offer = S.pending.coachOffers?.find(c => c.id === cmd.coach);
       if (offer) {
         u.coachHistory.push({ ...u.coach, left: S.year - 1, reason: 'Replaced at the year-end review' });
-        addLedger(S, 'Coach transition', -offer.cost); u.coach = { ...offer, since: S.year }; u.rel.coach = 50; p.sharp = Math.max(30, p.sharp - 3);
+        addLedger(S, 'Coach transition', -offer.cost); u.coach = { ...offer, since: S.year }; u.rel.coach = offer.trust - 5; p.sharp = Math.max(30, p.sharp - 3);
         logEv(S, 'ContractChanged', { kind: 'coach', id: offer.id, name: offer.name });
       } else if (u.coach.until <= S.year) u.coach.until = S.year + 1;
       const slots = new Set<string>();
       for (const id of cmd.sponsors) {
         const sp = S.pending.sponsorOffers?.find(s => s.id === id); if (!sp || slots.has(sp.slot)) continue;
-        slots.add(sp.slot); u.sponsors.push(sp); u.sponsorHistory.push(sp); logEv(S, 'ContractChanged', { kind: 'sponsor', id: sp.id, name: sp.name });
+        slots.add(sp.slot); u.sponsors.push(sp); u.sponsorHistory.push(sp); if (sp.signing) addLedger(S, 'Sponsor signing payment', sp.signing, sp.id); logEv(S, 'ContractChanged', { kind: 'sponsor', id: sp.id, name: sp.name });
       }
       (u as any).appear = u.sponsors.reduce((t, s) => t + s.appearances, 0);
       S.pending = undefined; S.phase = 'plan'; snapshot(S, `season-${S.year - 1}`, true); ensureGoals(S); break;
