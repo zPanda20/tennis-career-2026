@@ -1,3 +1,4 @@
+import { loadFaces } from './ui/faces';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './ui/App';
@@ -14,4 +15,4 @@ import '@fontsource/manrope/800.css';
 import 'flag-icons/css/flag-icons.min.css';
 import './styles.css';
 createRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>);
-boot();
+boot(); loadFaces();

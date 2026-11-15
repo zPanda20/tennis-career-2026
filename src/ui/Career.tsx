@@ -383,6 +383,15 @@ function scoreAt(m: UMatch, g: number) {
   return { done, live: null, setNo: done.length, boundary: true };
 }
 /** Watch the swing (or several swings) just played. `from` is the first week to include. */
+function KeysHint() {
+  const [hide, setHide] = useState(() => getSetting('hideKeys', '0') === '1'), flip = (v: boolean) => { setSetting('hideKeys', v ? '1' : '0'); setHide(v); };
+  if (hide) return <span className="grow keys-hint off"><button className="keys-show" onClick={() => flip(false)} aria-label="Show keyboard and controller shortcuts" title="Show shortcuts">⌨</button></span>;
+  return (
+    <span className="grow keys-hint"><span aria-hidden="true"><kbd>Space</kbd> play/pause <kbd>←</kbd><kbd>→</kbd> step <kbd>Shift</kbd>+<kbd>→</kbd> end of match <kbd>S</kbd> summary · 🎮 A next · B back · X pause</span>
+      <button className="keys-x" onClick={() => flip(true)} aria-label="Hide shortcut hints" title="Hide">×</button></span>
+  );
+}
+
 export function Reveal({ S, from }: { S: State; from?: number }) {
   const u = S.u, sum = S.lastSummary, start = from ?? sum?.fromWk ?? S.wk, end = sum?.toWk ?? S.wk;
   const items = useMemo(() => u.tourneys.filter(t => t.wk >= start && t.wk < end && played(t)).sort((a, b) => a.wk - b.wk), [S, start]);
@@ -424,7 +433,7 @@ export function Reveal({ S, from }: { S: State; from?: number }) {
         <label className="pace">Watch<select value={pace} onChange={e => setPace(e.target.value as Pace)} aria-label="Watch pace">{PACES.map(([k, t, d]) => <option key={k} value={k}>{t} · {d}</option>)}</select></label>
         {step.k !== 'summary' && <button className="icon" aria-label={playing ? 'Pause' : 'Play'} onClick={() => setPlaying(!playing)}>{playing ? <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="2" width="3.5" height="12" rx="1" /><rect x="9.5" y="2" width="3.5" height="12" rx="1" /></svg> : <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11l9-5.5z" /></svg>}</button>}
         {step.k === 'match' && step.g !== undefined && <button className="btn small" onClick={toEnd}>To end of match</button>}
-        <span className="grow keys-hint" aria-hidden="true"><kbd>Space</kbd> play/pause <kbd>←</kbd><kbd>→</kbd> step <kbd>Shift</kbd>+<kbd>→</kbd> end of match <kbd>S</kbd> summary · 🎮 A next · B back · X pause</span>
+        <KeysHint />
         {i > 0 && <button className="btn" onClick={() => { setPlaying(false); setI(i - 1); }}>Back</button>}
         {step.k !== 'summary'
           ? <button className="cta" onClick={() => setI(i + 1)}>{nextLabel}<span className="go"><Arrow /></span></button>

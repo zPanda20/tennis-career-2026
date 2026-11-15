@@ -4,6 +4,8 @@ import { countryName } from '../core/content';
 import { COUNTRIES, NEUTRAL } from '../core/countries';
 import type { Player, Sponsor, State, Surface } from '../core/types';
 import { set, useApp } from './store';
+import { faceFor, useFaceUrl } from './faces';
+import { regionOf } from '../core/content';
 
 export const money = (n: number) => `${n < 0 ? '−' : ''}$${Math.abs(Math.round(n)).toLocaleString('en-US')}`;
 export const pct = (n: number) => `${Math.round(n * 100)}%`;
@@ -11,7 +13,8 @@ export const SURF: Record<Surface, string> = { hard: 'Hard', clay: 'Clay', grass
 export const rankTxt = (r?: number) => (r ? `No. ${r}` : 'Unranked');
 
 export function Avatar({ p, size = 44, name, user }: { p?: Player; size?: number; name?: string; user?: number }) {
-  const { assets, S } = useApp(), nm = p?.name ?? name ?? '?', src = (p?.user && S?.u.portrait) || assets[`player:${nm}`];
+  const { assets, S, faces } = useApp(), nm = p?.name ?? name ?? '?', own = (p?.user && S?.u.portrait) || assets[`player:${nm}`];
+  const face = useFaceUrl(!own && faces ? faceFor(p, p ? regionOf(p.country) : undefined) : -1), src = own || face;
   const initials = nm.split(' ').map(s => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
   const hues = [212, 16, 148, 268, 38, 186, 330, 96], hue = user !== undefined ? hues[user % hues.length] : [...nm].reduce((t, c) => t + c.charCodeAt(0), 0) % 360;
   if (src) return <img className="avatar" src={src} alt="" width={size} height={size} style={{ width: size, height: size }} loading="lazy" />;

@@ -1,3 +1,5 @@
+import { regionOf } from '../core/content';
+import { importFaces, removeFaces, userFace } from './faces';
 import { COACH_TIER_NAME } from '../core/world';
 import { useMemo, useState } from 'react';
 import { BAND_NAME, BAND_VAL, RULES_SUMMARY } from '../core/balance';
@@ -263,6 +265,7 @@ export function Settings({ S }: { S: State }) {
         <p className="muted">{n ? `${n} images loaded.` : 'No image pack loaded.'} {msg}</p>
         <div className="row"><label className="btn">Load image pack folder<input type="file" hidden multiple {...({ webkitdirectory: '', directory: '' } as any)} onChange={async e => { const f = e.target.files; if (f?.length) { setMsg('Reading images…'); setMsg(await importPack(f)); } e.target.value = ''; }} /></label>{n > 0 && <button className="btn ghost" onClick={async () => { await clearPack(); setMsg('Image pack removed.'); }}>Remove images</button>}</div>
       </Section>
+      <FacePackSection />
       <Section title="Backup"><p>Browser storage can be cleared or evicted. A backup file is your durable copy{S.phase === 'retired' ? '; for a retired career, use the archive export in Records' : ''}.</p><div className="row"><button className="btn" onClick={exportBackup}>Export a backup of this career</button><button className="btn ghost" onClick={() => { get(); import('./store').then(m => m.closeCareer()); }}>Back to the career library</button></div></Section>
       <Section title="Rules in this game"><ul className="plain">{RULES_SUMMARY.map((r, i) => <li key={i}>{r}</li>)}</ul></Section>
       <Section title="Data and versions"><p className="muted">{SNAPSHOT_NOTE[S.tour]} Real players' birth dates are stored to the year and shown as ages. Players outside the starting top 200 are fictional and labelled. Event calendars come from the public 2026 tour schedules. Engine {S.v.engine} · balance {S.v.balance} · content {S.v.content} · {S.v.rng}. Overall strength of your player right now: {strength(S.players[S.userId].ab).toFixed(1)} (diagnostic only, not used in matches).</p></Section>
@@ -271,14 +274,27 @@ export function Settings({ S }: { S: State }) {
 }
 
 /** The player's own portrait: upload, replace or remove. Stored with the career and included in backups. */
+function FacePackSection() {
+  const { faces } = useApp(), [msg, setMsg] = useState('');
+  return (
+    <Section title="Face pack">
+      <p>Fictional players can show generated faces from a private face pack (a <code>.tcfaces</code> file). Each fictional player gets a stable face suited to their nation. Real players never get a generated face. The pack is stored in this browser only.</p>
+      <p className="muted">{faces ? `${faces.toLocaleString('en-US')} faces loaded.` : 'No face pack loaded.'} {msg}</p>
+      <div className="row"><label className="btn">Load face pack<input type="file" hidden accept=".tcfaces" onChange={async e => { const f = e.target.files?.[0]; e.target.value = ''; if (!f) return; setMsg('Loading faces…'); try { setMsg(await importFaces(f, (n, of) => setMsg(`Loading faces… ${Math.round((n / of) * 100)}%`))); } catch { setMsg('The face pack could not be read.'); } }} /></label>{!!faces && <button className="btn ghost" onClick={async () => { await removeFaces(); setMsg('Face pack removed.'); }}>Remove faces</button>}</div>
+    </Section>
+  );
+}
+
 export function PortraitPicker({ S }: { S: State }) {
-  const me = S.players[S.userId], { save } = useApp(), ro = save === 'readonly' || S.phase === 'retired';
+  const me = S.players[S.userId], { save, faces } = useApp(), ro = save === 'readonly' || S.phase === 'retired', [k, setK] = useState(0);
+  const gen = async () => { const d = await userFace(me.country, regionOf(me.country), S.tour === 'wta' ? 'f' : 'm', k); setK(k + 1); if (d) dispatch({ type: 'SetPortrait', data: d }, 'Saving portrait'); };
   const pick = async (f?: File) => { if (!f) return; try { const data = await portraitFromFile(f); await dispatch({ type: 'SetPortrait', data }, 'Saving portrait'); } catch (e: any) { set({ error: e.message }); } };
   return (
     <div className="portrait">
       <Avatar p={me} size={110} user={S.u.avatar} />
       {!ro && <div className="row" style={{ margin: '.5rem 0 0', gap: '.4rem' }}>
         <label className="btn small">{S.u.portrait ? 'Change photo' : 'Upload photo'}<input type="file" accept="image/*" hidden onChange={e => { pick(e.target.files?.[0]); e.target.value = ''; }} /></label>
+        {!!faces && <button className="btn small" onClick={gen}>{k ? 'Another face' : 'Generated face'}</button>}
         {S.u.portrait && <button className="btn small ghost" onClick={() => dispatch({ type: 'SetPortrait', data: null }, 'Saving')}>Remove</button>}
       </div>}
     </div>

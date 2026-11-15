@@ -2,14 +2,14 @@
 // Local storage only holds small settings and the last-opened-career pointer.
 import type { State } from '../core/types';
 
-const DB = 'tennis-career-2026', VER = 1;
+const DB = 'tennis-career-2026', VER = 2;
 export interface CareerMeta { id: string; name: string; tour: string; status: 'active' | 'retired'; savedUtc: string; year: number; rank: number; rev: number; country: string }
 export interface PendingCmd { careerId: string; cmd: any; baseRev: number; preparedUtc: string }
 
 function open(): Promise<IDBDatabase> {
   return new Promise((res, rej) => {
     const r = indexedDB.open(DB, VER);
-    r.onupgradeneeded = () => { const d = r.result; for (const s of ['careers', 'meta', 'pending', 'assets']) if (!d.objectStoreNames.contains(s)) d.createObjectStore(s); };
+    r.onupgradeneeded = () => { const d = r.result; for (const s of ['careers', 'meta', 'pending', 'assets', 'faces']) if (!d.objectStoreNames.contains(s)) d.createObjectStore(s); };
     r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error ?? new Error('Storage is unavailable in this browser.'));
   });
 }
@@ -45,6 +45,14 @@ export interface Asset { key: string; blob: Blob; label?: string }
 export const putAssets = (list: Asset[]) => tx(['assets'], 'readwrite', t => { const s = t.objectStore('assets'); s.clear(); for (const a of list) s.put(a, a.key); });
 export const allAssets = () => tx<Asset[]>(['assets'], 'readonly', t => t.objectStore('assets').getAll());
 export const clearAssets = () => tx(['assets'], 'readwrite', t => { t.objectStore('assets').clear(); });
+
+// Private face pack: an index (sex, ethnicity group, skin tone per face) plus one image blob per face.
+export type FaceIdx = [string, number, number][];
+export const putFaceBatch = (start: number, blobs: Blob[]) => tx(['faces'], 'readwrite', t => { const s = t.objectStore('faces'); blobs.forEach((b, i) => s.put(b, start + i)); });
+export const putFaceIndex = (idx: FaceIdx) => tx(['faces'], 'readwrite', t => { t.objectStore('faces').put(idx, 'index'); });
+export const getFaceIndex = () => tx<FaceIdx | undefined>(['faces'], 'readonly', t => t.objectStore('faces').get('index'));
+export const getFace = (i: number) => tx<Blob | undefined>(['faces'], 'readonly', t => t.objectStore('faces').get(i));
+export const clearFaces = () => tx(['faces'], 'readwrite', t => { t.objectStore('faces').clear(); });
 
 export async function persistCheck(): Promise<{ ok: boolean; persisted: boolean }> {
   try { await open().then(d => d.close()); } catch { return { ok: false, persisted: false }; }
