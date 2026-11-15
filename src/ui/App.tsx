@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
 import { fmtDate, ageOn, wkDate } from '../core/content';
-import { Avatar, money, rankTxt } from './bits';
+import { Avatar, Flag, money, rankTxt } from './bits';
 import { Home, Planner, Reveal } from './Career';
 import { CourtBg, SeasonTrack, tintOf } from './fx';
 import { Create, Library } from './Start';
+import { Rankings } from './Rankings';
+import { Life } from './Life';
 import { Calendar, MatchReport, PlayerCard, PlayerView, Records, Settings, TourneyHub, World } from './Views';
 import { Tab, closeCareer, set, useApp } from './store';
 
-const TABS: [Tab, string][] = [['career', 'Career'], ['calendar', 'Calendar'], ['player', 'Player'], ['world', 'Tour'], ['records', 'Records']];
+const TABS: [Tab, string][] = [['career', 'Career'], ['calendar', 'Calendar'], ['rankings', 'Rankings'], ['player', 'Player'], ['life', 'Life'], ['world', 'Tour'], ['records', 'Records']];
+const MOB: Tab[] = ['career', 'calendar', 'rankings', 'life'];
 export function App() {
   const app = useApp(), { view, S, tab, overlay, busy, error, notice, save, reduced } = app, [menu, setMenu] = useState(false);
   const tint = view === 'game' ? tintOf(S) : 'clay';
@@ -29,7 +32,7 @@ export function App() {
             <header className="hud" aria-hidden={fullscreen || undefined}>
               <button className="crest" onClick={() => set({ tab: 'player' })} aria-label={`${me.name}, open player profile`}>
                 <Avatar p={me} size={50} user={S.u.avatar} />
-                <span><b>{me.name}</b><small>{me.country} · {S.phase === 'retired' ? `retired ${S.retire!.year}` : `age ${ageOn(me.born, wkDate(S.wk))} · ${rankTxt(S.rank[me.id])}`}</small></span>
+                <span><b>{me.name}</b><small><Flag c={me.country} size={15} /> {me.country} · {S.phase === 'retired' ? `retired ${S.retire!.year}` : `age ${ageOn(me.born, wkDate(S.wk))} · ${rankTxt(S.rank[me.id])}`}</small></span>
               </button>
               <nav className="navpill" aria-label="Main">{TABS.map(([k, t]) => <button key={k} className={tab === k ? 'on' : ''} aria-current={tab === k ? 'page' : undefined} onClick={() => set({ tab: k })}>{t}</button>)}</nav>
               <div className="hud-right">
@@ -38,19 +41,21 @@ export function App() {
                 <span className={`save ${save}`} role="status">{save === 'saved' ? 'Saved' : save === 'saving' ? 'Saving' : save === 'readonly' ? 'Read-only' : 'Not saved'}</span>
                 <button className="icon" aria-label="Menu" aria-expanded={menu} onClick={() => setMenu(!menu)}><svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h14M3 10h14M3 14h14" /></svg></button>
               </div>
-              {menu && <div className="menu" role="menu"><button role="menuitem" onClick={() => { set({ tab: 'settings' }); setMenu(false); }}>Settings and backup</button><button role="menuitem" onClick={() => { set({ tab: 'records' }); setMenu(false); }}>Records and review</button><button role="menuitem" onClick={closeCareer}>Career library</button></div>}
+              {menu && <div className="menu" role="menu"><button role="menuitem" className="mob" onClick={() => { set({ tab: 'player' }); setMenu(false); }}>Player</button><button role="menuitem" className="mob" onClick={() => { set({ tab: 'world' }); setMenu(false); }}>Tour: champions and head to head</button><button role="menuitem" onClick={() => { set({ tab: 'settings' }); setMenu(false); }}>Settings and backup</button><button role="menuitem" onClick={() => { set({ tab: 'records' }); setMenu(false); }}>Records and review</button><button role="menuitem" onClick={closeCareer}>Career library</button></div>}
             </header>
             {!fullscreen && <div className="trackwrap"><SeasonTrack S={S} /></div>}
             {(error || notice) && <div className={error ? 'banner crit' : 'banner'} role={error ? 'alert' : 'status'}><span>{error ?? notice}</span><button className="icon" aria-label="Dismiss" onClick={() => set({ error: null, notice: null })}>✕</button></div>}
             <main id="main" className="page" tabIndex={-1} aria-hidden={fullscreen || undefined}>
               {tab === 'career' && <Home S={S} />}
               {tab === 'calendar' && <Calendar S={S} />}
+              {tab === 'rankings' && <Rankings S={S} />}
               {tab === 'player' && <PlayerView S={S} />}
+              {tab === 'life' && <Life S={S} />}
               {tab === 'world' && <World S={S} />}
               {tab === 'records' && <Records S={S} />}
               {tab === 'settings' && <Settings S={S} />}
             </main>
-            {!fullscreen && <nav className="bottomnav mob" aria-label="Main">{TABS.slice(0, 4).map(([k, t]) => <button key={k} className={tab === k ? 'on' : ''} aria-current={tab === k ? 'page' : undefined} onClick={() => set({ tab: k })}><i />{t}</button>)}</nav>}
+            {!fullscreen && <nav className="bottomnav mob" aria-label="Main">{TABS.filter(([k]) => MOB.includes(k)).map(([k, t]) => <button key={k} className={tab === k ? 'on' : ''} aria-current={tab === k ? 'page' : undefined} onClick={() => set({ tab: k })}><i />{t}</button>)}</nav>}
             {overlay?.kind === 'planner' && S.phase === 'plan' && <Planner S={S} />}
             {overlay?.kind === 'reveal' && <Reveal S={S} from={overlay.from} />}
             {overlay?.kind === 'tourney' && <TourneyHub S={S} ed={overlay.ed} />}

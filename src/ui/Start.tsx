@@ -3,7 +3,7 @@ import { COUNTRY_NAMES, fmtDate } from '../core/content';
 import { genName } from '../core/names';
 import { Rng } from '../core/rng';
 import { ABILITIES, ABILITY_NAMES, Ability, Setup } from '../core/types';
-import { Avatar, Pill, rankTxt } from './bits';
+import { Avatar, Flag, Pill, portraitFromFile, rankTxt } from './bits';
 import { Arrow } from './fx';
 import { importBackup, newCareer, openCareer, removeCareer, set, useApp } from './store';
 
@@ -78,6 +78,7 @@ export function Create() {
               <label>Day<select value={s.birthDay} onChange={e => up({ birthDay: +e.target.value })}>{Array.from({ length: 28 }, (_, i) => <option key={i}>{i + 1}</option>)}</select></label></div>
             <p className="muted">Born {fmtDate(born)}: exactly 19 years old when the career starts on 1 January 2026.</p>
             <fieldset><legend>Dominant hand</legend><div className="seg">{(['R', 'L'] as const).map(h => <button key={h} className={s.hand === h ? 'on' : ''} aria-pressed={s.hand === h} onClick={() => up({ hand: h })}>{h === 'R' ? 'Right' : 'Left'}</button>)}</div></fieldset>
+            <fieldset><legend>Portrait</legend><div className="row" style={{ margin: 0 }}><label className="btn small">{s.portrait ? 'Change photo' : 'Upload a photo'}<input type="file" accept="image/*" hidden onChange={async e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) { try { up({ portrait: await portraitFromFile(f) }); } catch (err: any) { set({ error: err.message }); } } }} /></label>{s.portrait && <button className="btn small ghost" onClick={() => up({ portrait: undefined })}>Remove</button>}<small>Optional. Cropped to a square and kept with your career only.</small></div></fieldset>
             <fieldset><legend>Avatar colour</legend><div className="swatches">{Array.from({ length: 8 }, (_, i) => <button key={i} className={s.avatar === i ? 'on' : ''} aria-label={`Avatar colour ${i + 1}`} aria-pressed={s.avatar === i} onClick={() => up({ avatar: i })}><Avatar name={s.name || 'New Player'} user={i} size={40} /></button>)}</div></fieldset>
             <button className="btn ghost small" onClick={randomise}>Suggest a random identity</button>
           </div></div>}
@@ -109,9 +110,9 @@ export function Create() {
         </div>
       </div>
       <aside className="card preview" aria-label="Player preview">
-        <Avatar name={s.name || 'New Player'} user={s.avatar} size={120} />
+        {s.portrait ? <img className="avatar" src={s.portrait} alt="" style={{ width: 120, height: 120 }} /> : <Avatar name={s.name || 'New Player'} user={s.avatar} size={120} />}
         <h3>{s.name || 'New player'}</h3>
-        <p className="muted">{COUNTRY_NAMES[s.country]} · {s.tour === 'atp' ? "Men's tour" : "Women's tour"}</p>
+        <p className="muted"><Flag c={s.country} size={20} /> {COUNTRY_NAMES[s.country]} · {s.tour === 'atp' ? "Men's tour" : "Women's tour"}</p>
         <p>{s.hand === 'R' ? 'Right-handed' : 'Left-handed'} · age 19</p>
         <p>{s.focusSurface === 'all' ? 'All-round' : `${s.focusSurface[0].toUpperCase()}${s.focusSurface.slice(1)}-court`} focus</p>
         <p>{ABILITY_NAMES[s.skills[0]]} · {ABILITY_NAMES[s.skills[1]]}</p>

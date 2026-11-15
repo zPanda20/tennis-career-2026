@@ -32,6 +32,8 @@ const NAT: [string, string, number][] = [
   ['RUS', 'RU', 5], ['UKR', 'RU', 2], ['KAZ', 'RU', 1], ['BUL', 'RU', 1], ['BRA', 'PT', 4], ['POR', 'PT', 2], ['CHN', 'CN', 4], ['TPE', 'CN', 1], ['NED', 'NL', 3], ['SRB', 'SR', 2],
   ['CRO', 'SR', 2], ['POL', 'PL', 2], ['KOR', 'KR', 2], ['IND', 'IN', 3], ['SWE', 'SE', 2], ['DEN', 'SE', 1], ['NOR', 'SE', 1], ['FIN', 'SE', 1], ['ROU', 'RO', 2], ['TUR', 'TR', 2],
   ['GRE', 'GR', 1], ['TUN', 'AR', 1], ['EGY', 'AR', 1], ['THA', 'TH', 1], ['HUN', 'HU', 1],
+  ['IRL', 'EN', 1], ['URU', 'ES', 1], ['PER', 'ES', 1], ['ECU', 'ES', 1], ['BOL', 'ES', 0.5], ['PAR', 'ES', 0.5], ['VEN', 'ES', 0.6], ['DOM', 'ES', 0.5], ['SLO', 'SR', 1], ['BIH', 'SR', 1], ['MNE', 'SR', 0.4],
+  ['LAT', 'RU', 0.6], ['LTU', 'RU', 0.6], ['BLR', 'RU', 0.8], ['MAR', 'AR', 0.7], ['ALG', 'AR', 0.4], ['CYP', 'GR', 0.4], ['MON', 'FR', 0.3], ['LUX', 'FR', 0.3], ['HKG', 'CN', 0.4], ['SGP', 'CN', 0.3],
 ];
 export const NATIONS = NAT.map(n => n[0]).sort();
 function female(group: string, sur: string): string {

@@ -23,14 +23,8 @@ export const fmtDate = (d: Date | string) => { const x = typeof d === 'string' ?
 export const fmtShort = (d: Date) => `${d.getUTCDate()} ${MON[d.getUTCMonth()]}`;
 export function ageOn(born: string, d: Date) { const b = new Date(born + 'T00:00:00Z'); let a = d.getUTCFullYear() - b.getUTCFullYear(); if (d.getUTCMonth() < b.getUTCMonth() || (d.getUTCMonth() === b.getUTCMonth() && d.getUTCDate() < b.getUTCDate())) a--; return a; }
 
-const REGIONS: Record<string, string> = {
-  EU: 'FRA ESP ITA GER GBR NED BEL SUI AUT POR CZE SVK POL HUN ROU BUL SRB CRO SLO BIH MKD GRE TUR SWE NOR DEN FIN EST LAT LTU UKR RUS BLR MDA IRL LUX MON AND SMR LIE GEO ARM CYP',
-  NA: 'USA CAN MEX CRC DOM JAM ESA', SA: 'ARG BRA CHI COL PER ECU URU PAR BOL', AS: 'CHN JPN KOR IND THA VIE TPE HKG SGP INA PHI KAZ UZB PAK',
-  OC: 'AUS NZL NCL GUM', AF: 'TUN EGY MAR RSA KEN RWA CIV CGO BDI BOT', ME: 'QAT UAE KSA BRN KUW LBN',
-};
-const REGION_OF: Record<string, string> = {};
-for (const [r, list] of Object.entries(REGIONS)) for (const c of list.split(' ')) REGION_OF[c] = r;
-export const regionOf = (c: string) => REGION_OF[c] ?? 'EU';
+import { COUNTRIES } from './countries';
+export const regionOf = (c: string) => COUNTRIES[c]?.region ?? 'EU';
 const NEAR: Record<string, string[]> = { EU: ['AF', 'ME'], AF: ['EU', 'ME'], ME: ['EU', 'AF', 'AS'], NA: ['SA'], SA: ['NA'], AS: ['OC', 'ME'], OC: ['AS'] };
 /** 0 local, 1 regional, 2 intercontinental */
 export function travelClass(home: string, evCountry: string): 0 | 1 | 2 {
@@ -39,7 +33,7 @@ export function travelClass(home: string, evCountry: string): 0 | 1 | 2 {
   if (a === b) return a === 'EU' ? 0 : 1;
   return NEAR[a]?.includes(b) ? 1 : 2;
 }
-export const COUNTRY_NAMES: Record<string, string> = { USA: 'United States', GBR: 'Great Britain', FRA: 'France', ESP: 'Spain', ITA: 'Italy', GER: 'Germany', AUS: 'Australia', ARG: 'Argentina', BRA: 'Brazil', CAN: 'Canada', JPN: 'Japan', CHN: 'China', CZE: 'Czechia', POL: 'Poland', SUI: 'Switzerland', NED: 'Netherlands', BEL: 'Belgium', SRB: 'Serbia', CRO: 'Croatia', RUS: 'Russia', UKR: 'Ukraine', KAZ: 'Kazakhstan', GRE: 'Greece', NOR: 'Norway', DEN: 'Denmark', SWE: 'Sweden', FIN: 'Finland', AUT: 'Austria', POR: 'Portugal', ROU: 'Romania', BUL: 'Bulgaria', HUN: 'Hungary', SVK: 'Slovakia', TUR: 'Türkiye', CHI: 'Chile', COL: 'Colombia', MEX: 'Mexico', KOR: 'South Korea', IND: 'India', TPE: 'Chinese Taipei', THA: 'Thailand', NZL: 'New Zealand', RSA: 'South Africa', TUN: 'Tunisia', EGY: 'Egypt', MON: 'Monaco', IRL: 'Ireland' };
+export const COUNTRY_NAMES: Record<string, string> = Object.fromEntries(Object.entries(COUNTRIES).map(([c, v]) => [c, v.name]));
 export const countryName = (c: string) => COUNTRY_NAMES[c] ?? c;
 
 const slug = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');

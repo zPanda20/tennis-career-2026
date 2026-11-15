@@ -68,6 +68,7 @@ export interface UserCareer {
   injuries: Injury[]; choices: Choice[]; tourneys: UTourney[]; matches: UMatch[]; attr: AttrChange[]; snaps: Snapshot[]; seasons: Season[]; ach: Achievement[];
   rankHist: { wk: number; rank: number; pts: number }[]; pol: Policies; rel: { coach: number; agent: number; friend: number; partner: number | null; partnerName?: string };
   startAb: Abil; startRank: number; evSeen: Record<string, number>; follow: { dueBlock: number; ev: string; choice: number }[]; blockMods: { train?: number; recov?: number };
+  portrait?: string;
   devYear: { comp: number; train: number }; injWeeksYear: number; no1Weeks: number; hardship: number; finalSeasonWarned?: boolean; lastOfferYear: number; rivals: string[];
 }
 export interface Pending { type: 'injury' | 'yearEnd' | 'forcedRetire'; injury?: string; coachOffers?: Coach[]; sponsorOffers?: Sponsor[]; text?: string }
@@ -82,6 +83,7 @@ export interface State {
   players: Record<string, Player>; active: string[]; rank: Record<string, number>; pts: Record<string, number>; race: Record<string, number>; order: string[];
   cal: Edition[]; memo: Record<string, { cut: number; qcut: number }>; bandMemo: Record<string, { cut: number; qcut: number; n: number }>;
   u: UserCareer; world: WorldRec; pending?: Pending; plan?: BlockPlan; lastSummary?: BlockSummary; sumAcc?: BlockSummary; retire?: { year: number; wk: number; reason: string; date: string };
+  blockStartRank?: Record<string, number>;
   ledger: { seq: number; wk: number; date: string; type: string; cmd: string; data?: any }[]; lastCmd?: string; nextPid: number;
 }
-export interface Setup { tour: Tour; name: string; country: string; pronouns: string; birthMonth: number; birthDay: number; hand: 'R' | 'L'; avatar: number; focusSurface: Surface | 'all'; skills: [Ability, Ability]; profile: ProfileKind | 'unknown'; adult: boolean; detail: 'quick' | 'detailed'; seed: string }
+export interface Setup { tour: Tour; name: string; country: string; pronouns: string; birthMonth: number; birthDay: number; hand: 'R' | 'L'; avatar: number; focusSurface: Surface | 'all'; skills: [Ability, Ability]; profile: ProfileKind | 'unknown'; adult: boolean; detail: 'quick' | 'detailed'; seed: string; portrait?: string }

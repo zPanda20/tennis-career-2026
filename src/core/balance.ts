@@ -25,7 +25,7 @@ export const PRIZE: Record<Band, { champ: number; floor: number }> = {
   T500: { champ: 180000, floor: 5000 }, T1000: { champ: 400000, floor: 8000 }, GS: { champ: 1000000, floor: 20000 }, F: { champ: 250000, floor: 60000 },
 };
 export const PRIZE_MULT: Record<string, number> = { W: 1, F: 0.55, SF: 0.3, QF: 0.16, R16: 0.08, R32: 0.04 };
-export const ECON = { startCash: 8000, support: 500, essentials: 350, reserve: 1000, local: [400, 800], regional: [900, 1500], inter: [2000, 3500] };
+export const ECON = { startCash: 12000, support: 500, essentials: 350, reserve: 1000, local: [400, 800], regional: [900, 1500], inter: [2000, 3500] };
 
 // spec 9.2 neutral anchors, with tour-specific tuning (spec asks for separate calibration)
 export const ANCHOR: Record<Tour, { fs: number; p1: number; p2: number }> = { atp: { fs: 0.62, p1: 0.715, p2: 0.515 }, wta: { fs: 0.62, p1: 0.645, p2: 0.455 } };

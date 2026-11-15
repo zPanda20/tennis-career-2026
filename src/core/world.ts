@@ -201,7 +201,7 @@ export function createCareer(setup: Setup, c: Content, nowUtc: string): State {
     profile: kind, profileSelected: selected, focusSurface: setup.focusSurface, skills: setup.skills, pronouns: setup.pronouns, avatar: setup.avatar,
     cash: ECON.startCash, ledger: [], coach, coachHistory: [], sponsors: [], sponsorHistory: [], injuries: [], choices: [], tourneys: [], matches: [], attr: [], snaps: [], seasons: [], ach: [],
     rankHist: [], pol: { detail: setup.detail, intensity: 'normal', focus: 'balanced', priority: 'prep', fallback: 'nearest', adult: setup.adult },
-    rel: { coach: 55, agent: 50, friend: 55, partner: null }, startAb: { ...ab }, startRank: 0, evSeen: {}, follow: [], blockMods: {}, devYear: { comp: 0, train: 0 }, injWeeksYear: 0, no1Weeks: 0, hardship: 0, lastOfferYear: START_YEAR, rivals: [],
+    rel: { coach: 55, agent: 50, friend: 55, partner: null }, startAb: { ...ab }, startRank: 0, portrait: setup.portrait, evSeen: {}, follow: [], blockMods: {}, devYear: { comp: 0, train: 0 }, injWeeksYear: 0, no1Weeks: 0, hardship: 0, lastOfferYear: START_YEAR, rivals: [],
   };
   const cr = rngOf(seed, 'cast'); (S.u.rel as any).friendName = supportName(cr, setup.country, cr.chance(0.5)).split(' ')[0]; (S.u.rel as any).agentName = supportName(cr, cr.chance(0.5) ? setup.country : 'USA', cr.chance(0.4));
   publish(S);

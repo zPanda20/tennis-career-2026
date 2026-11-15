@@ -16,7 +16,8 @@ export type Command =
   | { id: string; type: 'ResolveInjury'; rehab: 'conservative' | 'specialist' | 'early' }
   | { id: string; type: 'YearEnd'; coach: string | 'keep'; sponsors: string[]; retire: boolean }
   | { id: string; type: 'Retire' }
-  | { id: string; type: 'ChangeDelegation'; pol: Policies };
+  | { id: string; type: 'ChangeDelegation'; pol: Policies }
+  | { id: string; type: 'SetPortrait'; data: string | null };
 
 const absBlock = (S: State) => (S.year - START_YEAR) * 4 + S.block;
 function applyFx(S: State, fx: Fx): string[] {
@@ -79,15 +80,16 @@ export function execute(S: State, C: Content, cmd: Command): State {
   S.lastCmd = cmd.id; S.rev++;
   const u = S.u, p = S.players[S.userId];
   switch (cmd.type) {
-    case 'ChangeDelegation': u.pol = { ...cmd.pol }; logEv(S, 'DelegationChanged', { detail: cmd.pol.detail }); break;
+    case 'ChangeDelegation': u.pol = { ...cmd.pol }; logEv(S, 'DelegationChanged', { detail: cmd.pol.detail, priority: cmd.pol.priority }); break;
+    case 'SetPortrait': { if (cmd.data && (cmd.data.length > 400000 || !cmd.data.startsWith('data:image/'))) throw new Error('That image could not be used.'); u.portrait = cmd.data ?? undefined; logEv(S, 'PortraitChanged'); break; }
     case 'CommitBlock': {
       if (S.phase !== 'plan') throw new Error('No block can be committed right now.');
       const weeks = blockWeeks(S), valid: Record<number, string> = {};
       for (const [k, id] of Object.entries(cmd.plan.weeks)) { const ed = S.cal.find(e => e.id === id); if (ed && weeks.includes(+k) && ed.startWk === +k) valid[+k] = id; }
       const taken = new Set<number>();
       for (const k of Object.keys(valid).map(Number).sort((a, b) => a - b)) { const ed = S.cal.find(e => e.id === valid[k])!; if (taken.has(k)) { delete valid[k]; continue; } taken.add(k); if (ed.weeks === 2) taken.add(k + 1); }
-      S.plan = { ...cmd.plan, weeks: valid }; u.pol = { ...cmd.pol }; S.sumAcc = newSummary(S);
-      logEv(S, 'BlockCommitted', { year: S.year, block: S.block, route: cmd.plan.route, events: Object.values(valid) });
+      S.plan = { ...cmd.plan, weeks: valid }; u.pol = { ...cmd.pol }; S.sumAcc = newSummary(S); S.blockStartRank = { ...S.rank };
+      logEv(S, 'BlockCommitted', { year: S.year, block: S.block, route: cmd.plan.route, events: Object.values(valid), priority: cmd.pol.priority, intensity: cmd.pol.intensity, focus: cmd.pol.focus });
       if (cmd.plan.lifeEv !== undefined && cmd.plan.lifeChoice !== undefined) {
         const ev = evById(cmd.plan.lifeEv), ch = ev.choices[cmd.plan.lifeChoice];
         if (ev && ch) {

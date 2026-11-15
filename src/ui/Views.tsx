@@ -8,6 +8,7 @@ import { strength } from '../core/world';
 import { Avatar, Bar, BrandMark, EventLogo, Modal, Pill, Section, Stat, SurfaceTag, Who, money, rankTxt } from './bits';
 import { clearPack, importPack } from './pack';
 import { Momentum } from './fx';
+import { EvName, Flag, portraitFromFile } from './bits';
 import { dispatch, exportBackup, get, set, useApp } from './store';
 import { exportArchive, exportPdf } from '../export/pdf';
 
@@ -37,7 +38,7 @@ export function Calendar({ S }: { S: State }) {
           <ul className="list">{evs.sort((a, b) => BAND_VAL[b.band] - BAND_VAL[a.band]).map(e => {
             const mine = u.tourneys.find(t => t.ed === e.id), est = !e.done && e.entryWk >= S.wk && e.band !== 'F' ? estimate(S, e) : null, champ = S.world.champs.find(c => c.ed === e.id);
             const inner = <>
-              <span className="grow"><b>{e.name}</b><small>{e.cat} · {e.city}, {e.country} · {e.dates}{e.weeks === 2 ? ' · two weeks' : ''}{e.prov ? ' · provisional' : ''}</small></span>
+              <span className="grow"><b><EvName name={e.name} surface={e.surface} /></b><small><Flag c={e.country} size={14} /> {e.cat} · {e.city}, {e.country} · {e.dates}{e.weeks === 2 ? ' · two weeks' : ''}{e.prov ? ' · provisional' : ''}</small></span>
               <SurfaceTag s={e.surface} indoor={e.indoor} />
               <span className="res">{mine ? (mine.reached && mine.reached !== 'WD' ? <Pill tone={mine.title ? 'ok' : ''}>{mine.title ? 'Champion' : roundName(mine.reached)}</Pill> : <Pill tone="warn">{mine.status === 'ALT' ? 'Not accepted' : mine.status === 'WD' ? 'Withdrew' : 'Entered'}</Pill>) : est ? <Pill tone={est === 'accepted' ? 'ok' : est === 'alternate' ? 'warn' : est === 'unlikely' ? 'crit' : ''}>{est}</Pill> : e.cancelled ? <small>Not held</small> : champ ? <small>Won by {S.players[champ.w]?.name}</small> : null}</span></>;
             return <li key={e.id}>{mine ? <button className="rowbtn" onClick={() => set({ overlay: { kind: 'tourney', ed: e.id } })}>{inner}</button> : <div className="rowbtn static">{inner}</div>}</li>;
@@ -66,7 +67,7 @@ export function PlayerView({ S }: { S: State }) {
   return (
     <div className="grid-2">
       <div className="col">
-        <div className="card idcard"><Avatar p={me} size={84} user={u.avatar} /><div><h2 className="display">{me.name}</h2><p>{countryName(me.country)} · age {age(S, me.born)} · {me.hand === 'R' ? 'right-handed' : 'left-handed'} · {STYLE_NAMES[me.style].toLowerCase()}</p><p className="muted">{rankTxt(S.rank[me.id])} · {S.pts[me.id] ?? 0} points · career high {t.bestRank < 9999 ? t.bestRank : '–'}</p></div></div>
+        <div className="card idcard"><PortraitPicker S={S} /><div><h2 className="display">{me.name}</h2><p>{countryName(me.country)} · age {age(S, me.born)} · {me.hand === 'R' ? 'right-handed' : 'left-handed'} · {STYLE_NAMES[me.style].toLowerCase()}</p><p className="muted">{rankTxt(S.rank[me.id])} · {S.pts[me.id] ?? 0} points · career high {t.bestRank < 9999 ? t.bestRank : '–'}</p></div></div>
         <Section title="Abilities" aside={<small>1 to 100 · change over the last block</small>}>
           {ABILITIES.map(a => <div key={a}><Bar label={ABILITY_NAMES[a]} value={me.ab[a]} delta={sum?.dev[a]} /><p className="help">{ABILITY_HELP[a]}{u.injuries.some(i => i.perm?.some(p => p.ab === a)) ? ' · permanently reduced by injury' : ''}</p></div>)}
           <p className="muted">Started at {ABILITIES.map(a => `${ABILITY_NAMES[a]} ${Math.round(u.startAb[a])}`).join(', ')}.{pk ? ` Best overall level so far: ${pk.date.slice(0, 4)}, aged ${pk.age}.` : ''}</p>
@@ -99,12 +100,12 @@ export function SeasonTable({ S }: { S: State }) {
 }
 
 export function World({ S }: { S: State }) {
-  const [tab, setTab] = useState<'rank' | 'race' | 'champs' | 'rivals' | 'find'>('rank'), [n, setN] = useState(50), [q, setQ] = useState('');
+  const [tab, setTab] = useState<'rank' | 'race' | 'champs' | 'rivals' | 'find'>('champs'), [n, setN] = useState(50), [q, setQ] = useState('');
   const race = useMemo(() => Object.entries(S.race).sort((a, b) => b[1] - a[1]).slice(0, 60), [S]), riv = useMemo(() => h2h(S), [S]);
   const found = useMemo(() => (q.trim().length < 2 ? [] : Object.values(S.players).filter(p => p.name.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 40)), [S, q]);
   return (
     <div>
-      <div className="row between"><h1>{S.tour === 'atp' ? "Men's" : "Women's"} tour</h1><div className="seg wrap" role="group" aria-label="World view">{([['rank', 'Rankings'], ['race', `${S.year} race`], ['champs', 'Champions'], ['rivals', 'Head to head'], ['find', 'Find a player']] as const).map(([k, t]) => <button key={k} className={tab === k ? 'on' : ''} aria-pressed={tab === k} onClick={() => setTab(k)}>{t}</button>)}</div></div>
+      <div className="row between"><h1>{S.tour === 'atp' ? "Men's" : "Women's"} tour</h1><div className="seg wrap" role="group" aria-label="World view">{([['champs', 'Champions'], ['rivals', 'Head to head'], ['find', 'Find a player']] as const).map(([k, t]) => <button key={k} className={tab === k ? 'on' : ''} aria-pressed={tab === k} onClick={() => setTab(k)}>{t}</button>)}</div></div>
       {tab === 'rank' && <><p className="muted">Published {fmtDate(wkDate(S.wk))}. Best 18 results of the last 52 weeks.</p>
         <ol className="list rank">{S.order.slice(0, n).map((id, i) => <li key={id} className={id === S.userId ? 'me' : ''}><span className="pos num">{i + 1}</span><Who S={S} id={id} sub={`age ${age(S, S.players[id].born)}`} /><span className="num pts">{S.pts[id].toLocaleString('en-US')}</span></li>)}</ol>
         <div className="row">{n < S.order.length && <button className="btn" onClick={() => setN(n + 100)}>Show more</button>}{S.rank[S.userId] > n && <button className="btn ghost" onClick={() => setN(Math.ceil(S.rank[S.userId] / 50) * 50)}>Show down to my ranking</button>}</div></>}
@@ -202,7 +203,7 @@ export function Records({ S }: { S: State }) {
       <div className="grid-2"><Section title="Coaching history"><ul className="plain">{[...u.coachHistory, ...(retired ? [] : [u.coach])].map((c, i) => <li key={i}>{c.name} · {c.tier} · {c.since}–{(c as any).left ?? 'now'}</li>)}</ul></Section>
         <Section title="Sponsorship history">{u.sponsorHistory.length ? <ul className="plain">{u.sponsorHistory.map(s => <li key={s.id}><BrandMark sp={s} size={20} /> <small>{s.slot} · {s.since}–{s.until - 1}</small></li>)}</ul> : <p className="muted">None.</p>}</Section></div>
       <Section title={`Every tournament (${u.tourneys.length})`} aside={<button className="btn small" aria-expanded={all} onClick={() => setAll(!all)}>{all ? 'Hide' : 'Show'}</button>}>
-        {all && <div className="scroll" role="region" aria-label="All tournaments table" tabIndex={0}><table className="tbl"><thead><tr><th>Year</th><th>Tournament</th><th>Level</th><th>Entry</th><th>Result</th><th className="r">Pts</th><th className="r">Prize</th></tr></thead><tbody>{u.tourneys.map(x => <tr key={x.ed}><td>{x.year}</td><td><button className="link" onClick={() => set({ overlay: { kind: 'tourney', ed: x.ed } })}>{x.name}</button></td><td>{BAND_NAME[x.band]}</td><td>{x.status}</td><td>{x.title ? 'Champion' : roundName(x.reached)}</td><td className="r num">{x.pts}</td><td className="r num">{money(x.prize)}</td></tr>)}</tbody></table></div>}
+        {all && <div className="scroll" role="region" aria-label="All tournaments table" tabIndex={0}><table className="tbl"><thead><tr><th>Year</th><th>Tournament</th><th>Level</th><th>Entry</th><th>Result</th><th className="r">Pts</th><th className="r">Prize</th></tr></thead><tbody>{u.tourneys.map(x => <tr key={x.ed}><td>{x.year}</td><td><button className="link" style={{ textDecoration: 'none' }} onClick={() => set({ overlay: { kind: 'tourney', ed: x.ed } })}><EvName name={x.name} surface={x.surface} /></button></td><td>{BAND_NAME[x.band]}</td><td>{x.status}</td><td>{x.title ? 'Champion' : roundName(x.reached)}</td><td className="r num">{x.pts}</td><td className="r num">{money(x.prize)}</td></tr>)}</tbody></table></div>}
       </Section>
     </div>
   );
@@ -227,6 +228,21 @@ export function Settings({ S }: { S: State }) {
       <Section title="Backup"><p>Browser storage can be cleared or evicted. A backup file is your durable copy{S.phase === 'retired' ? '; for a retired career, use the archive export in Records' : ''}.</p><div className="row"><button className="btn" onClick={exportBackup}>Export a backup of this career</button><button className="btn ghost" onClick={() => { get(); import('./store').then(m => m.closeCareer()); }}>Back to the career library</button></div></Section>
       <Section title="Rules in this game"><ul className="plain">{RULES_SUMMARY.map((r, i) => <li key={i}>{r}</li>)}</ul></Section>
       <Section title="Data and versions"><p className="muted">{SNAPSHOT_NOTE[S.tour]} Real players' birth dates are stored to the year and shown as ages. Players outside the starting top 200 are fictional and labelled. Event calendars come from the public 2026 tour schedules. Engine {S.v.engine} · balance {S.v.balance} · content {S.v.content} · {S.v.rng}. Overall strength of your player right now: {strength(S.players[S.userId].ab).toFixed(1)} (diagnostic only, not used in matches).</p></Section>
+    </div>
+  );
+}
+
+/** The player's own portrait: upload, replace or remove. Stored with the career and included in backups. */
+export function PortraitPicker({ S }: { S: State }) {
+  const me = S.players[S.userId], { save } = useApp(), ro = save === 'readonly' || S.phase === 'retired';
+  const pick = async (f?: File) => { if (!f) return; try { const data = await portraitFromFile(f); await dispatch({ type: 'SetPortrait', data }, 'Saving portrait'); } catch (e: any) { set({ error: e.message }); } };
+  return (
+    <div className="portrait">
+      <Avatar p={me} size={110} user={S.u.avatar} />
+      {!ro && <div className="row" style={{ margin: '.5rem 0 0', gap: '.4rem' }}>
+        <label className="btn small">{S.u.portrait ? 'Change photo' : 'Upload photo'}<input type="file" accept="image/*" hidden onChange={e => { pick(e.target.files?.[0]); e.target.value = ''; }} /></label>
+        {S.u.portrait && <button className="btn small ghost" onClick={() => dispatch({ type: 'SetPortrait', data: null }, 'Saving')}>Remove</button>}
+      </div>}
     </div>
   );
 }

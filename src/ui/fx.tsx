@@ -59,7 +59,7 @@ export function SeasonTrack({ S }: { S: State }) {
   const majors = S.cal.filter(e => e.band === 'GS' || e.band === 'F').map(e => ({ x: x(e.week + (e.weeks === 2 ? 0.5 : 0)), name: e.band === 'F' ? 'Finals' : e.name, s: e.surface, past: e.startWk + e.weeks <= S.wk }));
   const now = S.phase === 'retired' ? null : x(Math.min(wk, n));
   return (
-    <svg className="track" viewBox={`0 0 ${W} 58`} preserveAspectRatio="none" role="img" aria-label={`Season ${S.year}: week ${Math.min(wk + 1, 52)} of 52`}>
+    <svg className="seasontrack" viewBox={`0 0 ${W} 58`} preserveAspectRatio="none" role="img" aria-label={`Season ${S.year}: week ${Math.min(wk + 1, 52)} of 52`}>
       {segs.map(([a, b, s], i) => { const past = b <= wk, cur = a <= wk && wk < b; return <line key={i} x1={x(a) + 4} x2={x(b) - 4} y1="18" y2="18" stroke={SURF_COLOR[s]} strokeWidth="6" strokeLinecap="round" opacity={past ? 1 : cur ? 0.75 : 0.35} />; })}
       {majors.map((m, i) => <g key={i}><circle cx={m.x} cy="18" r="7" fill={m.past ? SURF_COLOR[m.s] : 'var(--bg)'} stroke={SURF_COLOR[m.s]} strokeWidth="2.5" /><text x={m.x} y="48" textAnchor="middle" className="track-t">{m.name.replace(' Open', '')}</text></g>)}
       {now !== null && <g><circle cx={now} cy="18" r="17" fill="var(--ball)" opacity="0.22" /><circle cx={now} cy="18" r="10" fill="var(--ball)" /></g>}
