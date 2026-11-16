@@ -66,6 +66,7 @@ export function App() {
           </>);
       })()}
       {view !== 'game' && (error || notice) && <div className={`banner float ${error ? 'crit' : ''}`} role={error ? 'alert' : 'status'}><span>{error ?? notice}</span><button className="icon" aria-label="Dismiss" onClick={() => set({ error: null, notice: null })}>✕</button></div>}
+      {app.packNote && <div className="packnote" role="status">{app.packNote}</div>}
       {busy && <div className="busy" role="status" aria-live="polite"><div className="busy-card"><Bouncer /><p>{busy}</p></div></div>}
     </div>
   );

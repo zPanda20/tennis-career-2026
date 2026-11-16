@@ -9,7 +9,7 @@ export type Tab = 'career' | 'calendar' | 'rankings' | 'player' | 'life' | 'worl
 export type Overlay = { kind: 'tourney'; ed: string } | { kind: 'match'; id: string } | { kind: 'player'; id: string } | { kind: 'planner' } | { kind: 'reveal'; from?: number } | { kind: 'rival'; id: string } | null;
 export interface App {
   view: 'boot' | 'library' | 'create' | 'game'; careers: db.CareerMeta[]; S: State | null; tab: Tab; overlay: Overlay; busy: string | null; save: 'saved' | 'saving' | 'error' | 'readonly'; error: string | null; notice: string | null;
-  assets: Record<string, string>; labels: Record<string, string>; storageOk: boolean; reduced: boolean; faces?: number;
+  assets: Record<string, string>; labels: Record<string, string>; storageOk: boolean; reduced: boolean; faces?: number; packNote?: string;
 }
 let app: App = { view: 'boot', careers: [], S: null, tab: 'career', overlay: null, busy: null, save: 'saved', error: null, notice: null, assets: {}, labels: {}, storageOk: true, reduced: db.getSetting('reduced', '0') === '1' };
 const subs = new Set<() => void>();

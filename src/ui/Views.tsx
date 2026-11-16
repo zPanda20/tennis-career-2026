@@ -1,3 +1,4 @@
+import { setSetting } from '../persist/db';
 import { regionOf } from '../core/content';
 import { importFaces, removeFaces, userFace } from './faces';
 import { COACH_TIER_NAME } from '../core/world';
@@ -264,7 +265,7 @@ export function Settings({ S }: { S: State }) {
       <Section title="Private image pack">
         <p>Player photos and logos are not part of the game. If you keep your own images in a folder with an <code>image-pack.json</code> file, you can load them here. They are stored in this browser only and never uploaded.</p>
         <p className="muted">{n ? `${n} images loaded.` : 'No image pack loaded.'} {msg}</p>
-        <div className="row"><label className="btn">Load asset pack file<input type="file" hidden accept=".tcassets" onChange={async e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) { setMsg('Reading images…'); setMsg(await importAssetFile(f)); } }} /></label><label className="btn ghost">Load image pack folder<input type="file" hidden multiple {...({ webkitdirectory: '', directory: '' } as any)} onChange={async e => { const f = e.target.files; if (f?.length) { setMsg('Reading images…'); setMsg(await importPack(f)); } e.target.value = ''; }} /></label>{n > 0 && <button className="btn ghost" onClick={async () => { await clearPack(); setMsg('Image pack removed.'); }}>Remove images</button>}</div>
+        <div className="row"><label className="btn">Load asset pack file<input type="file" hidden accept=".tcassets" onChange={async e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) { setMsg('Reading images…'); setMsg(await importAssetFile(f)); } }} /></label><label className="btn ghost">Load image pack folder<input type="file" hidden multiple {...({ webkitdirectory: '', directory: '' } as any)} onChange={async e => { const f = e.target.files; if (f?.length) { setMsg('Reading images…'); setMsg(await importPack(f)); } e.target.value = ''; }} /></label>{n > 0 && <button className="btn ghost" onClick={async () => { setSetting('noAutoAssets', '1'); await clearPack(); setMsg('Image pack removed. It will not load automatically in this browser.'); }}>Remove images</button>}</div>
       </Section>
       <FacePackSection />
       <Section title="Backup"><p>Browser storage can be cleared or evicted. A backup file is your durable copy{S.phase === 'retired' ? '; for a retired career, use the archive export in Records' : ''}.</p><div className="row"><button className="btn" onClick={exportBackup}>Export a backup of this career</button><button className="btn ghost" onClick={() => { get(); import('./store').then(m => m.closeCareer()); }}>Back to the career library</button></div></Section>
@@ -281,7 +282,7 @@ function FacePackSection() {
     <Section title="Face pack">
       <p>Fictional players can show generated faces from a private face pack (a <code>.tcfaces</code> file). Each fictional player gets a stable face suited to their nation. Real players never get a generated face. The pack is stored in this browser only.</p>
       <p className="muted">{faces ? `${faces.toLocaleString('en-US')} faces loaded.` : 'No face pack loaded.'} {msg}</p>
-      <div className="row"><label className="btn">Load face pack<input type="file" hidden accept=".tcfaces" onChange={async e => { const f = e.target.files?.[0]; e.target.value = ''; if (!f) return; setMsg('Loading faces…'); try { setMsg(await importFaces(f, (n, of) => setMsg(`Loading faces… ${Math.round((n / of) * 100)}%`))); } catch { setMsg('The face pack could not be read.'); } }} /></label>{!!faces && <button className="btn ghost" onClick={async () => { await removeFaces(); setMsg('Face pack removed.'); }}>Remove faces</button>}</div>
+      <div className="row"><label className="btn">Load face pack<input type="file" hidden accept=".tcfaces" onChange={async e => { const f = e.target.files?.[0]; e.target.value = ''; if (!f) return; setMsg('Loading faces…'); try { setMsg(await importFaces(f, (n, of) => setMsg(`Loading faces… ${Math.round((n / of) * 100)}%`))); } catch { setMsg('The face pack could not be read.'); } }} /></label>{!!faces && <button className="btn ghost" onClick={async () => { setSetting('noAutoFaces', '1'); await removeFaces(); setMsg('Face pack removed. It will not load automatically in this browser.'); }}>Remove faces</button>}</div>
     </Section>
   );
 }

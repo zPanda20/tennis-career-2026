@@ -369,3 +369,4 @@ b .evn, .evn { font-weight:inherit; }
 .evlogo { object-fit:contain; filter:drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
 .evlogo.sm { flex:none; width:auto; margin-right:.55rem; vertical-align:middle; background:rgba(255,255,255,.92); border-radius:6px; padding:2px 4px; }
 .evlogo.top { vertical-align:middle; margin-right:.6rem; background:rgba(255,255,255,.92); border-radius:8px; padding:3px 6px; }
+.packnote { position:fixed; left:50%; bottom:1.2rem; transform:translateX(-50%); z-index:60; padding:.55rem 1.1rem; border-radius:99px; background:rgba(0,0,0,.75); border:1px solid var(--faint); font-weight:700; font-size:.85rem; }
