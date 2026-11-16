@@ -10,6 +10,7 @@ import { Avatar, BrandMark, EvName, Flag, Stat, money, rankTxt , EventLogo } fro
 import { Arrow, Ball, BallRun, Momentum, Ring, SWING_ENDS, SWING_SHORT, SURF_COLOR, seasonOf, tintOf } from './fx';
 import { dispatch, get, set, useApp } from './store';
 import { getSetting, setSetting } from '../persist/db';
+import { MATCH_MODES, MatchModePicker } from './Live';
 import { GoalsCard, NewsCard, NewsList, NewsTicker, RivalAlert, RivalTag, nextMeeting, useWatchControls } from './Extras';
 import { newsSince } from '../core/news';
 
@@ -54,14 +55,15 @@ function bestBefore(S: State, t: UTourney) {
 
 // ---------- season autopilot: plays each remaining swing on the coach's recommended route ----------
 async function autoSeason(S0: State) {
-  if (!confirm(`Simulate the rest of ${S0.year}? Each remaining swing uses your coach's recommended route and your current training settings. Optional life decisions are skipped. Injuries still stop the simulation so you can choose the rehab.`)) return;
-  const from = S0.wk, year = S0.year;
+  if (!confirm(`Simulate the rest of ${S0.year}? Each remaining swing uses your coach's recommended route and your current training settings. Optional life decisions are skipped and your coach plays every match. Injuries still stop the simulation so you can choose the rehab.`)) return;
+  const from = S0.wk, year = S0.year, mode = S0.u.pol.match ?? 'auto';
   for (let n = 0; n < 4; n++) {
     const s = get().S; if (!s || s.phase !== 'plan' || s.year !== year) break;
     const rs = routes(s), r = rs.find(x => x.recommended) ?? rs[0];
-    const ok = await dispatch({ type: 'CommitBlock', plan: { weeks: r.weeks, route: r.key }, pol: s.u.pol }, `Simulating ${SWING_SHORT[s.block].join(' ').toLowerCase()}`);
+    const ok = await dispatch({ type: 'CommitBlock', plan: { weeks: r.weeks, route: r.key }, pol: { ...s.u.pol, match: 'auto' } }, `Simulating ${SWING_SHORT[s.block].join(' ').toLowerCase()}`);
     if (!ok) return;
   }
+  if (mode !== 'auto' && get().S && get().S!.phase !== 'retired') await dispatch({ type: 'SetMatchMode', mode }, 'Saving');
   const s = get().S;
   if (s && s.lastSummary && s.phase !== 'interrupt') set({ overlay: { kind: 'reveal', from } });
 }
@@ -84,6 +86,7 @@ export function Home({ S }: { S: State }) {
             <div className="row" style={{ gap: '1.2rem', marginTop: '1.4rem' }}>
               <button className="cta" disabled={ro} onClick={() => set({ overlay: { kind: 'planner' } })}>Plan the swing<span className="go"><Arrow /></span></button>
               {S.block < 3 && <button className="btn" disabled={ro} onClick={() => autoSeason(S)}>Simulate to season's end</button>}
+              {!ro && <label className="mm-inline">Your matches<select value={S.u.pol.match ?? 'auto'} onChange={e => dispatch({ type: 'SetMatchMode', mode: e.target.value as 'auto' | 'big' | 'all' }, 'Saving')}>{MATCH_MODES.map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></label>}
             </div>
             <div className="coachline"><Avatar name={u.coach.name.split(' (')[0]} size={46} /><div className="bubble"><b>Coach:</b> "{me.injuredUntil > S.wk ? `Rehab first. You should be back around ${fmtShort(wkDate(me.injuredUntil))}.` : rep.advice}"</div></div>
           </>}
@@ -289,6 +292,10 @@ export function Planner({ S }: { S: State }) {
         {step === last && <>
           <h1>Ready to play</h1>
           {(() => { const nm = nextMeeting(S, weeks, plan); return nm ? <p className="rival-note">⚔ <b>Next meeting:</b> your rival {S.players[nm.id].name} is {nm.how === 'entered' ? 'entered at' : nm.how === 'likely' ? 'likely at' : 'a possible entry at'} <EvName name={nm.ed.name} surface={nm.ed.surface} />.</p> : null; })()}
+          <section className="glass" style={{ marginTop: '1.2rem' }}>
+            <div className="sec-head"><h3>Your matches</h3><small>change any time</small></div>
+            <MatchModePicker value={pol.match ?? 'auto'} onChange={m => setPol({ ...pol, match: m })} />
+          </section>
           <div className="panel2" style={{ marginTop: '1.2rem' }}>
             <section className="glass">
               <div className="sec-head"><h3>Your schedule</h3><small>{picks.length} {picks.length === 1 ? 'event' : 'events'}</small></div>
@@ -442,7 +449,7 @@ export function Reveal({ S, from }: { S: State; from?: number }) {
     </div>
   );
 }
-function Plates({ S, m, done, children }: { S: State; m: UMatch; done: boolean; children: React.ReactNode }) {
+export function Plates({ S, m, done, children }: { S: State; m: UMatch; done: boolean; children: React.ReactNode }) {
   const me = S.players[S.userId], opp = S.players[m.opp];
   return (
     <div className="versus">
@@ -452,8 +459,8 @@ function Plates({ S, m, done, children }: { S: State; m: UMatch; done: boolean; 
     </div>
   );
 }
-type Col = { a: number; b: number; tb?: number; live?: boolean; pend?: boolean };
-function Board({ S, m, cols, done, note }: { S: State; m: UMatch; cols: Col[]; done: boolean; note?: string }) {
+export type Col = { a: number; b: number; tb?: number; live?: boolean; pend?: boolean };
+export function Board({ S, m, cols, done, note }: { S: State; m: UMatch; cols: Col[]; done: boolean; note?: string }) {
   const me = S.players[S.userId];
   if (m.cls === 'wo') return <div className="board"><p className="d" style={{ fontSize: '2rem', margin: 0 }}>Walkover</p><div className="foot">{m.won ? 'Your opponent withdrew' : 'You could not take the court'}</div></div>;
   const cell = (c: Col, mine: boolean, k: number) => c.pend ? <span key={k} className="sc pend">·</span> : <span key={k} className={`sc ${c.live ? 'live' : (mine ? c.a > c.b : c.b > c.a) ? 'w' : ''}`}>{mine ? c.a : c.b}{c.tb !== undefined && (mine ? c.a < c.b : c.b < c.a) && <sup>{c.tb}</sup>}</span>;
@@ -467,6 +474,14 @@ function Board({ S, m, cols, done, note }: { S: State; m: UMatch; cols: Col[]; d
       <div className="foot">{roundName(m.round)}{m.qual ? ' · qualifying' : ''} · {done ? `${Math.floor(m.minutes / 60)}h ${String(m.minutes % 60).padStart(2, '0')}m` : note ?? 'in progress'} · {m.p < 0.4 ? 'you were the underdog' : m.p > 0.6 ? 'you were the favourite' : 'an even contest'}{done && m.cls === 'ret' ? ' · ended by retirement' : ''}</div>
     </div>
   );
+}
+/** The rounds still ahead after `round`, all the way to the final, so the run never gives away where it ends. */
+function roundsAfter(S: State, t: UTourney, round: string): string[] {
+  if (round === 'RR' || round === 'F' || t.band === 'F') return [];
+  const ed = S.cal.find(e => e.id === t.ed), draw = ed?.draw ?? 32, bracket = draw > 64 ? 128 : draw > 32 ? 64 : 32;
+  const main = ['R128', 'R64', 'R32', 'R16', 'QF', 'SF', 'F'].slice(['R128', 'R64', 'R32'].indexOf(`R${bracket}`));
+  if (/^Q\d/.test(round)) return main;
+  const i = main.indexOf(round); return i < 0 ? [] : main.slice(i + 1);
 }
 const fullCols = (m: UMatch): Col[] => parseSets(m).map(s => ({ a: s[0], b: s[1], tb: s[2] }));
 function MatchStage({ S, t, list, mi, sets: shown, g }: { S: State; t: UTourney; list: UMatch[]; mi: number; sets: number; g?: number }) {
@@ -499,7 +514,8 @@ function MatchStage({ S, t, list, mi, sets: shown, g }: { S: State; t: UTourney;
       <div className="reveal-grid">
         <section className="glass">
           <div className="sec-head"><h3>Through the draw</h3></div>
-          <ol className="plain runpath">{list.map((x, k) => <li key={x.id} className={k > mi ? 'future' : k === mi ? (done ? (x.won ? 'now' : 'lost') : 'now live') : x.won ? '' : 'lost'}><span className="r">{roundName(x.round)}{k < mi || (k === mi && done) ? (x.won ? ' · won' : ' · lost') : k === mi ? ' · on court' : ''}</span><br /><b>{k > mi ? 'To be decided' : x.oppName}</b>{(k < mi || (k === mi && done)) && <span className="muted"> {x.score}</span>}</li>)}</ol>
+          <ol className="plain runpath">{list.slice(0, mi + 1).map((x, k) => <li key={x.id} className={k === mi ? (done ? (x.won ? 'now' : 'lost') : 'now live') : x.won ? '' : 'lost'}><span className="r">{roundName(x.round)}{k < mi || done ? (x.won ? ' · won' : ' · lost') : ' · on court'}</span><br /><b>{x.oppName}</b>{(k < mi || done) && <span className="muted"> {x.score}</span>}</li>)}
+            {!(done && !m.won) && roundsAfter(S, t, m.round).map(r => <li key={r} className="future"><span className="r">{roundName(r)}</span><br /><b>To be decided</b></li>)}</ol>
         </section>
         <section className="glass" style={{ display: 'flex', flexDirection: 'column', gap: '.8rem' }}>
           {m.flow && games > 0 ? <Momentum m={m} oppName={m.oppName} upto={done ? undefined : games} /> : <p className="muted">{m.cls === 'wo' ? 'No match was played.' : 'Momentum appears as the match is played.'}</p>}

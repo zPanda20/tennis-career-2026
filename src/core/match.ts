@@ -3,6 +3,14 @@
 import { ANCHOR, COND, P_CLAMP, PER_POINT, RALLY, HEALTH } from './balance';
 import { Rng, clamp } from './rng';
 import type { MatchResult, MatchStats, Player, Surface, Tour } from './types';
+import { COUNTER, Eff, Tactic } from './tactics';
+
+/** A decision in the user's match, applied from game `at` (index into the game flow). */
+export interface Decision { at: number; tac?: Tactic; reset?: boolean; auto?: boolean; drill?: boolean; slide?: boolean }
+/** Control for the user's match: their plan and the opponent's, and whether to pause at decision points. */
+export interface Ctl { u: 0 | 1; eff: Record<Tactic, Eff>; oppEff: Record<Tactic, Eff>; oppPlans: [Tactic, Tactic]; coach: (oppTac: Tactic | undefined, set: number) => Tactic; dec: Decision[]; stop: boolean }
+export interface Pause { kind: 'start' | 'set' | 'slide'; at: number; sets: [number, number, number?, number?][]; g: [number, number]; flow: number[]; stats: [MatchStats, MatchStats]; my: Tactic; opp: Tactic; resetsLeft: number; myTacs: Tactic[]; oppTacs: Tactic[] }
+export const MAX_RESETS = 2, MAX_SLIDES = 3;
 
 export interface Side { serve: number; ret: number; rally: number; comp: number; end: number; cond: number; strain: number }
 export interface Rules { surface: Surface; bestOf: 3 | 5; tb10: boolean; tour: Tour }
@@ -82,7 +90,7 @@ export function expectedWin(a: Player, b: Player, rules: Rules, rested = false):
 
 const blank = (): MatchStats => ({ aces: 0, df: 0, fsIn: 0, fsTot: 0, fsWon: 0, ssWon: 0, ssTot: 0, bpWon: 0, bpTot: 0, pts: 0, retWon: 0 });
 
-export function simulateMatch(a: Player, b: Player, rules: Rules, seed: string, detail = false): MatchResult {
+export function simulateMatch(a: Player, b: Player, rules: Rules, seed: string, detail = false, ctl?: Ctl): MatchResult {
   const r = new Rng(seed);
   const sides = [sideOf(a, rules.surface), sideOf(b, rules.surface)];
   // composure changes variance: each player draws a small form shift for the day
@@ -98,8 +106,46 @@ export function simulateMatch(a: Player, b: Player, rules: Rules, seed: string, 
   let retireAt = -1, retiredSide: 0 | 1 | undefined;
   for (const i of [0, 1] as const) if (retireAt < 0 && r.chance(HEALTH.acute * (1 + sides[i].strain / 60))) { retireAt = r.int(20, 110); retiredSide = i; }
 
+  // ---- tactics (the user's match only) ----
+  let uTac: Tactic = 'balanced', oTac: Tactic = ctl ? ctl.oppPlans[0] : 'balanced', auto = !ctl?.stop, resetUntil = -1, resets = 0, drill = false, tacAdj = [0, 0];
+  const myTacs: Tactic[] = [], oppTacs: Tactic[] = [];
+  class Stop { constructor(public kind: Pause['kind']) {} }
+  let applied = -1, appliedAny = false;
+  const applyAt = (idx: number) => {
+    if (idx === applied) return appliedAny;
+    let any = false; applied = idx;
+    for (const d of ctl!.dec) if (d.at === idx) { any = true; if (d.tac) uTac = d.tac; if (d.reset && resets < MAX_RESETS) { resets++; resetUntil = idx + 4; } if (d.auto) auto = true; if (d.drill) drill = true; }
+    appliedAny = any; return any;
+  };
+  const edges = (setNo: number) => {
+    if (!ctl) return;
+    let rep = 1; for (let k = myTacs.length - 2; k >= 0 && myTacs[k] === uTac; k--) rep++;
+    const adapt = uTac === 'balanced' ? 1 : rep >= 3 ? 0.6 : rep === 2 ? 0.85 : 1, dm = drill && setNo < 2 ? 1.35 : 1;
+    const om = COUNTER[oTac] === uTac ? 0.4 : 1, rb = flow.length < resetUntil ? 0.02 : 0, u = ctl.u;
+    const me = ctl.eff[uTac], op = ctl.oppEff[oTac];
+    tacAdj[u] = me.sv * adapt * dm - op.rt * om + rb;
+    tacAdj[1 - u] = op.sv * om - me.rt * adapt * dm - rb;
+  };
+  const setStart = (setNo: number, lastSetWinner: number) => {
+    if (!ctl) return;
+    if (setNo > 0 && lastSetWinner === ctl.u) oTac = oTac === ctl.oppPlans[0] ? ctl.oppPlans[1] : ctl.oppPlans[0]; // a beaten opponent changes plan
+    const idx = flow.length;
+    if (!applyAt(idx)) {
+      if (auto) uTac = ctl.coach(setNo > 0 ? oTac : undefined, setNo);
+      else throw new Stop(setNo === 0 ? 'start' : 'set');
+    }
+    myTacs[setNo] = uTac; oppTacs[setNo] = oTac; edges(setNo);
+  };
+  const beforeGame = (g: number[], setNo: number) => {
+    if (!ctl) return;
+    const idx = flow.length, opp = 1 - ctl.u;
+    if (idx > 0 && applyAt(idx)) { myTacs[setNo] = uTac; edges(setNo); return; }
+    if (!auto && g[0] + g[1] > 0 && ctl.dec.filter(d => d.slide).length < MAX_SLIDES && idx >= 3 && flow[idx - 1] === opp && flow[idx - 2] === opp && flow[idx - 3] === opp && (idx === 3 || flow[idx - 4] !== opp)) throw new Stop('slide');
+    if (flow.length === resetUntil) edges(setNo);
+  };
+
   const point = (srv: number, big: boolean): number => {
-    const m = pm[srv], adj = form[srv] - form[1 - srv] + (big ? (srv === 0 ? press : -press) : 0)
+    const m = pm[srv], adj = tacAdj[srv] + form[srv] - form[1 - srv] + (big ? (srv === 0 ? press : -press) : 0)
       - clamp((total - 150 - sides[srv].end) / 2500, 0, 0.03) + clamp((total - 150 - sides[1 - srv].end) / 2500, 0, 0.03);
     const s = st[srv]; total++;
     let won: boolean;
@@ -138,15 +184,18 @@ export function simulateMatch(a: Player, b: Player, rules: Rules, seed: string, 
       if (retireAt >= 0 && total >= retireAt) return [-1, p[0], p[1]];
     }
   };
-  let retired = false;
+  let retired = false, lastSetW = -1, g = [0, 0];
+  try {
   outer: while (setsWon[0] < need && setsWon[1] < need) {
-    const g = [0, 0], deciding = setsWon[0] === need - 1 && setsWon[1] === need - 1;
+    g = [0, 0]; const deciding = setsWon[0] === need - 1 && setsWon[1] === need - 1;
     const setFirst = server;
+    setStart(sets.length, lastSetW);
     for (;;) {
+      beforeGame(g, sets.length);
       if (g[0] === 6 && g[1] === 6) {
         const [w, x, y] = tiebreak(server, deciding && rules.tb10 ? 10 : 7);
         if (w < 0) { sets.push([g[0], g[1]]); retired = true; break outer; }
-        g[w]++; flow.push(w); sets.push([g[0], g[1], x, y]); setsWon[w]++;
+        g[w]++; flow.push(w); sets.push([g[0], g[1], x, y]); setsWon[w]++; lastSetW = w;
         server = 1 - setFirst; // player who received first in the tiebreak set serves first in the next set
         if (detail) turning.push(`Set ${sets.length} tiebreak ${Math.max(x, y)}-${Math.min(x, y)}`);
         break;
@@ -155,8 +204,13 @@ export function simulateMatch(a: Player, b: Player, rules: Rules, seed: string, 
       if (w < 0) { sets.push([g[0], g[1]]); retired = true; break outer; }
       if (detail && w !== server && g[0] + g[1] >= 6 && Math.abs(g[0] - g[1]) <= 1) turning.push(`Break at ${g[0]}-${g[1]} in set ${sets.length + 1}`);
       g[w]++; flow.push(w); server = 1 - server;
-      if ((g[0] >= 6 || g[1] >= 6) && Math.abs(g[0] - g[1]) >= 2) { sets.push([g[0], g[1]]); setsWon[g[0] > g[1] ? 0 : 1]++; break; }
+      if ((g[0] >= 6 || g[1] >= 6) && Math.abs(g[0] - g[1]) >= 2) { sets.push([g[0], g[1]]); lastSetW = g[0] > g[1] ? 0 : 1; setsWon[lastSetW]++; break; }
     }
+  }
+  } catch (e) {
+    if (!(e instanceof Stop)) throw e;
+    const pause: Pause = { kind: e.kind, at: flow.length, sets: sets.slice(), g: [g[0], g[1]], flow: flow.slice(), stats: [{ ...st[0] }, { ...st[1] }], my: uTac, opp: oTac, resetsLeft: MAX_RESETS - resets, myTacs: myTacs.slice(), oppTacs: oppTacs.slice() };
+    return { winner: 0, sets, score: '', stats: st, points: total, minutes: 0, fatigue: [0, 0], cls: 'played', closeness: 0, turning: [], flow, pause };
   }
   const winner: 0 | 1 = retired ? ((1 - retiredSide!) as 0 | 1) : setsWon[0] > setsWon[1] ? 0 : 1;
   const fmt = (s: [number, number, number?, number?], w: number) => {
@@ -171,5 +225,5 @@ export function simulateMatch(a: Player, b: Player, rules: Rules, seed: string, 
   // closeness: 0 one-sided … 1 sustained contest (used for competitive exposure, spec 6.1)
   const share = games ? 1 - wg / games : 0.5;
   const closeness = retired ? 0.3 : clamp((share - 0.22) / 0.26, 0, 1) * 0.75 + (sets.length > need ? 0.2 : 0) + Math.min(0.1, tbs * 0.05);
-  return { winner, sets, score, stats: st, points: total, minutes, fatigue: [load(0), load(1)], cls: retired ? 'ret' : 'played', retiredSide: retired ? retiredSide : undefined, closeness: clamp(closeness, 0, 1), turning: turning.slice(-3), flow };
+  return { winner, sets, score, stats: st, points: total, minutes, fatigue: [load(0), load(1)], cls: retired ? 'ret' : 'played', retiredSide: retired ? retiredSide : undefined, closeness: clamp(closeness, 0, 1), turning: turning.slice(-3), flow, plan: ctl ? { my: myTacs, opp: oppTacs } : undefined };
 }

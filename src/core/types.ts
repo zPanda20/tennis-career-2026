@@ -40,11 +40,12 @@ export interface MatchStats { aces: number; df: number; fsIn: number; fsTot: num
 export interface MatchResult {
   winner: 0 | 1; sets: [number, number, number?, number?][]; score: string; stats: [MatchStats, MatchStats]; points: number; minutes: number;
   fatigue: [number, number]; cls: 'played' | 'ret'; retiredSide?: 0 | 1; closeness: number; turning: string[]; flow: number[];
+  pause?: import('./match').Pause; plan?: { my: string[]; opp: string[] };
 }
 export interface UMatch {
   id: string; ed: string; year: number; wk: number; round: string; qual: boolean; opp: string; oppName: string; oppRank: number; oppReal: boolean; oppCountry: string;
   myRank: number; won: boolean; score: string; cls: 'played' | 'ret' | 'wo'; p: number; stats?: [MatchStats, MatchStats]; minutes: number; reasons: string[]; turning: string[];
-  surface: Surface; dev: number; fat: number; flow?: string; sets?: [number, number, number?][];
+  surface: Surface; dev: number; fat: number; flow?: string; sets?: [number, number, number?][]; plan?: { my: string[]; opp: string[] }; live?: boolean;
 }
 export interface UTourney {
   ed: string; series: string; name: string; cat: string; band: Band; surface: Surface; city: string; country: string; year: number; wk: number; dates: string;
@@ -61,7 +62,7 @@ export interface AttrChange { wk: number; year: number; ab: Ability; from: numbe
 export interface Snapshot { id: string; wk: number; year: number; date: string; age: number; ab: Abil; fam: Record<Surface, number>; style: Style; perm: { ab: Ability; loss: number }[]; index: number; src: string; rank: number }
 export interface Season { year: number; n: number; rank: number; pts: number; w: number; l: number; titles: number; finals: number; majorsBest: string; prize: number; injWeeks: number; dev: number; devComp: number; devTrain: number; bestRank: number; events: number; age: number; no1: boolean }
 export interface Achievement { id: string; name: string; wk: number; year: number; date: string; ref?: string }
-export interface Policies { detail: 'quick' | 'detailed'; intensity: Intensity; focus: Focus; priority: Priority; fallback: 'nearest' | 'rest'; adult: boolean; surfacePrep?: Surface }
+export interface Policies { match?: 'auto' | 'big' | 'all'; detail: 'quick' | 'detailed'; intensity: Intensity; focus: Focus; priority: Priority; fallback: 'nearest' | 'rest'; adult: boolean; surfacePrep?: Surface }
 
 export interface UserCareer {
   profile: ProfileKind; profileSelected: boolean; focusSurface: Surface | 'all'; skills: [Ability, Ability]; pronouns: string; avatar: number;
@@ -84,7 +85,8 @@ export interface WorldRec { champs: { ed: string; name: string; year: number; ba
 export interface State {
   v: { schema: number; engine: string; balance: string; content: string; rng: string };
   careerId: string; seed: string; tour: Tour; userId: string; createdUtc: string; rev: number; seq: number;
-  wk: number; year: number; week: number; block: number; phase: 'plan' | 'interrupt' | 'yearEnd' | 'retired';
+  wk: number; year: number; week: number; block: number; phase: 'plan' | 'interrupt' | 'yearEnd' | 'retired' | 'live';
+  live?: Live; midWeek?: boolean;
   players: Record<string, Player>; active: string[]; rank: Record<string, number>; pts: Record<string, number>; race: Record<string, number>; order: string[];
   cal: Edition[]; memo: Record<string, { cut: number; qcut: number }>; bandMemo: Record<string, { cut: number; qcut: number; n: number }>;
   u: UserCareer; world: WorldRec; pending?: Pending; plan?: BlockPlan; lastSummary?: BlockSummary; sumAcc?: BlockSummary; retire?: { year: number; wk: number; reason: string; date: string };
@@ -92,3 +94,9 @@ export interface State {
   ledger: { seq: number; wk: number; date: string; type: string; cmd: string; data?: any }[]; lastCmd?: string; nextPid: number;
 }
 export interface Setup { tour: Tour; name: string; country: string; pronouns: string; birthMonth: number; birthDay: number; hand: 'R' | 'L'; avatar: number; focusSurface: Surface | 'all'; skills: [Ability, Ability]; profile: ProfileKind | 'unknown'; adult: boolean; detail: 'quick' | 'detailed'; seed: string; portrait?: string }
+
+/** A user match being played hands-on: decisions so far, where it is paused, and the final result once done. */
+export interface Live {
+  key: string; ed: string; round: string; a: string; b: string; u: 0 | 1; dec: import('./match').Decision[]; film?: boolean;
+  pause?: import('./match').Pause; done?: { winner: 0 | 1; score: string; sets: [number, number, number?, number?][]; flow: number[]; stats: [MatchStats, MatchStats]; plan?: { my: string[]; opp: string[] }; cls: 'played' | 'ret' };
+}

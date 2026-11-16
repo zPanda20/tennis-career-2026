@@ -3,7 +3,28 @@ import { champNews, upsetNews } from './news';
 import { homeOf, lifestyleMonthly, livingMonthly } from './lifestyle';
 import { BAND_VAL, DEV, ECON, FINALS_POINTS, POINTS, PRIZE, PRIZE_MULT, QUAL_POINTS, ROUND_KEYS } from './balance';
 import { fmtDate, iso, travelClass, wkDate } from './content';
-import { expectedWin, simulateMatch, Rules } from './match';
+import { Ctl, expectedWin, simulateMatch, Rules } from './match';
+import { allEff, coachPick, oppPlans, READ_SD, readOf } from './tactics';
+
+/** Thrown to stop the week when the user's hands-on match needs a decision. Everything before it in the round is untouched. */
+export class LivePause {}
+export const matchKey = (ed: Edition, round: string, aId: string, bId: string) => `${ed.id}|${round}|${aId}|${bId}`;
+export const readSeed = (S: State, key: string) => `${S.seed}|read|${key}`;
+/** The user's plan and the opponent's for one match. Without decisions, the coach picks each set from a read of the opponent. */
+export function userCtl(S: State, ed: Edition, aId: string, bId: string, round: string, qual: boolean, stop: boolean): Ctl {
+  const uid = S.userId, u: 0 | 1 = aId === uid ? 0 : 1, me = S.players[uid], opp = S.players[u === 0 ? bId : aId], key = matchKey(ed, round, aId, bId);
+  const live = S.live?.key === key ? S.live : undefined, surface = ed.surface;
+  const read = readOf(opp, live?.film ? 0 : READ_SD[S.u.coach.tier] ?? 6, readSeed(S, key));
+  return { u, eff: allEff(me.ab, opp.ab, surface), oppEff: allEff(opp.ab, me.ab, surface), oppPlans: oppPlans(opp.ab, me.ab, surface), coach: (ot) => coachPick(me.ab, read, surface, ot), dec: live?.dec ?? [], stop };
+}
+/** Which of the user's matches pause for decisions, from the match setting. Qualifying and the Tour Finals are always played by the coach. */
+export function handsOn(S: State, ed: Edition, round: string, oppId: string): boolean {
+  const mode = S.u.pol.match ?? 'auto';
+  if (mode === 'auto' || ed.band === 'F') return false;
+  if (mode === 'all') return true;
+  const r = S.rank[oppId] ?? 9999;
+  return round === 'F' || round === 'SF' || ed.band === 'GS' || (ed.band === 'T1000' && round === 'QF') || r <= 10 || S.u.rivals.includes(oppId);
+}
 import { clamp, rngOf } from './rng';
 import type { Band, Edition, MatchLite, MatchResult, Player, State, UMatch, UTourney } from './types';
 import { injure } from './upkeep';
@@ -222,9 +243,11 @@ function playMatch(S: State, ed: Edition, aId: string | null, bId: string | null
   }
   const rules = rulesOf(S, ed, qual);
   const pA = expectedWin(a, b, rules), pR = expectedWin(a, b, rules, true);
-  const res = simulateMatch(a, b, rules, `${S.seed}|m|${ed.id}|${round}|${aId}|${bId}`, isU);
+  const res = simulateMatch(a, b, rules, `${S.seed}|m|${ed.id}|${round}|${aId}|${bId}`, isU, isU ? userCtl(S, ed, aId, bId, round, qual, false) : undefined);
+  const wasLive = isU && S.live?.key === matchKey(ed, round, aId, bId);
+  if (wasLive) { if (S.live!.dec.some(d => d.drill)) S.players[uid].fatigue += 3; S.live = undefined; }
   const w = res.winner === 0 ? aId : bId, l = res.winner === 0 ? bId : aId;
-  if (isU) recordUser(S, ed, round, qual, w === uid, res, aId === uid ? 0 : 1, uid === aId ? b : a, aId === uid ? pA : 1 - pA);
+  if (isU) { recordUser(S, ed, round, qual, w === uid, res, aId === uid ? 0 : 1, uid === aId ? b : a, aId === uid ? pA : 1 - pA); const um = S.u.matches[S.u.matches.length - 1]; um.plan = res.plan; if (wasLive) um.live = true; }
   post(S, a, res.winner === 0, res, 0, pA, pR, ed); post(S, b, res.winner === 1, res, 1, 1 - pA, 1 - pR, ed);
   if (res.cls === 'ret') injure(S, S.players[l], 'acute', true);
   lose(l, round);
@@ -281,7 +304,7 @@ function startBracket(S: State, ed: Edition) {
   const seeds = players.slice(0, nSeeds), rest = r.shuffle(players.slice(nSeeds));
   for (const [lo, hi] of [[2, 4], [4, 8], [8, 16], [16, 32]]) if (seeds.length >= hi) { const part = r.shuffle(seeds.slice(lo, hi)); seeds.splice(lo, hi - lo, ...part); }
   const list = [...seeds, ...rest];
-  ed.slots = seedOrder(bracket).map(k => list[k - 1] ?? null); ed.round = 0; ed.lost = {};
+  ed.slots = seedOrder(bracket).map(k => list[k - 1] ?? null); ed.round = 0; ed.lost = {}; (ed as any).totalR = Math.log2(ed.slots.length);
   const hw = (ed as any).hardWc as string | undefined;
   if (hw && ed.slots.includes(hw)) { // a home wildcard draws a top seed in round one
     const sl = ed.slots, ui = sl.indexOf(hw);
@@ -297,6 +320,18 @@ function startBracket(S: State, ed: Edition) {
 function playRounds(S: State, ed: Edition, n: number) {
   for (let k = 0; k < n && ed.slots!.length > 1; k++) {
     const slots = ed.slots!, label = roundLabel(slots.length), nx: (string | null)[] = [];
+    const ui = slots.indexOf(S.userId), pi = ui < 0 ? -1 : ui - (ui % 2), aId = pi < 0 ? null : slots[pi], bId = pi < 0 ? null : slots[pi + 1];
+    if (aId && bId && S.players[aId].injuredUntil <= S.wk && S.players[bId].injuredUntil <= S.wk) {
+      const key = matchKey(ed, label, aId, bId), opp = aId === S.userId ? bId : aId;
+      if (handsOn(S, ed, label, opp) && !(S.live?.key === key && S.live.done)) {
+        if (S.live?.key !== key) {
+          S.live = { key, ed: ed.id, round: label, a: aId, b: bId, u: aId === S.userId ? 0 : 1, dec: [] };
+          const res = simulateMatch(S.players[aId], S.players[bId], rulesOf(S, ed, false), `${S.seed}|m|${ed.id}|${label}|${aId}|${bId}`, true, userCtl(S, ed, aId, bId, label, false, true));
+          S.live.pause = res.pause;
+        }
+        throw new LivePause();
+      }
+    }
     for (let i = 0; i < slots.length; i += 2) nx.push(playMatch(S, ed, slots[i], slots[i + 1], label, false, (id, r) => { ed.lost![id] = r; }));
     for (const id of nx) if (id) S.players[id].fatigue = Math.max(0, S.players[id].fatigue - 3);
     ed.slots = nx; ed.round = (ed.round ?? 0) + 1;
@@ -389,12 +424,11 @@ export function playEvents(S: State) {
   for (const ed of S.cal) {
     if (ed.cancelled || ed.done) continue;
     if (ed.band === 'F') { if (ed.startWk === wk) playFinals(S, ed); continue; }
-    if (ed.band === 'GS' && ed.entryWk === wk) { qualify(S, ed); continue; }
-    if (ed.startWk === wk) {
-      if (ed.band !== 'GS') qualify(S, ed);
-      startBracket(S, ed);
-      const total = Math.log2(ed.slots!.length);
-      playRounds(S, ed, ed.weeks === 2 ? Math.floor(total / 2) : total);
+    if (ed.band === 'GS' && ed.entryWk === wk) { if (!(ed as any).qDone) { qualify(S, ed); (ed as any).qDone = 1; } continue; }
+    if (ed.startWk === wk) { // resumable: a hands-on pause re-enters here and carries on from the round it stopped at
+      if (!ed.slots) { if (ed.band !== 'GS') qualify(S, ed); startBracket(S, ed); }
+      const total = (ed as any).totalR ?? Math.log2(ed.slots!.length), target = ed.weeks === 2 ? Math.floor(total / 2) : total;
+      playRounds(S, ed, target - (ed.round ?? 0));
     } else if (ed.weeks === 2 && ed.startWk + 1 === wk && ed.slots) playRounds(S, ed, 99);
   }
 }

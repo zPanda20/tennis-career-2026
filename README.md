@@ -48,3 +48,8 @@ A free private hobby project. Not affiliated with or endorsed by any tour, tourn
 ## Watching controls
 Space plays or pauses, ← and → step back and forward, Shift+→ (or E) jumps to the end of the match, S skips to the summary.
 Controller: A next, B back, X or Start play/pause, RB end of match, Y summary, d-pad left/right to step.
+
+## Hands-on matches
+Choose who plays your matches on the Career page or in the planner: the coach (fastest), you for the big ones, or you for every main-draw match.
+Hands-on matches pause before the first ball (scouting report, film study, extra practice, game plan), at every set break (your coach's advice and a new plan) and when you drop three games in a row (reset, change plan or ride it out).
+Plans shift point odds depending on the matchup; opponents have plans too, change them after losing a set, and adapt if you repeat the same plan. With the coach in charge, the coach makes the same calls using their read of the opponent, which is sharper with better coaches.

@@ -1,3 +1,4 @@
+import { TAC, Tactic } from '../core/tactics';
 import { setSetting } from '../persist/db';
 import { regionOf } from '../core/content';
 import { importFaces, removeFaces, userFace } from './faces';
@@ -202,7 +203,7 @@ export function MatchReport({ S, id }: { S: State; id: string }) {
       <ul className="plain reasons">{m.reasons.map((r, i) => <li key={i}>{r}</li>)}</ul>
       {a && b && <table className="tbl stats-tbl"><caption className="sr">Match statistics</caption><thead><tr><th>{me.name.split(' ').pop()}</th><th></th><th>{m.oppName.split(' ').pop()}</th></tr></thead><tbody>
         {[['Aces', a.aces, b.aces], ['Double faults', a.df, b.df], ['First serves in', pc(a.fsIn, a.fsTot), pc(b.fsIn, b.fsTot)], ['First-serve points won', pc(a.fsWon, a.fsIn), pc(b.fsWon, b.fsIn)], ['Second-serve points won', pc(a.ssWon, a.ssTot), pc(b.ssWon, b.ssTot)], ['Return points won', pc(a.retWon, b.fsTot), pc(b.retWon, a.fsTot)], ['Break points won', `${a.bpWon}/${a.bpTot}`, `${b.bpWon}/${b.bpTot}`], ['Total points', a.pts, b.pts]].map(([k, x, y]) => <tr key={k as string}><td className="num">{x}</td><td className="c">{k}</td><td className="num r">{y}</td></tr>)}</tbody></table>}
-      {m.flow && <div className="glass" style={{ marginTop: '1rem' }}><Momentum m={m} oppName={m.oppName} /></div>}
+      {m.flow && <div className="glass" style={{ marginTop: '1rem' }}><Momentum m={m} oppName={m.oppName} />{m.plan && m.plan.my.length > 0 && <p className="muted" style={{ marginTop: '.6rem' }}>{m.live ? 'Your plans' : 'Coach\'s plans'}: {m.plan.my.map(t => TAC[t as Tactic].short).join(' → ')} · Theirs: {m.plan.opp.map(t => TAC[t as Tactic].short).join(' → ')}</p>}</div>}
       {m.turning.length > 0 && <p className="muted">Key moments: {m.turning.join(' · ')}.</p>}
       {m.cls !== 'wo' && <p className="muted">Before the match you were {m.p < 0.35 ? 'the underdog' : m.p > 0.65 ? 'the favourite' : 'evenly matched'}. {m.p > 0.25 && m.p < 0.75 ? 'Matches like this are where most development comes from.' : m.p >= 0.75 ? 'Easy wins help confidence and earnings more than skill.' : 'A heavy mismatch teaches a little, but not efficiently.'} Fatigue from this match: +{Math.round(m.fat)}.</p>}
     </Modal>

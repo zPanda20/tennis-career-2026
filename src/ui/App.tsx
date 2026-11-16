@@ -1,4 +1,5 @@
 import { RivalCard } from './Extras';
+import { LiveMatch } from './Live';
 import { useEffect, useState } from 'react';
 import { fmtDate, ageOn, wkDate } from '../core/content';
 import { Avatar, Flag, money, rankTxt } from './bits';
@@ -18,7 +19,7 @@ export function App() {
   useEffect(() => { document.documentElement.classList.toggle('reduced', reduced); }, [reduced]);
   useEffect(() => { document.body.className = `s-${tint}`; }, [tint]);
   useEffect(() => { window.scrollTo(0, 0); setMenu(false); }, [tab, view]);
-  const fullscreen = overlay?.kind === 'planner' || overlay?.kind === 'reveal';
+  const fullscreen = overlay?.kind === 'planner' || overlay?.kind === 'reveal' || S?.phase === 'live';
   return (
     <div className={`stage s-${tint}`}>
       <CourtBg />
@@ -58,6 +59,7 @@ export function App() {
             </main>
             {!fullscreen && <nav className="bottomnav mob" aria-label="Main">{TABS.filter(([k]) => MOB.includes(k)).map(([k, t]) => <button key={k} className={tab === k ? 'on' : ''} aria-current={tab === k ? 'page' : undefined} onClick={() => set({ tab: k })}><i />{t}</button>)}</nav>}
             {overlay?.kind === 'planner' && S.phase === 'plan' && <Planner S={S} />}
+            {S.phase === 'live' && S.live && <LiveMatch S={S} />}
             {overlay?.kind === 'reveal' && <Reveal S={S} from={overlay.from} />}
             {overlay?.kind === 'tourney' && <TourneyHub S={S} ed={overlay.ed} />}
             {overlay?.kind === 'match' && <MatchReport S={S} id={overlay.id} />}

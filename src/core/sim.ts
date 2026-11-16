@@ -2,12 +2,14 @@
 // Randomness derives from stable IDs, so re-running a prepared command after an interruption gives the same result.
 import { BLOCKS, ECON, START_YEAR } from './balance';
 import { blockWeeks, routes, wildcardOffers } from './agent';
+import { simulateMatch } from './match';
+import type { Tactic } from './tactics';
 import { BASES, HOMES, STAFF, StaffRole, applyLifeAction, baseOf, homePrice } from './lifestyle';
 import { Content, absOf, iso, wkDate, weeksIn } from './content';
 import { Fx, evById } from './narrative';
 import { supportName } from './names';
 import { clamp, rngOf } from './rng';
-import { achieve, addLedger, logEv, note, playEvents, runEntries, snapshot } from './tour';
+import { achieve, addLedger, LivePause, logEv, note, playEvents, runEntries, snapshot, userCtl } from './tour';
 import type { BlockPlan, BlockSummary, Policies, State } from './types';
 import { flushDev, weeklyUpkeep, yearEnd } from './upkeep';
 import { publish } from './world';
@@ -25,7 +27,10 @@ export type Command =
   | { id: string; type: 'LifeAction'; action: string }
   | { id: string; type: 'SetHome'; tier: number; buy: boolean }
   | { id: string; type: 'SetBase'; base: string }
-  | { id: string; type: 'SetStaff'; role: StaffRole; level: 0 | 1 | 2 };
+  | { id: string; type: 'SetStaff'; role: StaffRole; level: 0 | 1 | 2 }
+  | { id: string; type: 'LiveDecide'; tac?: Tactic; reset?: boolean; auto?: boolean; drill?: boolean; film?: boolean }
+  | { id: string; type: 'LiveContinue' }
+  | { id: string; type: 'SetMatchMode'; mode: 'auto' | 'big' | 'all' };
 
 const absBlock = (S: State) => (S.year - START_YEAR) * 4 + S.block;
 function applyFx(S: State, fx: Fx): string[] {
@@ -46,12 +51,18 @@ const fxWords = (fx: Fx) => [fx.mo && (fx.mo > 0 ? 'morale up' : 'morale down'),
   fx.fr && (fx.fr > 0 ? 'friendship stronger' : 'friendship strained'), fx.pa && (fx.pa > 0 ? 'relationship stronger' : 'relationship strained'), fx.ag && (fx.ag > 0 ? 'reputation up' : 'reputation down')].filter(Boolean).join(', ');
 
 export function advanceWeek(S: State, C: Content) {
-  publish(S, true); weeklyNews(S);
-  const u = S.u, r = S.rank[S.userId];
-  u.rankHist.push({ wk: S.wk, rank: r, pts: S.pts[S.userId] });
-  if (r <= 100) achieve(S, 'top100', 'First top-100 ranking'); if (r <= 50) achieve(S, 'top50', 'First top-50 ranking'); if (r <= 10) achieve(S, 'top10', 'First top-10 ranking');
-  if (r === 1) { achieve(S, 'no1', 'World No. 1'); u.no1Weeks++; }
-  runEntries(S); (globalThis as any).__tcAfterEntries?.(S); playEvents(S); checkGoals(S); weeklyUpkeep(S);
+  const u = S.u;
+  if (!S.midWeek) { // a week resumed after a hands-on match skips the steps it already ran
+    publish(S, true); weeklyNews(S);
+    const r = S.rank[S.userId];
+    u.rankHist.push({ wk: S.wk, rank: r, pts: S.pts[S.userId] });
+    if (r <= 100) achieve(S, 'top100', 'First top-100 ranking'); if (r <= 50) achieve(S, 'top50', 'First top-50 ranking'); if (r <= 10) achieve(S, 'top10', 'First top-10 ranking');
+    if (r === 1) { achieve(S, 'no1', 'World No. 1'); u.no1Weeks++; }
+    runEntries(S); (globalThis as any).__tcAfterEntries?.(S);
+  }
+  try { playEvents(S); } catch (e) { if (e instanceof LivePause) { S.midWeek = true; S.phase = 'live'; return; } throw e; }
+  S.midWeek = false;
+  checkGoals(S); weeklyUpkeep(S);
   S.wk++; S.week++;
   if (S.week >= weeksIn(S.year)) yearEnd(S, C);
 }
@@ -77,7 +88,7 @@ function endBlock(S: State) {
 function runBlock(S: State, C: Content) {
   const startYear = S.sumAcc!.year, end = S.sumAcc!.block < 3 ? absOf(startYear, BLOCKS[S.sumAcc!.block + 1]) : absOf(startYear, weeksIn(startYear));
   while (S.wk < end && S.phase === 'plan') advanceWeek(S, C);
-  if (S.phase === 'interrupt') return;
+  if (S.phase === 'interrupt' || S.phase === 'live') return;
   publish(S);
   if (S.phase === 'plan') S.block = Math.min(3, S.sumAcc!.block + 1);
   endBlock(S);
@@ -126,6 +137,22 @@ export function execute(S: State, C: Content, cmd: Command): State {
       if (cmd.level) { const r = rngOf(S.seed, 'staff', cmd.role, S.wk, cmd.level); u.staff.push({ role: cmd.role, level: cmd.level, name: supportName(r, r.chance(0.5) ? p.country : baseOf(S).country, r.chance(0.4)), since: S.year }); }
       logEv(S, 'StaffChanged', { role: cmd.role, level: cmd.level }); break;
     }
+    case 'LiveDecide': {
+      const L = S.live; if (S.phase !== 'live' || !L || !L.pause) throw new Error('No match is waiting for a decision.');
+      if (cmd.film) { if (L.pause.kind !== 'start') throw new Error('Film study is only before the match.'); L.film = true; logEv(S, 'LiveFilm'); break; }
+      if (cmd.reset && L.pause.resetsLeft <= 0) throw new Error('No resets left in this match.');
+      L.dec.push({ at: L.pause.at, tac: cmd.tac, reset: cmd.reset || undefined, auto: cmd.auto || undefined, drill: (cmd.drill && L.pause.kind === 'start') || undefined, slide: L.pause.kind === 'slide' || undefined });
+      const ed = S.cal.find(e => e.id === L.ed)!, a = S.players[L.a], b = S.players[L.b];
+      const res = simulateMatch(a, b, { surface: ed.surface, bestOf: ed.band === 'GS' && S.tour === 'atp' ? 5 : 3, tb10: ed.band === 'GS', tour: S.tour }, `${S.seed}|m|${ed.id}|${L.round}|${L.a}|${L.b}`, true, userCtl(S, ed, L.a, L.b, L.round, false, true));
+      if (res.pause) L.pause = res.pause;
+      else { L.pause = undefined; L.done = { winner: res.winner, score: res.score, sets: res.sets, flow: res.flow, stats: res.stats, plan: res.plan, cls: res.cls }; }
+      logEv(S, 'LiveDecision', { tac: cmd.tac, reset: cmd.reset, auto: cmd.auto }); break;
+    }
+    case 'LiveContinue': {
+      if (S.phase !== 'live' || !S.live?.done) throw new Error('Finish the match first.');
+      S.phase = 'plan'; runBlock(S, C); break;
+    }
+    case 'SetMatchMode': { u.pol = { ...u.pol, match: cmd.mode }; logEv(S, 'MatchModeChanged', { mode: cmd.mode }); break; }
     case 'SetPortrait': { if (cmd.data && (cmd.data.length > 400000 || !cmd.data.startsWith('data:image/'))) throw new Error('That image could not be used.'); u.portrait = cmd.data ?? undefined; logEv(S, 'PortraitChanged'); break; }
     case 'CommitBlock': {
       if (S.phase !== 'plan') throw new Error('No block can be committed right now.');
