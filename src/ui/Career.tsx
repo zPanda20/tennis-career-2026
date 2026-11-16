@@ -14,6 +14,7 @@ import { MATCH_MODES, MatchModePicker } from './Live';
 import { GoalsCard, NewsCard, NewsList, NewsTicker, RivalAlert, RivalTag, nextMeeting, useWatchControls } from './Extras';
 import { newsSince } from '../core/news';
 import { PathDecisionSection, defaultPath } from './Junior';
+import { PRODIGY_NAME } from '../core/prodigy';
 import { PART_TIME_EVENTS, PATHS, eventsUsed, pathKind } from '../core/path';
 import type { PathChoice } from '../core/types';
 
@@ -113,6 +114,7 @@ export function Home({ S }: { S: State }) {
       <NewsTicker S={S} />
       <div className="home-grid">
         <div className="col">
+          {S.phase === 'plan' && u.approach && <ApproachCard S={S} />}
           {S.phase === 'plan' && <RivalAlert S={S} />}
           {S.lastSummary && S.phase !== 'yearEnd' && <LastBlock S={S} />}
           {S.lastSummary?.notes.map((n, i) => <p key={i} className="note">{n}</p>)}
@@ -140,6 +142,17 @@ export function Home({ S }: { S: State }) {
         </div>
       </div>
     </>
+  );
+}
+function ApproachCard({ S }: { S: State }) {
+  const a = S.u.approach!, { save } = useApp(), ro = save === 'readonly', cur = S.u.coach;
+  return (
+    <section className="glass approach">
+      <div className="sec-head"><h3>{PRODIGY_NAME[a.level]}: a coach comes calling</h3><small>open until the next swing ends</small></div>
+      <p className="story">After {a.why}, {a.coach.name.split(' (')[0]} wants to work with you. A coach at this level would normally cost {money(a.coach.deal!.full)} a month. For a young player with momentum they will take {money(a.coach.cost)} and a share of your prize money. While you are still growing, a better coach makes the biggest difference.</p>
+      <div className="approach-cards"><CoachCard c={a.coach} /><span className="vs-now"><small className="eyebrow">Now</small><CoachCard c={cur} current trust={S.u.rel.coach} /></span></div>
+      <div className="row"><button className="cta" disabled={ro} onClick={() => dispatch({ type: 'CoachApproach', accept: true }, 'Signing your new coach')}>Hire {a.coach.name.split(' (')[0].split(' ')[0]}<span className="go"><Arrow /></span></button><button className="btn" disabled={ro} onClick={() => dispatch({ type: 'CoachApproach', accept: false }, 'Saving')}>Not now</button></div>
+    </section>
   );
 }
 const JT = [500, 300, 200, 150, 100, 75, 50, 30, 20, 10, 5, 3, 2, 1];
@@ -215,7 +228,7 @@ function YearEnd({ S }: { S: State }) {
       <h2 style={{ marginTop: '1.2rem' }}>Coaching</h2>
       <div className="choice-grid coachgrid" role="radiogroup" aria-label="Coach for next season">
         <button className={`choice coachpick ${coach === 'keep' ? 'on' : ''}`} role="radio" aria-checked={coach === 'keep'} onClick={() => setCoach('keep')}><small className="eyebrow" style={{ margin: 0 }}>Stay with your coach</small><CoachCard c={u.coach} current trust={u.rel.coach} /></button>
-        {pend.coachOffers?.map(c => <button key={c.id} className={`choice coachpick ${coach === c.id ? 'on' : ''}`} role="radio" aria-checked={coach === c.id} onClick={() => setCoach(c.id)}><small className="eyebrow" style={{ margin: 0 }}>Offer · contract through {c.until - 1}</small><CoachCard c={c} /></button>)}
+        {pend.coachOffers?.map(c => <button key={c.id} className={`choice coachpick ${coach === c.id ? 'on' : ''}`} role="radio" aria-checked={coach === c.id} onClick={() => setCoach(c.id)}><small className="eyebrow" style={{ margin: 0 }}>{c.deal ? 'Prodigy offer' : 'Offer'} · contract through {c.until - 1}</small><CoachCard c={c} /></button>)}
       </div>
       {slots.length > 0 && <><h2 style={{ marginTop: '1.2rem' }}>Sponsor offers</h2>{slots.map(sl => (
         <div key={sl} className="choice-grid" role="radiogroup" aria-label={`${sl} sponsor`}>
@@ -473,11 +486,12 @@ export function Reveal({ S, from }: { S: State; from?: number }) {
 }
 export function Plates({ S, m, done, children }: { S: State; m: UMatch; done: boolean; children: React.ReactNode }) {
   const me = S.players[S.userId], opp = S.players[m.opp];
+  const jr = S.u.tourneys.find(t => t.ed === m.ed)?.band === 'J', rk = (r: number) => (r >= 9999 ? (jr ? 'junior, unranked' : 'unranked') : jr ? `junior No. ${r}` : `ranked ${r}`);
   return (
     <div className="versus">
-      <div className={`plate ${done && m.won ? 'win' : ''}`}><Avatar p={me} size={110} user={S.u.avatar} />{done && m.won && <span className="wtag">WINNER</span>}<span className="nm">{me.name}</span><small><Flag c={me.country} size={15} /> {me.country} · ranked {m.myRank}</small></div>
+      <div className={`plate ${done && m.won ? 'win' : ''}`}><Avatar p={me} size={110} user={S.u.avatar} />{done && m.won && <span className="wtag">WINNER</span>}<span className="nm">{me.name}</span><small><Flag c={me.country} size={15} /> {me.country} · {rk(m.myRank)}</small></div>
       {children}
-      <div className={`plate ${done && !m.won ? 'win' : ''}`}>{opp ? <Avatar p={opp} size={110} /> : <Avatar name={m.oppName} size={110} />}{done && !m.won && <span className="wtag">WINNER</span>}<span className="nm">{m.oppName}</span><small><Flag c={m.oppCountry} size={15} /> {m.oppCountry} · ranked {m.oppRank}{m.oppReal ? '' : ' · fictional'}</small></div>
+      <div className={`plate ${done && !m.won ? 'win' : ''}`}>{opp ? <Avatar p={opp} size={110} /> : <Avatar name={m.oppName} size={110} />}{done && !m.won && <span className="wtag">WINNER</span>}<span className="nm">{m.oppName}</span><small><Flag c={m.oppCountry} size={15} /> {m.oppCountry} · {rk(m.oppRank)}{m.oppReal ? '' : ' · fictional'}</small></div>
     </div>
   );
 }

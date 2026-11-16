@@ -328,6 +328,7 @@ b .evn, .evn { font-weight:inherit; }
 .coachcard { display:flex; flex-direction:column; gap:.45rem; width:100%; text-align:left; }
 .cc-name { font-family:var(--display); font-style:italic; font-size:1.25rem; text-transform:uppercase; } .cc-spec { font-size:.85rem; color:var(--muted); } .cc-spec b { color:#fff; }
 .cc-foot { font-size:.85rem; color:var(--muted); } .cc-foot b { color:#fff; }
+.cc-deal { display:grid; gap:.35rem; } .patience { display:grid; grid-template-columns:auto 1fr auto; gap:.5rem; align-items:center; } .approach { border-color:var(--ball); } .approach-cards { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:.8rem 0; } .approach-cards .vs-now { opacity:.75; } @media (max-width:700px) { .approach-cards { grid-template-columns:1fr; } }
 .tier { flex:none; font:800 .68rem var(--sans); letter-spacing:.1em; text-transform:uppercase; padding:.22rem .6rem; border-radius:99px; background:rgba(255,255,255,.12); white-space:nowrap; }
 .tier.t-elite { background:rgba(93,184,255,.25); color:#CFE9FF; } .tier.t-master { background:linear-gradient(90deg,#9AA5B4,#F2F6FA); color:var(--ink); } .tier.t-legend { background:linear-gradient(90deg,#C99A2E,#FFE69A); color:var(--ink); }
 .tier.k-retainer { background:rgba(93,184,255,.25); color:#CFE9FF; } .tier.k-performance { background:var(--ball); color:var(--ink); } .tier.k-loyalty { background:rgba(255,138,76,.3); color:#FFD9C4; }

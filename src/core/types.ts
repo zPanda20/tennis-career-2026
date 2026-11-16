@@ -55,7 +55,7 @@ export interface UTourney {
 }
 export interface Injury { id: string; wk: number; year: number; date: string; loc: string; kind: 'acute' | 'overuse' | 'illness'; sev: 'minor' | 'moderate' | 'major' | 'severe'; estMin: number; estMax: number; weeks: number; rehab: 'conservative' | 'specialist' | 'early'; perm?: { ab: Ability; loss: number }[]; returnedWk?: number; desc: string }
 export type CoachTier = 'starter' | 'tour' | 'elite' | 'master' | 'legend';
-export interface Coach { spec?: Ability | 'physical'; persona?: string; id: string; name: string; tier: CoachTier; dev: number; recovery: number; style: Style; fit: number; cost: number; since: number; until: number; trust: number }
+export interface Coach { spec?: Ability | 'physical'; persona?: string; id: string; name: string; tier: CoachTier; dev: number; recovery: number; style: Style; fit: number; cost: number; since: number; until: number; trust: number; deal?: { pct: number; full: number }; patience?: number }
 export interface Sponsor { kind?: 'retainer' | 'performance' | 'loyalty'; lowerBonus?: number; signing?: number; id: string; slot: 'apparel' | 'racket' | 'partner'; brand: number; name: string; monthly: number; titleBonus: number; appearances: number; since: number; until: number }
 export interface Ledger { wk: number; year: number; cat: string; amt: number; ref?: string }
 export interface Choice { id: string; ev: string; choice: number; wk: number; year: number; date: string; title: string; label: string; fx: string; personal: boolean; follow?: { dueBlock: number; text: string; done?: boolean } }
@@ -74,6 +74,7 @@ export interface UserCareer {
   portrait?: string;
   devYear: { comp: number; train: number }; injWeeksYear: number; no1Weeks: number; hardship: number; finalSeasonWarned?: boolean; lastOfferYear: number; rivals: string[];
   rivalNo?: string[]; goals?: Goal[];
+  approach?: { coach: Coach; why: string; level: number; wk: number }; prodigyBest?: number; coachLeft?: number;
   stage?: 'junior' | 'path' | 'pro'; academy?: Academy; path?: { kind: PathKind; from: number; until: number }; usoWc?: number; college?: { year: number; w: number; l: number; ncaa?: string; matches: { wk: number; opp: string; school: string; won: boolean; score: string }[] }[]; jstart?: boolean;
   home?: { base: string; tier: number; owned: boolean }; staff?: { role: 'physio' | 'fitness' | 'hitting' | 'psych'; level: 1 | 2; name: string; since: number }[]; lifeUsed?: Record<string, number>;
 }
@@ -84,7 +85,7 @@ export interface Pending { type: 'injury' | 'yearEnd' | 'forcedRetire'; injury?:
 export interface PathDecision { kind: 'choose' | 'review' | 'final'; current?: PathKind; yearsLeft?: number; read: { peak: number; cur: number; now: number; pot: number; verdict: string; age: number; jbest: number; levelTop100: number }; record: string[] }
 export type PathChoice = PathKind | 'stay' | 'quit';
 export interface BlockPlan { wc?: string[]; weeks: Record<number, string>; route: string; lifeEv?: string; lifeChoice?: number }
-export interface BlockSummary { year: number; block: number; fromWk: number; toWk: number; rankFrom: number; rankTo: number; ptsFrom: number; ptsTo: number; tourneys: string[]; notes: string[]; dev: Partial<Abil>; cashFrom: number; cashTo: number; injuries: string[]; newAch: string[]; world: string[]; follow: string[] }
+export interface BlockSummary { jrFrom?: number; year: number; block: number; fromWk: number; toWk: number; rankFrom: number; rankTo: number; ptsFrom: number; ptsTo: number; tourneys: string[]; notes: string[]; dev: Partial<Abil>; cashFrom: number; cashTo: number; injuries: string[]; newAch: string[]; world: string[]; follow: string[] }
 export interface WorldRec { champs: { ed: string; name: string; year: number; band: Band; cat: string; w: string; f?: string; wk: number }[]; yearEnd: Record<number, { id: string; pts: number }[]>; no1: Record<string, number>; retired: { id: string; year: number }[]; rookies: Record<number, string[]>; news?: News[]; mile?: Record<string, number>; lastNo1?: string }
 
 export interface State {

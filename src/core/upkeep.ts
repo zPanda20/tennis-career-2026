@@ -4,6 +4,7 @@ import { isJuniorAge, makeJunior, speedFactor } from './juniors';
 import { JCOHORT, juniorMaker } from './world';
 import { WORLD_SIZE } from './balance';
 import { academyMult, prospectRead, stageMoney } from './path';
+import { PRODIGY_TIER, TIER_ORDER, breakout, prodigyCoach, youthCoachAmp } from './prodigy';
 import type { PathDecision } from './types';
 import { homeOf, injuryMult, lifestyleMonthly, lifestyleWeek, livingMonthly, trainMult } from './lifestyle';
 import { ensureGoals, failGoals } from './goals';
@@ -61,7 +62,7 @@ function develop(S: State, p: Player, played: boolean) {
   const nr = S.rank[p.id] ?? 999;
   let coach = nr <= 60 ? 1.15 : nr <= 250 ? 1.08 : 1, inten = 1, prio = 1; // background players have coaching in line with their level
   if (isU) {
-    coach = u.coach.dev + u.coach.fit + (u.rel.coach - 50) / 1000; inten = TRAIN[u.pol.intensity].opp;
+    coach = u.coach.dev + u.coach.fit + (u.rel.coach - 50) / 1000; if (coach > 1) coach = 1 + (coach - 1) * youthCoachAmp(age); inten = TRAIN[u.pol.intensity].opp;
     prio = (u.pol.priority === 'prep' ? 1.1 : u.pol.priority === 'recovery' ? 0.8 : u.pol.priority === 'professional' ? 0.9 : 1) * (p.morale < 35 ? 0.9 : 1) * (u.blockMods.train ?? 1) * (1 - 0.008 * ((u as any).appear ?? 0));
   }
   const base = af * p.lr * coach * health;
@@ -182,7 +183,13 @@ export function sponsorOffers(S: State): Sponsor[] {
 export function coachOffers(S: State): Coach[] {
   const u = S.u, rank = S.rank[S.userId], r = rngOf(S.seed, 'coach', S.year), p = S.players[S.userId];
   const tiers: Coach['tier'][] = rank <= 10 ? ['legend', 'master', 'elite'] : rank <= 60 ? ['master', 'elite', 'tour'] : rank <= 150 ? ['elite', 'tour', 'tour'] : rank <= 350 ? ['tour', 'tour', 'starter'] : ['starter', 'tour', 'starter'];
-  return tiers.map(t => { const c = makeCoach(r, t, p.country, S.year + 1, p.style); c.until = S.year + 1 + r.int(1, 2); return c; }).filter(c => c.tier !== u.coach.tier || c.dev > u.coach.dev - 0.03);
+  const out = tiers.map(t => { const c = makeCoach(r, t, p.country, S.year + 1, p.style); c.until = S.year + 1 + r.int(1, 2); return c; }).filter(c => c.tier !== u.coach.tier || c.dev > u.coach.dev - 0.03);
+  // a young player ahead of their age also hears from coaches far above their ranking, on prodigy terms
+  const b = breakout(S), pt = PRODIGY_TIER[b.level];
+  if (pt && TIER_ORDER.indexOf(pt) > TIER_ORDER.indexOf(out[0]?.tier ?? 'starter') && TIER_ORDER.indexOf(pt) >= TIER_ORDER.indexOf(u.coach.tier) && !(u.coach.deal && u.coach.tier === pt)) {
+    const c = prodigyCoach(S, pt, `ye${S.year}`); c.since = S.year + 1; c.until = S.year + 2; out.unshift(c);
+  }
+  return out;
 }
 
 /** The user's road from the juniors: the choice at 18, a yearly check-in on the path, and the final call when it ends. */

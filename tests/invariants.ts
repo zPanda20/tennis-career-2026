@@ -104,4 +104,17 @@ ok('previews are calibrated against simulated results', Math.abs(calib / n) < 0.
     if (path === 'academy') ok(`academy: at most ${PART_TIME_EVENTS} pro events in each part-time season`, [by + 19, by + 20, by + 21].every(y => ts.filter(t => t.year === y && t.band !== 'J').length <= PART_TIME_EVENTS), [by + 19, by + 20].map(y => ts.filter(t => t.year === y && t.band !== 'J').length).join(', '));
   }
 }
+// prodigy coaching: a breakout brings a higher-tier coach on reduced terms who takes a share of prize money
+{
+  const P = createCareer({ ...baseSetup('atp', 'goat', 'inv-prodigy'), start: 'junior', academy: 'elite', speed: 'early' }, C, '2026-01-01T00:00:00Z');
+  let shareBad = 0, sawDeal = false;
+  for (let n = 0; P.year < 2029 && P.phase !== 'retired' && n < 6000; n++) {
+    autoStep(P, C, n);
+    if (P.u.coach.deal) { sawDeal = true; if ((P.u.coach.patience ?? -1) < 0 || P.u.coach.patience! > 90) shareBad++; }
+  }
+  const pu = P.u, shares = pu.ledger.filter(l => l.cat === "Coach's share of prize money");
+  for (const l of shares) { const prize = pu.ledger.find(x => x.cat === 'Prize money' && x.ref === l.ref && x.wk === l.wk); if (!prize || Math.abs(-l.amt - prize.amt * 0.12) > 1) shareBad++; }
+  ok('prodigy: a breakout brings a coach on prodigy terms', sawDeal && (pu.prodigyBest ?? 0) >= 1, `best level ${pu.prodigyBest}, coach ${pu.coach.tier}`);
+  ok("prodigy: the coach's share is 12% of each prize and patience stays in range", shareBad === 0 && shares.length > 0, `${shares.length} shares, ${shareBad} bad`);
+}
 console.log(fails ? `\n${fails} FAILED` : '\nAll invariants hold.'); process.exit(fails ? 1 : 0);

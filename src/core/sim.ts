@@ -12,6 +12,7 @@ import { clamp, rngOf } from './rng';
 import { achieve, addLedger, LivePause, logEv, note, playEvents, runEntries, snapshot, userCtl } from './tour';
 import type { Academy, BlockPlan, BlockSummary, Policies, State, PathChoice } from './types';
 import { flushDev, weeklyUpkeep, yearEnd } from './upkeep';
+import { answerApproach, reviewCoaching } from './prodigy';
 import { PART_TIME_EVENTS, blockedWeek, eventsUsed, pathKind, playCollegeWeek } from './path';
 import { publish } from './world';
 import { weeklyNews } from './news';
@@ -32,7 +33,8 @@ export type Command =
   | { id: string; type: 'LiveDecide'; tac?: Tactic; reset?: boolean; auto?: boolean; drill?: boolean; film?: boolean }
   | { id: string; type: 'LiveContinue' }
   | { id: string; type: 'SetMatchMode'; mode: 'auto' | 'big' | 'all' }
-  | { id: string; type: 'SetAcademy'; academy: Academy };
+  | { id: string; type: 'SetAcademy'; academy: Academy }
+  | { id: string; type: 'CoachApproach'; accept: boolean };
 
 const absBlock = (S: State) => (S.year - START_YEAR) * 4 + S.block;
 function applyFx(S: State, fx: Fx): string[] {
@@ -70,7 +72,7 @@ export function advanceWeek(S: State, C: Content) {
   if (S.week >= weeksIn(S.year)) yearEnd(S, C);
 }
 function newSummary(S: State): BlockSummary {
-  return { year: S.year, block: S.block, fromWk: S.wk, toWk: S.wk, rankFrom: S.rank[S.userId], rankTo: 0, ptsFrom: S.pts[S.userId], ptsTo: 0, tourneys: [], notes: [], dev: {}, cashFrom: S.u.cash, cashTo: 0, injuries: [], newAch: [], world: [], follow: [] };
+  return { jrFrom: S.jrank?.[S.userId], year: S.year, block: S.block, fromWk: S.wk, toWk: S.wk, rankFrom: S.rank[S.userId], rankTo: 0, ptsFrom: S.pts[S.userId], ptsTo: 0, tourneys: [], notes: [], dev: {}, cashFrom: S.u.cash, cashTo: 0, injuries: [], newAch: [], world: [], follow: [] };
 }
 function endBlock(S: State) {
   const u = S.u, sum = S.sumAcc!;
@@ -85,6 +87,7 @@ function endBlock(S: State) {
   u.follow = u.follow.filter(f => f.dueBlock > nb);
   const champs = S.world.champs.filter(c => c.wk >= sum.fromWk && (c.band === 'GS' || c.band === 'F' || c.band === 'T1000')).slice(-6);
   sum.world = champs.map(c => `${S.players[c.w]?.name ?? 'Unknown'} won ${c.name === 'Wimbledon' ? 'Wimbledon' : 'the ' + c.name}`);
+  if (S.phase !== 'retired') reviewCoaching(S, sum);
   sum.toWk = S.wk; sum.rankTo = S.rank[S.userId] ?? sum.rankFrom; sum.ptsTo = S.pts[S.userId] ?? 0; sum.cashTo = u.cash;
   S.lastSummary = sum; S.sumAcc = undefined; S.plan = undefined; u.blockMods = {};
 }
@@ -156,6 +159,10 @@ export function execute(S: State, C: Content, cmd: Command): State {
       S.phase = 'plan'; runBlock(S, C); break;
     }
     case 'SetMatchMode': { u.pol = { ...u.pol, match: cmd.mode }; logEv(S, 'MatchModeChanged', { mode: cmd.mode }); break; }
+    case 'CoachApproach': {
+      if (S.phase !== 'plan') throw new Error('Coaching offers can be answered between swings.');
+      answerApproach(S, cmd.accept); break;
+    }
     case 'SetAcademy': {
       if (S.phase !== 'plan' || u.stage !== 'junior') throw new Error('The academy can only be changed between swings as a junior.');
       if (u.academy !== cmd.academy) { u.academy = cmd.academy; p.sharp = Math.max(30, p.sharp - 2); logEv(S, 'AcademyChanged', { academy: cmd.academy }); note(S, 'You moved academy. It takes a few weeks to settle into new routines.'); }

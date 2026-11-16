@@ -5,6 +5,7 @@ import { fmtShort, wkDate } from '../core/content';
 import { MATCH_PREP, SPEC_MULT, BASES, HOMES, LIFE_ACTIONS, ROLES, STAFF, actionUsed, baseOf, hometown, homePrice, homeRent, homeUpkeep, livingMonthly, staffLevel } from '../core/lifestyle';
 import { ABILITY_NAMES, Coach, Sponsor, STYLE_NAMES, State } from '../core/types';
 import { COACH_TIER_NAME } from '../core/world';
+import { DEAL } from '../core/prodigy';
 import { BrandMark, EvName, Flag, money } from './bits';
 import { dispatch, useApp } from './store';
 
@@ -28,7 +29,9 @@ export function CoachCard({ c, current, trust }: { c: Coach; current?: boolean; 
       <span className="row between" style={{ margin: 0, gap: '.5rem' }}><span><b className="cc-name">{name}</b><small style={{ display: 'block' }}>{persona}</small></span><span className={`tier t-${c.tier}`}>{COACH_TIER_NAME[c.tier]}</span></span>
       <span className="cc-spec">Prefers {STYLE_NAMES[c.style].toLowerCase()}s</span>
       <CoachMeters c={c} />
-      <span className="cc-foot"><b>{money(c.cost)}</b> a month{current ? ` · contract through ${c.until}` : ''}{trust !== undefined ? ` · trust ${Math.round(trust)}/100` : c.tier === 'legend' ? ' · demanding: trust starts lower' : ''}</span>
+      <span className="cc-foot"><b>{money(c.cost)}</b> a month{c.deal ? ` + ${Math.round(c.deal.pct * 100)}% of prize money` : ''}{current ? ` · contract through ${c.until}` : ''}{trust !== undefined ? ` · trust ${Math.round(trust)}/100` : c.tier === 'legend' ? ' · demanding: trust starts lower' : ''}</span>
+      {c.deal && <span className="cc-deal"><small>Prodigy terms: usually {money(c.deal.full)} a month. Expects a {Math.round((DEAL.expect[c.tier] ?? 0.5) * 100)}% win rate and a rising ranking, and walks away if results stall.</small>
+        {c.patience !== undefined && current && <span className="patience"><small>Patience</small><span className="track" role="meter" aria-label={`Coach patience ${c.patience} out of 100`} aria-valuenow={c.patience} aria-valuemin={0} aria-valuemax={100}><i className={`fill ${c.patience < DEAL.warn ? 'warn' : ''}`} style={{ width: `${c.patience}%` }} /></span><b>{c.patience}</b></span>}</span>}
     </span>
   );
 }

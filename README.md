@@ -58,6 +58,15 @@ A career can start at 16 on the ITF junior tour, or at 19 as a lower-tier profes
   - **Academy plus part-time tour:** faster development, at most 14 pro events a season, and academy fees.
 - **Yearly check-ins.** Each year-end you can stay on the path, turn pro early or stop playing. At the end of the four years you either commit to the tour or quit.
 
+## Prodigy coaching
+
+When a player under 22 breaks out, coaches far above their ranking come calling. A breakout means a junior top-25 ranking, a junior Grand Slam final or title, or a world ranking well ahead of their age, such as the top 300 at 17 or the top 100 at 19.
+- **Who calls:** a rising prospect hears from an elite coach, a prodigy from a world-class coach, and a generational talent from a legend.
+- **When:** the offer appears on the home screen after the swing where the breakout happens, and lapses after one swing. It also appears at the year-end review.
+- **Terms:** about 60% of the coach's normal fee, plus 12% of all prize money.
+- **Why it matters:** better coaching counts for much more while you are young. The gain above an average coach is multiplied by 1.6 up to age 19, 1.35 up to 21 and 1.15 at 22.
+- **Patience:** a prodigy coach expects a 50–60% win rate (higher for higher tiers) and a rising ranking, and patience drops a little every swing regardless. A flat swing or two triggers a warning. Below 20 patience the coach walks away and a tour-level coach takes over.
+
 ## Watching controls
 Space plays or pauses, ← and → step back and forward, Shift+→ (or E) jumps to the end of the match, S skips to the summary.
 Controller: A next, B back, X or Start play/pause, RB end of match, Y summary, d-pad left/right to step.

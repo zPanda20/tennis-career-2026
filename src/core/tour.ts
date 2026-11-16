@@ -414,7 +414,8 @@ function closeUser(S: State, ed: Edition, t: UTourney, reached: string, inQual: 
       const so = S.u.tourneys.filter(x => x.year === S.year && x !== t).reduce((a, x) => a + x.prize, 0), cap = Math.max(0, COLLEGE_PRIZE_CAP - so);
       if (t.prize > cap) { note(S, `${ed.name}: as a college player you can only accept $${cap.toLocaleString('en-US')} of the $${t.prize.toLocaleString('en-US')} prize money.`); t.prize = cap; }
     }
-    addLedger(S, 'Prize money', t.prize, ed.id); const rec = S.players[uid].res.find(r => r.ed === ed.id); t.pts = rec?.pts ?? 0; }
+    addLedger(S, 'Prize money', t.prize, ed.id);
+    if (S.u.coach.deal && t.prize > 0) addLedger(S, "Coach's share of prize money", -Math.round(t.prize * S.u.coach.deal.pct), ed.id); const rec = S.players[uid].res.find(r => r.ed === ed.id); t.pts = rec?.pts ?? 0; }
   t.champion = ed.champion ? S.players[ed.champion]?.name : undefined; t.log = ed.log;
   logEv(S, 'PointsAwarded', { ed: ed.id, pts: t.pts, prize: t.prize, reached });
   if (t.title && ed.band === 'J') { achieve(S, 'firstJTitle', 'First junior title', ed.id); if (ed.jl === 1000) achieve(S, 'juniorSlam', 'Junior Grand Slam champion', ed.id); }

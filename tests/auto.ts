@@ -5,6 +5,7 @@ import { createCareer } from '../src/core/world';
 import type { Content } from '../src/core/content';
 import type { Setup, State } from '../src/core/types';
 export function autoStep(S: State, C: Content, n: number, opts: { retireAge?: number; path?: 'pro' | 'college' | 'academy' } = {}) {
+  if (S.phase === 'plan' && S.u.approach) { execute(S, C, { id: `auto${n}a`, type: 'CoachApproach', accept: true }); return; }
   if (S.phase === 'plan') {
     const rs = routes(S), r = rs.find(x => x.recommended) ?? rs[0], ev = featuredEvent(S);
     execute(S, C, { id: `auto${n}`, type: 'CommitBlock', plan: { weeks: r.weeks, route: r.key, lifeEv: ev?.id, lifeChoice: ev ? n % ev.choices.length : undefined }, pol: S.u.pol });
