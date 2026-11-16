@@ -29,7 +29,7 @@ export function Calendar({ S }: { S: State }) {
     for (const e of S.cal) {
       const mine = u.tourneys.find(t => t.ed === e.id), est = !e.done && e.entryWk >= S.wk && e.band !== 'F' ? estimate(S, e) : null;
       if (mode === 'main' && BAND_VAL[e.band] < 250) continue;
-      if (mode === 'relevant' && !mine && e.band !== 'GS' && (!est || est === 'unlikely')) continue;
+      if (mode === 'relevant' && !mine && e.band !== 'GS' && (!est || est === 'unlikely' || est === 'not eligible')) continue;
       (map.get(e.startWk) ?? map.set(e.startWk, []).get(e.startWk)!).push(e);
     }
     return [...map.entries()].sort((a, b) => a[0] - b[0]);
@@ -48,7 +48,7 @@ export function Calendar({ S }: { S: State }) {
               <EventLogo slam={e.slam} band={e.band} tour={S.tour} size={30} className="evlogo sm" />
               <span className="grow"><b><EvName name={e.name} surface={e.surface} /></b><small><Flag c={e.country} size={14} /> {e.cat} · {e.city}, {e.country} · {e.dates}{e.weeks === 2 ? ' · two weeks' : ''}{e.prov ? ' · provisional' : ''}</small></span>
               <SurfaceTag s={e.surface} indoor={e.indoor} />
-              <span className="res">{mine ? (mine.reached && mine.reached !== 'WD' ? <Pill tone={mine.title ? 'ok' : ''}>{mine.title ? 'Champion' : roundName(mine.reached)}</Pill> : <Pill tone="warn">{mine.status === 'ALT' ? 'Not accepted' : mine.status === 'WD' ? 'Withdrew' : 'Entered'}</Pill>) : est ? <Pill tone={est === 'accepted' ? 'ok' : est === 'alternate' ? 'warn' : est === 'unlikely' ? 'crit' : ''}>{est}</Pill> : e.cancelled ? <small>Not held</small> : champ ? <small>Won by {S.players[champ.w]?.name}</small> : null}</span></>;
+              <span className="res">{mine ? (mine.reached && mine.reached !== 'WD' ? <Pill tone={mine.title ? 'ok' : ''}>{mine.title ? 'Champion' : roundName(mine.reached)}</Pill> : <Pill tone="warn">{mine.status === 'ALT' ? 'Not accepted' : mine.status === 'WD' ? 'Withdrew' : 'Entered'}</Pill>) : est ? <Pill tone={est === 'accepted' ? 'ok' : est === 'alternate' ? 'warn' : est === 'unlikely' || est === 'not eligible' ? 'crit' : ''}>{est}</Pill> : e.cancelled ? <small>Not held</small> : champ ? <small>Won by {S.players[champ.w]?.name}</small> : null}</span></>;
             return <li key={e.id}>{mine ? <button className="rowbtn" onClick={() => set({ overlay: { kind: 'tourney', ed: e.id } })}>{inner}</button> : <div className="rowbtn static">{inner}</div>}</li>;
           })}</ul>
         </section>))}
@@ -182,7 +182,7 @@ export function TourneyHub({ S, ed }: { S: State; ed: string }) {
   return (
     <Modal title={`${t.name} ${t.year}`} onClose={() => set({ overlay: null })} wide>
       <div className="row between"><div><p>{t.cat} · {t.city}, {t.country} · {t.dates}{t.prov ? ' · provisional calendar entry' : ''}</p><SurfaceTag s={t.surface} /></div><EventLogo slam={slam} band={t.band} tour={S.tour} size={52} /></div>
-      <div className="stats"><Stat k="Entry" v={t.status === 'MD' ? 'Main draw' : t.status === 'WC' ? 'Wildcard' : t.status === 'Q' ? (t.qualified ? 'Qualified' : 'Qualifying') : t.status === 'ALT' ? 'Not accepted' : 'Withdrew'} sub={t.via} /><Stat k="Result" v={t.title ? 'Champion' : roundName(t.reached)} /><Stat k="Ranking points" v={t.pts} /><Stat k="Prize" v={money(t.prize)} sub={`trip cost ${money(t.cost)}`} /></div>
+      <div className="stats"><Stat k="Entry" v={t.status === 'MD' ? 'Main draw' : t.status === 'WC' ? 'Wildcard' : t.status === 'LL' ? 'Lucky loser' : t.status === 'REJ' ? 'Not eligible' : t.status === 'Q' ? (t.qualified ? 'Qualified' : 'Qualifying') : t.status === 'ALT' ? 'Not accepted' : 'Withdrew'} sub={t.via} /><Stat k="Result" v={t.title ? 'Champion' : roundName(t.reached)} /><Stat k="Ranking points" v={t.pts} /><Stat k="Prize" v={money(t.prize)} sub={`trip cost ${money(t.cost)}`} /></div>
       {trophy && <img className="trophy" src={trophy} alt="" />}
       {t.note && <p className="note">{t.note}</p>}
       {ms.length > 0 && <Section title="Your matches"><ul className="list">{ms.map(m => <li key={m.id}><button className="rowbtn" onClick={() => set({ overlay: { kind: 'match', id: m.id } })}><span className="grow"><b>{roundName(m.round)}: {m.won ? 'beat' : 'lost to'} {m.oppName}</b><small>ranked {m.oppRank} at entry{m.oppReal ? '' : ' · fictional'}</small></span><span className="num score">{m.score}</span></button></li>)}</ul></Section>}

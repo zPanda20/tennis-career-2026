@@ -6,18 +6,20 @@ import { homeOf } from './lifestyle';
 import { expectedWin } from './match';
 import { EVENTS, LifeEv } from './narrative';
 import { rngOf } from './rng';
-import { eventCost, weeklyGuaranteed } from './tour';
+import { CH_WC_PER_SEASON, chRule, chWcUsed, eventCost, weeklyGuaranteed } from './tour';
 import { ABILITIES, Edition, State } from './types';
 import { strength } from './world';
 
-export type EntryStatus = 'accepted' | 'likely qualifying' | 'alternate' | 'unlikely';
+export type EntryStatus = 'accepted' | 'likely qualifying' | 'alternate' | 'unlikely' | 'wildcard' | 'not eligible';
 export function cutsFor(S: State, ed: Edition): [number, number] {
   const m = S.memo[ed.series]; if (m && m.cut < 9999) return [m.cut, Math.min(m.qcut, m.cut * 2.2)];
   const b = S.bandMemo[ed.band]; if (b && b.n >= 3) return [b.cut, b.qcut];
   return CUTS[ed.band === 'T1000' && ed.draw < 96 ? 'T1000s' : ed.band];
 }
 export function estimate(S: State, ed: Edition): EntryStatus {
-  const r = S.rank[S.userId], [cut, qcut] = cutsFor(S, ed), me = S.players[S.userId];
+  const r = S.rank[S.userId], [cut, qcut] = cutsFor(S, ed), me = S.players[S.userId], rule = chRule(S, ed, r);
+  if (rule === 'no' || (rule === 'wc' && chWcUsed(S) >= CH_WC_PER_SEASON)) return 'not eligible';
+  if (rule === 'wc') return 'wildcard';
   if (r <= cut * 0.95) return 'accepted';
   if (ed.wc && me.country === ed.country && r <= cut * 1.1) return 'likely qualifying';
   if (r <= qcut * 0.92) return 'likely qualifying';
@@ -42,10 +44,10 @@ export function optionFor(S: State, ed: Edition): Option {
 export const eventsInWeek = (S: State, wk: number) => S.cal.filter(e => e.startWk === wk && e.band !== 'F' && !e.cancelled && !e.done && e.entryWk >= S.wk);
 
 export interface Route { key: 'development' | 'breakthrough' | 'recovery' | 'earnings'; label: string; intent: string; weeks: Record<number, string>; picks: Option[]; why: string[]; cost: number; trainWeeks: number; recommended?: boolean }
-const ACC: Record<EntryStatus, number> = { accepted: 1, 'likely qualifying': 0.75, alternate: 0.3, unlikely: 0 };
+const ACC: Record<EntryStatus, number> = { accepted: 1, 'likely qualifying': 0.75, alternate: 0.3, unlikely: 0, wildcard: 0, 'not eligible': 0 };
 export function routes(S: State): Route[] {
   const weeks = blockWeeks(S), me = S.players[S.userId], u = S.u;
-  const opts: Option[] = weeks.flatMap(w => eventsInWeek(S, w).map(e => optionFor(S, e)));
+  const opts: Option[] = weeks.flatMap(w => eventsInWeek(S, w).map(e => optionFor(S, e))).filter(o => o.status !== 'not eligible' && o.status !== 'wildcard'); // Challenger wildcards are spent only by choice
   const budget = u.cash + Math.max(0, weeklyGuaranteed(S)) * weeks.length;
   const build = (key: Route['key'], label: string, intent: string, n: number, score: (o: Option) => number, reserve: number): Route => {
     const sorted = opts.map(o => ({ o, s: score(o) })).filter(x => x.s > 0).sort((a, b) => b.s - a.s);
@@ -119,7 +121,7 @@ export function wildcardOffers(S: State): WcOffer[] {
     for (const ed of evs) {
       if (ed.band === 'GS' || ed.band === 'F' || BAND_VAL[ed.band] < 50 || ed.weeks === 2) continue;
       if (travelClass(home, ed.country) !== 0 && ed.country !== me.country) continue;
-      const status = estimate(S, ed); if (status === 'accepted') continue;
+      const status = estimate(S, ed); if (status === 'accepted' || status === 'not eligible' || status === 'wildcard') continue;
       const [cut] = cutsFor(S, ed); if (rank > Math.max(cut, 60) * 4) continue; // not wildly out of reach
       const bigger = S.cal.filter(e => e.startWk === w || (e.weeks === 2 && e.startWk === w - 1)).filter(e => !e.cancelled && BAND_VAL[e.band] > BAND_VAL[ed.band]).sort((a, b) => BAND_VAL[b.band] - BAND_VAL[a.band])[0];
       if (!bigger) continue;

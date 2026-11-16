@@ -47,6 +47,21 @@ export const weeklyGuaranteed = (S: State) => ((S.year === 2026 ? ECON.support :
 /** Local and regional trips are always possible (the basic support scheme covers a shortfall); long-haul trips need real money (spec 11.4). */
 export function canAfford(S: State, cost: number, ed?: Edition) { return (ed !== undefined && travelClass(homeOf(S), ed.country) <= 1) || S.u.cash + Math.max(0, weeklyGuaranteed(S)) * 4 - cost >= 0; }
 
+/** ATP Challenger eligibility by ranking at entry (ATP rules): the top 10 may not play Challengers at all; players ranked 11–50
+ *  may not play Challenger 50 or 75, may play Challenger 175, and need one of a limited number of wildcards for Challenger 100 or 125. */
+export const CH_WC_PER_SEASON = 3;
+export function chLevel(ed: Edition) { const m = /^Challenger (\d+)/.exec(ed.cat); return m ? +m[1] : 0; }
+export function chRule(S: State, ed: Edition, rank: number): 'ok' | 'wc' | 'no' {
+  const lv = S.tour === 'atp' ? chLevel(ed) : 0;
+  if (!lv || rank > 50) return 'ok';
+  if (rank <= 10) return 'no';
+  return lv >= 175 ? 'ok' : lv >= 100 ? 'wc' : 'no';
+}
+export const chWcUsed = (S: State) => S.u.tourneys.filter(t => t.year === S.year && t.via === 'ranking wildcard').length;
+export function chReason(S: State, ed: Edition, rank: number) {
+  const r = chRule(S, ed, rank);
+  return r === 'ok' ? null : rank <= 10 ? 'Top-10 players may not play Challengers' : r === 'no' ? 'Players ranked 11–50 may not play Challenger 50 or 75 events' : chWcUsed(S) >= CH_WC_PER_SEASON ? `All ${CH_WC_PER_SEASON} Challenger wildcards for ${S.year} are used` : `Needs one of your ${CH_WC_PER_SEASON - chWcUsed(S)} remaining Challenger wildcards`;
+}
 function minVal(rank: number) { return rank <= 20 ? 250 : rank <= 70 ? 100 : rank <= 180 ? 50 : 15; }
 function playProb(p: Player, rank: number, band: Band, q: boolean, wk: number): number {
   let b = band === 'T1000' ? 0.96 : band === 'T500' ? (rank <= 10 ? 0.45 : rank <= 50 ? 0.62 : 0.7) : band === 'T250' ? (rank <= 10 ? 0.12 : rank <= 30 ? 0.38 : rank <= 60 ? 0.55 : 0.68) : band === 'UL' ? (rank <= 60 ? 0.12 : 0.62) : 0.56;
@@ -135,11 +150,18 @@ export function runEntries(S: State) {
       const want = regs.find(e => e.id === S.plan?.weeks[wk]);
       if (!want) continue;
       let ed: Edition | undefined = want, kind = take(want, p);
+      const rule = chRule(S, want, rank);
+      if (rule === 'no' || (rule === 'wc' && chWcUsed(S) >= CH_WC_PER_SEASON)) { openTourney(S, want, 'REJ'); note(S, `${want.name}: not eligible. ${chReason(S, want, rank)}.`); continue; }
+      if (rule === 'wc') { // a ranking wildcard: entered straight into the main draw, one of a few per season
+        const s = slots.get(want.id)!; if (s.w > 0) s.w--; else s.d = Math.max(0, s.d - 1);
+        want.md.push(uid); want.wcs.push(uid); p.commit[wk] = want.id; lock(want, uid); openTourney(S, want, 'WC', 'ranking wildcard');
+        note(S, `${want.name}: entered with a Challenger wildcard (${CH_WC_PER_SEASON - chWcUsed(S)} left this season).`); continue;
+      }
       if (kind && !canAfford(S, eventCost(S, want), want)) { kind = null; openTourney(S, want, 'WD'); note(S, `${want.name}: the trip was not affordable, so the entry was withdrawn.`); }
       else if (!kind) { openTourney(S, want, 'ALT'); note(S, `${want.name}: your ranking of ${rank} left you as an alternate.`); }
       if (!kind && S.u.pol.fallback === 'nearest') {
         const wi = BAND_VAL[want.band];
-        const opts = regs.filter(e => e !== want && take(e, p) && (ed!.weeks === 1 || free(p, wk + 1)) && e.weeks === 1 && BAND_VAL[e.band] <= wi && canAfford(S, eventCost(S, e), e))
+        const opts = regs.filter(e => e !== want && chRule(S, e, rank) === 'ok' && take(e, p) && (ed!.weeks === 1 || free(p, wk + 1)) && e.weeks === 1 && BAND_VAL[e.band] <= wi && canAfford(S, eventCost(S, e), e))
           .map(e => ({ e, s: -Math.abs(Math.log(BAND_VAL[e.band] / wi)) * 2 - travelClass(homeOf(S), e.country) - (take(e, p) === 'Q' ? 0.5 : 0) })).sort((a, b) => b.s - a.s);
         if (opts.length) { ed = opts[0].e; kind = take(ed, p); note(S, `Your agent entered you in ${ed.name} instead.`); }
       }
@@ -152,6 +174,7 @@ export function runEntries(S: State) {
     const r = rngOf(S.seed, 'entry', id, wk);
     for (const ed of regs) {
       if (BAND_VAL[ed.band] < mv || (ed.weeks === 2 && !free(p, wk + 1))) continue;
+      if (chRule(S, ed, rank) !== 'ok') continue;
       const k = take(ed, p); if (!k) continue;
       const tc = travelClass(p.country, ed.country);
       const v = BAND_VAL[ed.band] * (k === 'Q' ? 0.4 : 1) * (tc === 0 ? 1 : tc === 1 ? 0.85 : 0.6) * clamp(p.fam[ed.surface] / 50, 0.8, 1.2) * r.range(0.85, 1.15);
@@ -170,7 +193,7 @@ export function runEntries(S: State) {
     // late entries: players without an event that week fill thin fields, nearest first, so events are rarely called off
     if (ed.md.length + Math.min(ed.q.length, ed.qSpots) < Math.min(ed.draw, 16)) {
       const want = Math.min(ed.draw, 16) - ed.md.length - Math.min(ed.q.length, ed.qSpots), v = BAND_VAL[ed.band];
-      const late = S.order.filter(id => id !== uid && avail(P[id], wk) && free(P[id], wk) && minVal(S.rank[id]) <= v * 4 && (ed.weeks === 1 || free(P[id], wk + 1)))
+      const late = S.order.filter(id => id !== uid && avail(P[id], wk) && free(P[id], wk) && minVal(S.rank[id]) <= v * 4 && chRule(S, ed, S.rank[id]) === 'ok' && (ed.weeks === 1 || free(P[id], wk + 1)))
         .sort((a, b) => travelClass(P[a].country, ed.country) - travelClass(P[b].country, ed.country) || S.rank[a] - S.rank[b]).slice(0, want);
       for (const id of late) { ed.md.push(id); P[id].commit[wk] = ed.id; if (ed.weeks === 2) P[id].commit[wk + 1] = ed.id; lock(ed, id); }
     }
@@ -298,8 +321,40 @@ function qualify(S: State, ed: Edition) {
     if (!t.qualified) closeUser(S, ed, t, (ed as any).lostQ[uid] ?? 'Q1', true);
   }
 }
+/** Main-draw withdrawals after qualifying (injury, illness, late withdrawals) are filled by lucky losers: losers from the final
+ *  qualifying round by ranking, then earlier rounds. Each has to have signed in on site; some have already left. */
+function luckyLosers(S: State, ed: Edition, open: number): string[] {
+  const lostQ: Record<string, string> = (ed as any).lostQ ?? {}, P = S.players, uid = S.userId, out: string[] = [];
+  if (!open || !Object.keys(lostQ).length) return out;
+  const rd = (r: string) => +r.slice(1) || 0; // final-round losers first (highest Q round), then by ranking
+  const pool = Object.keys(lostQ).filter(id => P[id] && P[id].injuredUntil <= S.wk).sort((a, b) => rd(lostQ[b]) - rd(lostQ[a]) || lockRank(S, ed, a) - lockRank(S, ed, b));
+  for (const id of pool) {
+    if (out.length >= open) break;
+    const signed = id === uid ? true : rngOf(S.seed, 'signin', ed.id, id).chance(0.82);
+    if (!signed) continue;
+    out.push(id);
+  }
+  return out;
+}
 function startBracket(S: State, ed: Edition) {
-  const P = S.players, players = ed.md.filter(id => P[id].injuredUntil <= S.wk).sort((a, b) => lockRank(S, ed, a) - lockRank(S, ed, b));
+  const P = S.players, uid = S.userId;
+  // late withdrawals: injuries, plus the odd illness or personal reason (never the user, who withdraws through the planner)
+  const out = ed.md.filter(id => P[id].injuredUntil > S.wk || (id !== uid && ed.band !== 'F' && rngOf(S.seed, 'latewd', ed.id, id).chance(0.012)));
+  if (out.length) {
+    const ll = luckyLosers(S, ed, Math.min(out.length, Math.max(0, ed.draw - (ed.md.length - out.length))));
+    (ed as any).ll = ll; ed.md = ed.md.filter(id => !out.includes(id)).concat(ll);
+    for (const id of out) if (P[id].commit[S.wk] === ed.id) { delete P[id].commit[S.wk]; if (ed.weeks === 2) delete P[id].commit[S.wk + 1]; }
+    for (const id of ll) { P[id].commit[S.wk] = ed.id; if (ed.weeks === 2) P[id].commit[S.wk + 1] = ed.id; }
+    if (ll.includes(uid)) {
+      const t = uT(S, ed.id);
+      if (t) { // the user is back in: the qualifying prize is replaced by the main-draw prize when the event ends
+        if (t.prize) addLedger(S, 'Prize money (qualifying, replaced)', -t.prize, ed.id);
+        t.status = 'LL'; t.via = 'lucky loser'; t.reached = ''; t.prize = 0; t.pts = 0; t.qualified = false;
+        note(S, `${ed.name}: a main-draw player withdrew and you are in as a lucky loser.`); achieve(S, 'luckyLoser', 'First lucky loser spot', ed.id);
+      }
+    }
+  }
+  const players = ed.md.filter(id => P[id].injuredUntil <= S.wk).sort((a, b) => lockRank(S, ed, a) - lockRank(S, ed, b));
   const bracket = ed.draw > 64 ? 128 : ed.draw > 32 ? 64 : 32, nSeeds = bracket / 4, r = rngOf(S.seed, 'draw', ed.id);
   const seeds = players.slice(0, nSeeds), rest = r.shuffle(players.slice(nSeeds));
   for (const [lo, hi] of [[2, 4], [4, 8], [8, 16], [16, 32]]) if (seeds.length >= hi) { const part = r.shuffle(seeds.slice(lo, hi)); seeds.splice(lo, hi - lo, ...part); }
@@ -379,7 +434,7 @@ function finish(S: State, ed: Edition) {
   for (const id of ed.md) {
     const lab = ed.lost![id]; if (!lab || lab === 'WD') continue;
     let pts = table[ROUND_KEYS.indexOf(lab)] ?? 0;
-    const isQ = ed.quals.includes(id);
+    const isQ = ed.quals.includes(id) || ((ed as any).ll ?? []).includes(id);
     if (isQ) pts = Math.max(pts, QUAL_POINTS[ed.band]);
     if (lab === 'F') ed.runnerUp = id;
     if (pts > 0) P[id].res.push({ ed: ed.id, pts, exp: endWk + 52, yr: ed.year, cls: 't', q: isQ ? 1 : undefined });
@@ -389,7 +444,7 @@ function finish(S: State, ed: Edition) {
   if (BAND_VAL[ed.band] >= 250 || (ed as any).hasUser) S.world.champs.push({ ed: ed.id, name: ed.name, year: ed.year, band: ed.band, cat: ed.cat, w: champ, f: ed.runnerUp, wk: S.wk });
   const t = uT(S, ed.id);
   if (t && ed.lost![uid] && ed.lost![uid] !== 'WD') closeUser(S, ed, t, ed.lost![uid], false);
-  else if (t && !t.reached && (t.status === 'MD' || t.status === 'Q' || t.status === 'WC')) { t.status = 'WD'; t.reached = 'WD'; }
+  else if (t && !t.reached && (t.status === 'MD' || t.status === 'Q' || t.status === 'WC' || t.status === 'LL')) { t.status = 'WD'; t.reached = 'WD'; }
   ed.md = []; ed.slots = undefined; ed.lost = undefined; ed.log = undefined; delete (ed as any).lock; delete (ed as any).lostQ;
 }
 function playFinals(S: State, ed: Edition) {

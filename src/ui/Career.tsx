@@ -21,7 +21,8 @@ const PRIO_NAME = (p: Priority) => PRIORITIES.find(x => x[0] === p)![1];
 const ROUND_ORDER = ['W', 'F', 'SF', 'QF', 'R16', 'R32', 'R64', 'R128', 'RR', 'Q3', 'Q2', 'Q1'];
 const HEADLINE: Record<string, string> = { W: 'Champion', F: 'Finalist', SF: 'Semifinalist', QF: 'Quarterfinalist', R16: 'Round of 16', R32: 'Round of 32', R64: 'Round of 64', R128: 'Round of 128', RR: 'Group stage' };
 const headline = (r: string) => HEADLINE[r] ?? (r.startsWith('Q') ? 'Qualifying' : roundName(r));
-const STATUS: Record<string, [string, string]> = { accepted: ['In', ''], 'likely qualifying': ['Qualifying', 'q'], alternate: ['Alternate', 'warn'], unlikely: ['Long shot', 'crit'] };
+const ORD = ['accepted', 'wildcard', 'likely qualifying', 'alternate', 'unlikely', 'not eligible'];
+const STATUS: Record<string, [string, string]> = { accepted: ['In', ''], 'likely qualifying': ['Qualifying', 'q'], alternate: ['Alternate', 'warn'], unlikely: ['Long shot', 'crit'], wildcard: ['Challenger wildcard', 'q'], 'not eligible': ['Not eligible', 'crit'] };
 const surname = (n: string) => n.split(' ').slice(1).join(' ') || n;
 
 // ---------- shared derived values ----------
@@ -270,11 +271,11 @@ export function Planner({ S }: { S: State }) {
           <div className="row"><button className="link" aria-expanded={custom} onClick={() => setCustom(!custom)}>{custom ? 'Hide week-by-week schedule' : 'Build my own schedule week by week'}</button></div>
           {custom && <div className="glass weeks">
             {weeks.map(w => {
-              const why = busy(w), evs = eventsInWeek(S, w).map(e => optionFor(S, e)).sort((a, b) => ['accepted', 'likely qualifying', 'alternate', 'unlikely'].indexOf(a.status) - ['accepted', 'likely qualifying', 'alternate', 'unlikely'].indexOf(b.status) || b.ed.draw - a.ed.draw), cur = plan[w] ? optById(plan[w]) : null;
+              const why = busy(w), evs = eventsInWeek(S, w).map(e => optionFor(S, e)).sort((a, b) => ORD.indexOf(a.status) - ORD.indexOf(b.status) || b.ed.draw - a.ed.draw), cur = plan[w] ? optById(plan[w]) : null;
               return (
                 <div key={w} className="week">
                   <label htmlFor={`wk${w}`}><b>{fmtShort(wkDate(w))}</b></label>
-                  {why ? <span className="muted">Occupied: {why}</span> : <select id={`wk${w}`} value={plan[w] ?? ''} onChange={e => setWeek(w, e.target.value)}><option value="">Train this week</option>{evs.map(o => <option key={o.ed.id} value={o.ed.id}>{o.ed.name} · {o.ed.cat} · {o.ed.surface} · {STATUS[o.status][0]} · {money(o.cost)}</option>)}</select>}
+                  {why ? <span className="muted">Occupied: {why}</span> : <select id={`wk${w}`} value={plan[w] ?? ''} onChange={e => setWeek(w, e.target.value)}><option value="">Train this week</option>{evs.map(o => <option key={o.ed.id} value={o.ed.id} disabled={o.status === 'not eligible'}>{o.ed.name} · {o.ed.cat} · {o.ed.surface} · {STATUS[o.status][0]} · {money(o.cost)}</option>)}</select>}
                   {cur && !why && <small>{BAND_NAME[cur.ed.band]} in {cur.ed.city}. Against a typical opponent you'd be {cur.p < 0.35 ? 'the underdog' : cur.p > 0.65 ? 'the favourite' : 'evenly matched'}{cur.ed.prov ? '. Provisional calendar entry' : ''}{cur.ed.weeks === 2 ? '. Runs two weeks' : ''}.</small>}
                 </div>);
             })}

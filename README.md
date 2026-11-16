@@ -53,3 +53,7 @@ Controller: A next, B back, X or Start play/pause, RB end of match, Y summary, d
 Choose who plays your matches on the Career page or in the planner: the coach (fastest), you for the big ones, or you for every main-draw match.
 Hands-on matches pause before the first ball (scouting report, film study, extra practice, game plan), at every set break (your coach's advice and a new plan) and when you drop three games in a row (reset, change plan or ride it out).
 Plans shift point odds depending on the matchup; opponents have plans too, change them after losing a set, and adapt if you repeat the same plan. With the coach in charge, the coach makes the same calls using their read of the opponent, which is sharper with better coaches.
+
+## Entry rules
+- Lucky losers: when main-draw players withdraw after qualifying (injury, illness or late withdrawal), the spots go to qualifying losers, final-round losers first and by ranking, then earlier rounds. Players must have signed in on site; some will have left. A lucky loser gets main-draw prize money and points (plus qualifying points), even after a first-round loss.
+- ATP Challenger eligibility (by ranking at entry): the top 10 may not play Challengers. Players ranked 11–50 may not play Challenger 50 or 75, may play Challenger 175, and need one of three Challenger wildcards per season for Challenger 100 or 125.

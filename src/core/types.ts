@@ -49,7 +49,7 @@ export interface UMatch {
 }
 export interface UTourney {
   ed: string; series: string; name: string; cat: string; band: Band; surface: Surface; city: string; country: string; year: number; wk: number; dates: string;
-  status: 'MD' | 'Q' | 'WC' | 'ALT' | 'REJ' | 'WD'; via?: string; qualified?: boolean; reached: string; pts: number; prize: number; cost: number; title: boolean; final: boolean;
+  status: 'MD' | 'Q' | 'WC' | 'LL' | 'ALT' | 'REJ' | 'WD'; via?: string; qualified?: boolean; reached: string; pts: number; prize: number; cost: number; title: boolean; final: boolean;
   matches: string[]; prov?: boolean; note?: string; champion?: string; log?: MatchLite[];
 }
 export interface Injury { id: string; wk: number; year: number; date: string; loc: string; kind: 'acute' | 'overuse' | 'illness'; sev: 'minor' | 'moderate' | 'major' | 'severe'; estMin: number; estMax: number; weeks: number; rehab: 'conservative' | 'specialist' | 'early'; perm?: { ab: Ability; loss: number }[]; returnedWk?: number; desc: string }
