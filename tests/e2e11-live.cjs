@@ -8,7 +8,7 @@ const { chromium } = require('playwright');
   const shot = (n, full) => p.screenshot({ path: `${out}/${n}.png`, fullPage: !!full });
   const R = { kinds: [] }; global.__p = p;
   await p.goto('http://localhost:4173/'); await p.waitForFunction(() => !document.querySelector('.packnote'), null, { timeout: 120000 }).catch(() => {});
-  await p.click('text=Start a new career'); await p.click('text=Skip ahead with a random identity'); await p.click('button:has-text("Create career")'); await idle();
+  await p.click('text=Start a new career'); await p.click('.choice:has-text("Age 19")'); await p.click('text=Skip ahead with a random identity'); await p.click('button:has-text("Create career")'); await idle();
   await p.selectOption('.mm-inline select', 'all'); await idle();
   await p.click('button:has-text("Plan the swing")'); await p.waitForTimeout(300);
   await p.locator('.dock .cta').click(); await p.waitForTimeout(200);

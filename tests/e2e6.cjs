@@ -7,7 +7,7 @@ const { chromium } = require('playwright');
   const idle = () => p.waitForSelector('.busy', { state: 'detached', timeout: 300000 });
   const shot = (n, full) => p.screenshot({ path: `${out}/${n}.png`, fullPage: !!full });
   const R = {};
-  await p.goto('http://localhost:4173/'); await p.click('text=Start a new career'); await p.click('text=Skip ahead with a random identity');
+  await p.goto('http://localhost:4173/'); await p.click('text=Start a new career'); await p.click('.choice:has-text("Age 19")'); await p.click('text=Skip ahead with a random identity');
   await p.click('button:has-text("Create career")'); await idle(); await p.waitForTimeout(300);
   await p.click('.navpill button:has-text("Life")'); await p.waitForTimeout(300); await shot('h1-life', true);
   const trust0 = await p.locator('.coachcard .cc-foot').first().innerText();

@@ -2,7 +2,8 @@ import { useRef, useState } from 'react';
 import { COUNTRY_NAMES, fmtDate } from '../core/content';
 import { genName } from '../core/names';
 import { Rng } from '../core/rng';
-import { ABILITIES, ABILITY_NAMES, Ability, Setup } from '../core/types';
+import { ABILITIES, ABILITY_NAMES, Ability, Academy, Setup } from '../core/types';
+import { ACADEMY, FAMILY_SUPPORT } from '../core/path';
 import { Avatar, Flag, Pill, portraitFromFile, rankTxt } from './bits';
 import { Arrow } from './fx';
 import { importBackup, newCareer, openCareer, removeCareer, set, useApp } from './store';
@@ -48,16 +49,23 @@ const PROFILES: [Setup['profile'], string, string][] = [
   ['contender', 'Contender', 'The tools to become a major challenger, with meaningful weaknesses to manage.'],
   ['grinder', 'Grinder', 'A fight toward the top 10 to 25, with rare trophy chances to seize.'],
 ];
+const SPEEDS: [NonNullable<Setup['speed']>, string, string][] = [
+  ['unknown', 'Unknown', 'Drawn at random and never shown for certain. Your results will tell you.'],
+  ['early', 'Early developer', 'Strong as a junior and quick to the pro ranks; less growth left in your twenties.'],
+  ['steady', 'Steady developer', 'The usual curve: steady growth from 16 to about 24.'],
+  ['late', 'Late developer', 'A modest junior, then the biggest gains from 19 to 24. Patience pays.'],
+];
 const rnd = () => new Rng(String(Math.random()) + Date.now());
 export function Create() {
   const [step, setStep] = useState(0), [adv, setAdv] = useState(false);
-  const [s, setS] = useState<Setup>({ tour: 'atp', name: '', country: 'USA', pronouns: 'he/him', birthMonth: 6, birthDay: 15, hand: 'R', avatar: 0, focusSurface: 'all', skills: ['fh', 'serve'], profile: 'unknown', adult: false, detail: 'quick', seed: '' });
+  const [s, setS] = useState<Setup>({ tour: 'atp', name: '', country: 'USA', pronouns: 'he/him', birthMonth: 6, birthDay: 15, hand: 'R', avatar: 0, focusSurface: 'all', skills: ['fh', 'serve'], profile: 'unknown', adult: false, detail: 'quick', seed: '', start: 'junior', speed: 'unknown', academy: 'national' });
   const up = (p: Partial<Setup>) => setS(x => ({ ...x, ...p }));
   const randomise = () => {
     const r = rnd(), tour = s.tour, g = genName(r, tour, undefined, new Set()), a = r.shuffle([...ABILITIES]);
     up({ name: g.name, country: g.country, pronouns: tour === 'atp' ? 'he/him' : 'she/her', birthMonth: r.int(1, 12), birthDay: r.int(1, 28), hand: r.chance(0.12) ? 'L' : 'R', avatar: r.int(0, 7), focusSurface: r.pick(['all', 'hard', 'clay', 'grass'] as const), skills: [a[0], a[1]] });
   };
-  const born = new Date(Date.UTC(s.birthMonth === 1 && s.birthDay === 1 ? 2007 : 2006, s.birthMonth - 1, s.birthDay));
+  const J = s.start === 'junior', age0 = J ? 16 : 19;
+  const born = new Date(Date.UTC(2026 - age0 - (s.birthMonth === 1 && s.birthDay === 1 ? 0 : 1), s.birthMonth - 1, s.birthDay));
   const valid = s.name.trim().length >= 2 && s.skills[0] !== s.skills[1];
   const steps = ['Tour', 'Identity', 'Sporting focus', 'Career profile', 'Confirm'];
   const countries = Object.entries(COUNTRY_NAMES).sort((a, b) => a[1].localeCompare(b[1]));
@@ -68,6 +76,10 @@ export function Create() {
         <ol className="steps" aria-label="Setup steps">{steps.map((t, i) => <li key={t} className={i === step ? 'on' : i < step ? 'done' : ''} aria-current={i === step ? 'step' : undefined}>{t}</li>)}</ol>
         {step === 0 && <div className="card"><h1 style={{ fontSize: '3.4rem' }}>Choose your tour</h1><p className="muted">Both tours have their own players, calendar and competitive balance.</p>
           <div className="choice-grid two">{(['atp', 'wta'] as const).map(t => <button key={t} className={`choice ${s.tour === t ? 'on' : ''}`} aria-pressed={s.tour === t} onClick={() => up({ tour: t, pronouns: t === 'atp' ? 'he/him' : 'she/her' })}><b>{t === 'atp' ? "Men's tour" : "Women's tour"}</b><span>{t === 'atp' ? 'Best of five sets at the majors. Starts among Alcaraz, Sinner and the 2026 field.' : 'Best of three throughout. Starts among Sabalenka, Swiatek and the 2026 field.'}</span></button>)}</div>
+          <fieldset><legend>Where your story begins</legend><div className="choice-grid two">
+            <button className={`choice ${J ? 'on' : ''}`} aria-pressed={J} onClick={() => up({ start: 'junior' })}><b>Age 16 · junior</b><span>Two seasons on the ITF junior tour and at an academy, then the big decision at 18: the tour, university, or academy and a part-time schedule.</span></button>
+            <button className={`choice ${!J ? 'on' : ''}`} aria-pressed={!J} onClick={() => up({ start: 'pro' })}><b>Age 19 · professional</b><span>Start as a lower-tier professional ranked roughly 450 to 750, straight into the pro calendar.</span></button>
+          </div></fieldset>
           <button className="btn ghost" onClick={() => { randomise(); setStep(4); }}>Skip ahead with a random identity and suggested focus</button></div>}
         {step === 1 && <div className="card"><h2>Identity</h2>
           <div className="form">
@@ -76,7 +88,7 @@ export function Create() {
             <label>Pronouns<select value={s.pronouns} onChange={e => up({ pronouns: e.target.value })}><option>he/him</option><option>she/her</option><option>they/them</option></select></label>
             <div className="row2"><label>Birth month<select value={s.birthMonth} onChange={e => up({ birthMonth: +e.target.value })}>{['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</select></label>
               <label>Day<select value={s.birthDay} onChange={e => up({ birthDay: +e.target.value })}>{Array.from({ length: 28 }, (_, i) => <option key={i}>{i + 1}</option>)}</select></label></div>
-            <p className="muted">Born {fmtDate(born)}: exactly 19 years old when the career starts on 1 January 2026.</p>
+            <p className="muted">Born {fmtDate(born)}: {age0} years old when the career starts on 1 January 2026.</p>
             <fieldset><legend>Dominant hand</legend><div className="seg">{(['R', 'L'] as const).map(h => <button key={h} className={s.hand === h ? 'on' : ''} aria-pressed={s.hand === h} onClick={() => up({ hand: h })}>{h === 'R' ? 'Right' : 'Left'}</button>)}</div></fieldset>
             <fieldset><legend>Portrait</legend><div className="row" style={{ margin: 0 }}><label className="btn small">{s.portrait ? 'Change photo' : 'Upload a photo'}<input type="file" accept="image/*" hidden onChange={async e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) { try { up({ portrait: await portraitFromFile(f) }); } catch (err: any) { set({ error: err.message }); } } }} /></label>{s.portrait && <button className="btn small ghost" onClick={() => up({ portrait: undefined })}>Remove</button>}<small>Optional. Cropped to a square and kept with your career only.</small></div></fieldset>
             <fieldset><legend>Avatar colour</legend><div className="swatches">{Array.from({ length: 8 }, (_, i) => <button key={i} className={s.avatar === i ? 'on' : ''} aria-label={`Avatar colour ${i + 1}`} aria-pressed={s.avatar === i} onClick={() => up({ avatar: i })}><Avatar name={s.name || 'New Player'} user={i} size={40} /></button>)}</div></fieldset>
@@ -90,17 +102,20 @@ export function Create() {
           <div className="choice-grid one"><button className={`choice ${s.profile === 'unknown' ? 'on' : ''}`} aria-pressed={s.profile === 'unknown'} onClick={() => up({ profile: 'unknown' })}><b>{PROFILES[0][1]}</b><span>{PROFILES[0][2]}</span></button></div>
           <button className="btn ghost small" aria-expanded={adv} onClick={() => setAdv(!adv)}>{adv ? 'Hide' : 'Show'} advanced profile selection</button>
           {adv && <div className="choice-grid one">{PROFILES.slice(1).map(([k, t, d]) => <button key={k} className={`choice ${s.profile === k ? 'on' : ''}`} aria-pressed={s.profile === k} onClick={() => up({ profile: k })}><b>{t}</b><span>{d}</span></button>)}<p className="muted">A selected profile is recorded in your career archive. It describes opportunity, not promised trophies.</p></div>}
+          {J && <><fieldset><legend>Development speed</legend><div className="choice-grid four">{SPEEDS.map(([k, t, d]) => <button key={k} className={`choice ${s.speed === k ? 'on' : ''}`} aria-pressed={s.speed === k} onClick={() => up({ speed: k })}><b>{t}</b><span>{d}</span></button>)}</div></fieldset>
+            <fieldset><legend>Academy</legend><div className="choice-grid three">{(Object.keys(ACADEMY) as Academy[]).map(k => <button key={k} className={`choice ${s.academy === k ? 'on' : ''}`} aria-pressed={s.academy === k} onClick={() => up({ academy: k })}><b>{ACADEMY[k].name}</b><span>{ACADEMY[k].text} ${ACADEMY[k].fee.toLocaleString('en-US')} a month.</span></button>)}</div><p className="muted">Your family puts in ${FAMILY_SUPPORT.toLocaleString('en-US')} a month while you are a junior. You can change academy in the Life tab.</p></fieldset></>}
           <fieldset><legend>How much detail do you want?</legend><div className="seg">{(['quick', 'detailed'] as const).map(d => <button key={d} className={s.detail === d ? 'on' : ''} aria-pressed={s.detail === d} onClick={() => up({ detail: d })}>{d === 'quick' ? 'Quick play' : 'Detailed play'}</button>)}</div><p className="muted">{s.detail === 'quick' ? 'One planning decision per block, with your agent handling routine matters.' : 'Edit individual events, see the budget and review each tournament round by round.'} You can switch at any time; it never changes results.</p></fieldset>
           <label className="check"><input type="checkbox" checked={s.adult} onChange={e => up({ adult: e.target.checked })} /><span>Include adult themes in life events <small>Stronger language and more direct personal storylines. Sporting opportunities are identical either way.</small></span></label></div>}
         {step === 4 && <div className="card"><h2>Confirm your career</h2>
           <dl className="dl">
             <dt>Tour</dt><dd>{s.tour === 'atp' ? "Men's singles" : "Women's singles"}</dd>
             <dt>Player</dt><dd>{s.name || <em>No name yet</em>} · {COUNTRY_NAMES[s.country]} · {s.pronouns} · {s.hand === 'R' ? 'Right-handed' : 'Left-handed'}</dd>
-            <dt>Born</dt><dd>{fmtDate(born)} (age 19 at the start)</dd>
+            <dt>Born</dt><dd>{fmtDate(born)} (age {age0} at the start)</dd>
+            {J && <><dt>Development</dt><dd>{SPEEDS.find(x => x[0] === s.speed)![1]} · {ACADEMY[s.academy ?? 'national'].name}</dd></>}
             <dt>Focus</dt><dd>{s.focusSurface === 'all' ? 'All-round' : s.focusSurface[0].toUpperCase() + s.focusSurface.slice(1)} · {ABILITY_NAMES[s.skills[0]]} first, {ABILITY_NAMES[s.skills[1]]} second</dd>
             <dt>Profile</dt><dd>{PROFILES.find(p => p[0] === s.profile)![1]}{s.profile !== 'unknown' ? ' (selected; a stronger emerging generation applies to GOAT Contention)' : ' (hidden potential, drawn once)'}</dd>
             <dt>Play style</dt><dd>{s.detail === 'quick' ? 'Quick play' : 'Detailed play'} · {s.adult ? 'Adult themes on' : 'Adult themes off'}</dd>
-            <dt>Start</dt><dd>1 January 2026, as an established lower-tier professional ranked roughly 450 to 750, healthy, with a modest coach and a starter support agreement.</dd>
+            <dt>Start</dt><dd>{J ? '1 January 2026, as a 16-year-old on the ITF junior tour with a modest junior ranking, family support and a starter coach. The path decision comes at the end of the season you turn 18.' : '1 January 2026, as an established lower-tier professional ranked roughly 450 to 750, healthy, with a modest coach and a starter support agreement.'}</dd>
           </dl>
           <p className="muted">Creating the career builds the world once. It cannot be re-rolled.</p></div>}
         <div className="row end">
@@ -113,7 +128,7 @@ export function Create() {
         {s.portrait ? <img className="avatar" src={s.portrait} alt="" style={{ width: 120, height: 120 }} /> : <Avatar name={s.name || 'New Player'} user={s.avatar} size={120} />}
         <h3>{s.name || 'New player'}</h3>
         <p className="muted"><Flag c={s.country} size={20} /> {COUNTRY_NAMES[s.country]} · {s.tour === 'atp' ? "Men's tour" : "Women's tour"}</p>
-        <p>{s.hand === 'R' ? 'Right-handed' : 'Left-handed'} · age 19</p>
+        <p>{s.hand === 'R' ? 'Right-handed' : 'Left-handed'} · age {age0}{J ? ' · junior' : ''}</p>
         <p>{s.focusSurface === 'all' ? 'All-round' : `${s.focusSurface[0].toUpperCase()}${s.focusSurface.slice(1)}-court`} focus</p>
         <p>{ABILITY_NAMES[s.skills[0]]} · {ABILITY_NAMES[s.skills[1]]}</p>
         <Pill>{PROFILES.find(p => p[0] === s.profile)![1]}</Pill>

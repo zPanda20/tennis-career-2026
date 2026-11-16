@@ -7,7 +7,7 @@ const { chromium } = require('playwright');
   const idle = () => p.waitForSelector('.busy', { state: 'detached', timeout: 300000 });
   const shot = (n, full) => p.screenshot({ path: `${out}/${n}.png`, fullPage: !!full });
   const R = {};
-  await p.goto('http://localhost:4173/'); await p.click('text=Start a new career'); await p.click('text=Skip ahead with a random identity');
+  await p.goto('http://localhost:4173/'); await p.click('text=Start a new career'); await p.click('.choice:has-text("Age 19")'); await p.click('text=Skip ahead with a random identity');
   await p.click('button:has-text("Create career")'); await idle();
   await p.click('button:has-text("Simulate to season\'s end")'); await idle(); await p.waitForSelector('.screen[aria-label="Block results"]', { timeout: 300000 });
   await p.selectOption('.pace select', 'event'); await p.waitForTimeout(200);

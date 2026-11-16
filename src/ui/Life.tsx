@@ -5,6 +5,7 @@ import { Avatar } from './bits';
 import { Ring, SWING_SHORT } from './fx';
 import { dispatch, useApp } from './store';
 import { HomeBase, Housing, PeopleTime, Team } from './LifePlus';
+import { RoadCard } from './Junior';
 
 const PRI: [Priority, string, string][] = [
   ['prep', 'Focused preparation', 'Most useful training. Morale can slowly dip under sustained pressure.'],
@@ -45,6 +46,7 @@ export function Life({ S }: { S: State }) {
 
       <div className="home-grid">
         <div className="col">
+          <RoadCard S={S} />
           <section className="glass">
             <div className="sec-head"><h3>Your people</h3></div>
             <div className="people">{people.map(p => (

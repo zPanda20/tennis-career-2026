@@ -11,6 +11,9 @@ export const money = (n: number) => `${n < 0 ? '−' : ''}$${Math.abs(Math.round
 export const pct = (n: number) => `${Math.round(n * 100)}%`;
 export const SURF: Record<Surface, string> = { hard: 'Hard', clay: 'Clay', grass: 'Grass' };
 export const rankTxt = (r?: number) => (r ? `No. ${r}` : 'Unranked');
+/** A player's ranking as shown in headers and cards: world ranking once they have points, otherwise the junior ranking for juniors. */
+export const rankOf = (S: { pts: Record<string, number>; rank: Record<string, number>; jrank?: Record<string, number>; players: Record<string, Player> }, id: string) =>
+  (S.pts[id] ?? 0) > 0 ? `No. ${S.rank[id]}` : S.players[id]?.junior && (S.jrank?.[id] ?? 9999) < 9999 ? `Junior No. ${S.jrank![id]}` : 'Unranked';
 
 export function Avatar({ p, size = 44, name, user }: { p?: Player; size?: number; name?: string; user?: number }) {
   const { assets, S, faces } = useApp(), nm = p?.name ?? name ?? '?', own = (p?.user && S?.u.portrait) || assets[`player:${nm}`];

@@ -10,8 +10,9 @@ import { Fx, evById } from './narrative';
 import { supportName } from './names';
 import { clamp, rngOf } from './rng';
 import { achieve, addLedger, LivePause, logEv, note, playEvents, runEntries, snapshot, userCtl } from './tour';
-import type { BlockPlan, BlockSummary, Policies, State } from './types';
+import type { Academy, BlockPlan, BlockSummary, Policies, State, PathChoice } from './types';
 import { flushDev, weeklyUpkeep, yearEnd } from './upkeep';
+import { PART_TIME_EVENTS, blockedWeek, eventsUsed, pathKind, playCollegeWeek } from './path';
 import { publish } from './world';
 import { weeklyNews } from './news';
 import { checkGoals, ensureGoals } from './goals';
@@ -19,7 +20,7 @@ import { checkGoals, ensureGoals } from './goals';
 export type Command =
   | { id: string; type: 'CommitBlock'; plan: BlockPlan; pol: Policies }
   | { id: string; type: 'ResolveInjury'; rehab: 'conservative' | 'specialist' | 'early' }
-  | { id: string; type: 'YearEnd'; coach: string | 'keep'; sponsors: string[]; retire: boolean }
+  | { id: string; type: 'YearEnd'; coach: string | 'keep'; sponsors: string[]; retire: boolean; path?: PathChoice }
   | { id: string; type: 'Retire' }
   | { id: string; type: 'ChangeDelegation'; pol: Policies }
   | { id: string; type: 'SetPortrait'; data: string | null }
@@ -30,7 +31,8 @@ export type Command =
   | { id: string; type: 'SetStaff'; role: StaffRole; level: 0 | 1 | 2 }
   | { id: string; type: 'LiveDecide'; tac?: Tactic; reset?: boolean; auto?: boolean; drill?: boolean; film?: boolean }
   | { id: string; type: 'LiveContinue' }
-  | { id: string; type: 'SetMatchMode'; mode: 'auto' | 'big' | 'all' };
+  | { id: string; type: 'SetMatchMode'; mode: 'auto' | 'big' | 'all' }
+  | { id: string; type: 'SetAcademy'; academy: Academy };
 
 const absBlock = (S: State) => (S.year - START_YEAR) * 4 + S.block;
 function applyFx(S: State, fx: Fx): string[] {
@@ -62,6 +64,7 @@ export function advanceWeek(S: State, C: Content) {
   }
   try { playEvents(S); } catch (e) { if (e instanceof LivePause) { S.midWeek = true; S.phase = 'live'; return; } throw e; }
   S.midWeek = false;
+  playCollegeWeek(S);
   checkGoals(S); weeklyUpkeep(S);
   S.wk++; S.week++;
   if (S.week >= weeksIn(S.year)) yearEnd(S, C);
@@ -153,6 +156,11 @@ export function execute(S: State, C: Content, cmd: Command): State {
       S.phase = 'plan'; runBlock(S, C); break;
     }
     case 'SetMatchMode': { u.pol = { ...u.pol, match: cmd.mode }; logEv(S, 'MatchModeChanged', { mode: cmd.mode }); break; }
+    case 'SetAcademy': {
+      if (S.phase !== 'plan' || u.stage !== 'junior') throw new Error('The academy can only be changed between swings as a junior.');
+      if (u.academy !== cmd.academy) { u.academy = cmd.academy; p.sharp = Math.max(30, p.sharp - 2); logEv(S, 'AcademyChanged', { academy: cmd.academy }); note(S, 'You moved academy. It takes a few weeks to settle into new routines.'); }
+      break;
+    }
     case 'SetPortrait': { if (cmd.data && (cmd.data.length > 400000 || !cmd.data.startsWith('data:image/'))) throw new Error('That image could not be used.'); u.portrait = cmd.data ?? undefined; logEv(S, 'PortraitChanged'); break; }
     case 'CommitBlock': {
       if (S.phase !== 'plan') throw new Error('No block can be committed right now.');
@@ -160,7 +168,13 @@ export function execute(S: State, C: Content, cmd: Command): State {
       const weeks = blockWeeks(S), valid: Record<number, string> = {};
       for (const [k, id] of Object.entries(cmd.plan.weeks)) { const ed = S.cal.find(e => e.id === id); if (ed && weeks.includes(+k) && ed.startWk === +k) valid[+k] = id; }
       const taken = new Set<number>();
-      for (const k of Object.keys(valid).map(Number).sort((a, b) => a - b)) { const ed = S.cal.find(e => e.id === valid[k])!; if (taken.has(k)) { delete valid[k]; continue; } taken.add(k); if (ed.weeks === 2) taken.add(k + 1); }
+      let proLeft = pathKind(S) === 'academy' ? Math.max(0, PART_TIME_EVENTS - eventsUsed(S)) : Infinity;
+      for (const k of Object.keys(valid).map(Number).sort((a, b) => a - b)) {
+        const ed = S.cal.find(e => e.id === valid[k])!; if (taken.has(k)) { delete valid[k]; continue; }
+        if (ed.band === 'J' ? !p.junior : !!blockedWeek(S, k) || proLeft <= 0) { delete valid[k]; continue; } // junior events for juniors only; the college season and the part-time limit
+        if (ed.band !== 'J') proLeft--;
+        taken.add(k); if (ed.weeks === 2) taken.add(k + 1);
+      }
       const offers = new Set(wildcardOffers(S).map(o => o.ed.id)), wc = (cmd.plan.wc ?? []).filter(id => offers.has(id) && Object.values(valid).includes(id));
       const rec = routes(S).find(r => r.recommended);
       if (rec && cmd.plan.route === rec.key) { u.rel.coach = Math.min(100, u.rel.coach + 1.5); u.coach.trust = u.rel.coach; } // following the coach's pick builds trust
@@ -197,7 +211,15 @@ export function execute(S: State, C: Content, cmd: Command): State {
     case 'YearEnd': {
       if (S.phase !== 'yearEnd' || !S.pending) throw new Error('No year-end review is open.');
       if (S.pending.type === 'forcedRetire') { retire(S, 'age ceiling'); break; }
-      if (cmd.retire) { retire(S, 'voluntary'); break; }
+      if (cmd.retire || cmd.path === 'quit') { retire(S, S.pending.path ? 'quit' : 'voluntary'); break; }
+      const pd = S.pending.path;
+      if (pd) {
+        const ch = cmd.path ?? (pd.kind === 'review' ? 'stay' : 'pro');
+        if (pd.kind === 'choose' && ch !== 'stay') { u.stage = 'path'; u.path = { kind: ch, from: S.year, until: S.year + 3 }; if (ch === 'college') u.college ??= []; }
+        else if (pd.kind === 'review' && ch !== 'stay' && ch !== u.path?.kind) { if (ch === 'pro') { u.stage = 'pro'; u.path = { ...u.path!, until: S.year - 1 }; } else if (ch !== 'college') u.path = { ...u.path!, kind: ch }; }
+        else if (pd.kind === 'final') u.stage = 'pro';
+        logEv(S, 'PathChosen', { kind: pd.kind, choice: ch });
+      }
       const offer = S.pending.coachOffers?.find(c => c.id === cmd.coach);
       if (offer) {
         u.coachHistory.push({ ...u.coach, left: S.year - 1, reason: 'Replaced at the year-end review' });

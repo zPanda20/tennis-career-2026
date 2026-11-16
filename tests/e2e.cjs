@@ -8,7 +8,7 @@ const { chromium } = require('playwright');
   const shot = (n, full) => p.screenshot({ path: `${out}/${n}.png`, fullPage: !!full });
   await p.goto('http://localhost:4173/'); await p.waitForSelector('text=Start a new career'); await p.waitForTimeout(600); await shot('01-library');
   await p.click('text=Start a new career'); await shot('02-create');
-  await p.click('text=Skip ahead with a random identity'); await p.click('button:has-text("Create career")'); await idle(); await p.waitForSelector('button:has-text("Plan the swing")');
+  await p.click('.choice:has-text("Age 19")'); await p.click('text=Skip ahead with a random identity'); await p.click('button:has-text("Create career")'); await idle(); await p.waitForSelector('button:has-text("Plan the swing")');
   await p.waitForTimeout(400); await shot('03-home');
   let shots = 0;
   for (let i = 0; i < blocks; i++) {

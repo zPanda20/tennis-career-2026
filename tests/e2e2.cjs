@@ -6,7 +6,7 @@ const { chromium } = require('playwright'); const fs = require('fs');
   await p.addInitScript(() => { delete window.showSaveFilePicker; });
   const errs = []; p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); }); p.on('pageerror', e => errs.push('PAGEERROR ' + e.message)); p.on('dialog', d => d.accept());
   const idle = () => p.waitForSelector('.busy', { state: 'detached', timeout: 120000 });
-  await p.goto('http://localhost:4173/'); await p.click('text=Start a new career'); await p.click('text=Skip ahead with a random identity'); await p.click('button:has-text("Create career")'); await p.waitForSelector('text=Plan the swing', { timeout: 60000 });
+  await p.goto('http://localhost:4173/'); await p.click('text=Start a new career'); await p.click('.choice:has-text("Age 19")'); await p.click('text=Skip ahead with a random identity'); await p.click('button:has-text("Create career")'); await p.waitForSelector('text=Plan the swing', { timeout: 60000 });
   // image pack
   await p.click('button[aria-label="Menu"]'); await p.click('text=Settings and backup'); await p.locator('input[type=file][webkitdirectory]').setInputFiles(pack); await p.waitForSelector('text=/Loaded \\d+ images/', { timeout: 20000 });
   const packMsg = await p.locator('text=/Loaded \\d+ images/').first().innerText();

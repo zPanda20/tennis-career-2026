@@ -8,15 +8,23 @@ import { EVENTS, LifeEv } from './narrative';
 import { rngOf } from './rng';
 import { CH_WC_PER_SEASON, chRule, chWcUsed, eventCost, weeklyGuaranteed } from './tour';
 import { ABILITIES, Edition, State } from './types';
+import { JCUTS, edVal } from './juniors';
+import { blockedWeek, pathKind, PART_TIME_EVENTS, eventsUsed } from './path';
 import { strength } from './world';
 
 export type EntryStatus = 'accepted' | 'likely qualifying' | 'alternate' | 'unlikely' | 'wildcard' | 'not eligible';
 export function cutsFor(S: State, ed: Edition): [number, number] {
+  if (ed.band === 'J') { const m = S.memo[ed.series]; return m && m.cut < 9999 ? [m.cut, Math.max(m.cut, m.qcut < 9999 ? m.qcut : m.cut * 2)] : JCUTS[ed.jl ?? 30]; }
   const m = S.memo[ed.series]; if (m && m.cut < 9999) return [m.cut, Math.min(m.qcut, m.cut * 2.2)];
   const b = S.bandMemo[ed.band]; if (b && b.n >= 3) return [b.cut, b.qcut];
   return CUTS[ed.band === 'T1000' && ed.draw < 96 ? 'T1000s' : ed.band];
 }
 export function estimate(S: State, ed: Edition): EntryStatus {
+  if (ed.band === 'J') {
+    const me = S.players[S.userId], ranked = (S.jorder ?? []).filter(id => (S.jpts?.[id] ?? 0) > 0).length, jr = Math.min(S.jrank?.[S.userId] ?? 9999, ranked + 1), [c, q] = cutsFor(S, ed); // unranked juniors line up behind the ranked ones if (!me.junior) return 'not eligible';
+    if (ed.jl === 750) return jr <= 8 ? 'accepted' : 'not eligible';
+    return jr <= c * 0.95 ? 'accepted' : jr <= q * 0.92 ? 'likely qualifying' : jr <= q * 1.15 ? 'alternate' : 'unlikely';
+  }
   const r = S.rank[S.userId], [cut, qcut] = cutsFor(S, ed), me = S.players[S.userId], rule = chRule(S, ed, r);
   if (rule === 'no' || (rule === 'wc' && chWcUsed(S) >= CH_WC_PER_SEASON)) return 'not eligible';
   if (rule === 'wc') return 'wildcard';
@@ -32,16 +40,22 @@ export function blockWeeks(S: State, block = S.block): number[] {
 }
 export interface Option { ed: Edition; status: EntryStatus; p: number; C: number; cost: number; tc: number; oppRank: number; ePrize: number }
 export function optionFor(S: State, ed: Edition): Option {
-  const me = S.players[S.userId], status = estimate(S, ed), [cut] = cutsFor(S, ed);
-  const oppRank = Math.max(1, Math.min(S.order.length, Math.round(status === 'accepted' ? Math.min(cut, 9998) * 0.55 : Math.min(cut, 900) * 1.15)));
-  const opp = S.players[S.order[oppRank - 1]] ?? me;
+  const me = S.players[S.userId], status = estimate(S, ed), [cut] = cutsFor(S, ed), J = ed.band === 'J', order = J ? S.jorder ?? [] : S.order;
+  const oppRank = Math.max(1, Math.min(order.length, Math.round(status === 'accepted' ? Math.min(cut, 9998) * 0.55 : Math.min(cut, 900) * 1.15)));
+  const opp = S.players[order[oppRank - 1]] ?? me;
   const p = opp === me ? 0.5 : expectedWin(me, opp, { surface: ed.surface, bestOf: 3, tb10: false, tour: S.tour }, true);
   const C = 0.1 + 0.9 * Math.exp(-(((p - 0.5) / DEV.cWidth) ** 2));
   const P = PRIZE[ed.band]; let ePrize = P.floor, reach = 1;
+  if (J) return { ed, status, p, C, cost: eventCost(S, ed), tc: travelClass(homeOf(S), ed.country), oppRank, ePrize: 0 };
   for (const k of ['R32', 'R16', 'QF', 'SF', 'F', 'W']) { reach *= p; ePrize += reach * Math.max(0, P.champ * (PRIZE_MULT[k] ?? 0) - (k === 'R32' ? P.floor : P.champ * (PRIZE_MULT[{ R16: 'R32', QF: 'R16', SF: 'QF', F: 'SF', W: 'F' }[k] as string] ?? 0))); }
   return { ed, status, p, C, cost: eventCost(S, ed), tc: travelClass(homeOf(S), ed.country), oppRank, ePrize: Math.round(ePrize * (status === 'accepted' ? 1 : 0.45)) };
 }
-export const eventsInWeek = (S: State, wk: number) => S.cal.filter(e => e.startWk === wk && e.band !== 'F' && !e.cancelled && !e.done && e.entryWk >= S.wk);
+export function eventsInWeek(S: State, wk: number) {
+  const junior = !!S.players[S.userId]?.junior, blocked = !!blockedWeek(S, wk);
+  return S.cal.filter(e => e.startWk === wk && e.band !== 'F' && !e.cancelled && !e.done && e.entryWk >= S.wk && (e.band === 'J' ? junior : !blocked));
+}
+/** Pro events still allowed this season on the academy + part-time path (Infinity otherwise). */
+export const eventsLeft = (S: State) => (pathKind(S) === 'academy' ? Math.max(0, PART_TIME_EVENTS - eventsUsed(S)) : Infinity);
 
 export interface Route { key: 'development' | 'breakthrough' | 'recovery' | 'earnings'; label: string; intent: string; weeks: Record<number, string>; picks: Option[]; why: string[]; cost: number; trainWeeks: number; recommended?: boolean }
 const ACC: Record<EntryStatus, number> = { accepted: 1, 'likely qualifying': 0.75, alternate: 0.3, unlikely: 0, wildcard: 0, 'not eligible': 0 };
@@ -51,15 +65,16 @@ export function routes(S: State): Route[] {
   const budget = u.cash + Math.max(0, weeklyGuaranteed(S)) * weeks.length;
   const build = (key: Route['key'], label: string, intent: string, n: number, score: (o: Option) => number, reserve: number): Route => {
     const sorted = opts.map(o => ({ o, s: score(o) })).filter(x => x.s > 0).sort((a, b) => b.s - a.s);
-    const busy = new Set<number>(), picks: Option[] = []; let cost = 0;
+    const busy = new Set<number>(), picks: Option[] = [], left = eventsLeft(S); let cost = 0, pro = 0;
     const runLen = (w: number) => { let k = 1; for (let i = w - 1; busy.has(i); i--) k++; for (let i = w + 1; busy.has(i); i++) k++; return k; };
     for (const { o } of sorted) {
       if (picks.length >= n) break;
+      if (o.ed.band !== 'J' && pro >= left) continue;
       const w = o.ed.startWk, need = [w]; if (o.ed.weeks === 2) need.push(w + 1); if (o.ed.band === 'GS' && o.status !== 'accepted') need.push(w - 1);
       if (need.some(x => busy.has(x) || (x !== w - 1 && !weeks.includes(x) && x < weeks[0]))) continue;
       if (o.ed.band !== 'GS' && runLen(w) > (key === 'recovery' ? 1 : 2)) continue;
       if (budget - cost - o.cost < reserve && (o.tc === 2 || (o.tc === 1 && picks.length >= 3))) continue; // short trips stay possible through basic support
-      need.forEach(x => busy.add(x)); picks.push(o); cost += o.cost;
+      need.forEach(x => busy.add(x)); picks.push(o); cost += o.cost; if (o.ed.band !== 'J') pro++;
     }
     picks.sort((a, b) => a.ed.startWk - b.ed.startWk);
     const why: string[] = [], avgP = picks.reduce((t, o) => t + o.p, 0) / (picks.length || 1), unsure = picks.find(o => o.status === 'alternate' || o.status === 'unlikely'), longTrips = picks.filter(o => o.tc === 2).length;
@@ -74,8 +89,8 @@ export function routes(S: State): Route[] {
   };
   const tcf = (o: Option) => (o.tc === 0 ? 1 : o.tc === 1 ? 0.9 : 0.7), n = weeks.length >= 16 ? 6 : weeks.length >= 10 ? 5 : weeks.length >= 7 ? 4 : Math.max(1, Math.round(weeks.length / 2));
   const out = [
-    build('development', 'Development', 'Matches you can learn from, close to your level', n, o => o.C * ACC[o.status] * tcf(o) * (1 + Math.log10(BAND_VAL[o.ed.band]) * 0.04), ECON.reserve),
-    build('breakthrough', 'Breakthrough', 'Stronger fields and bigger points, with less certain entry', n, o => Math.sqrt(BAND_VAL[o.ed.band]) * (o.status === 'accepted' ? 1 : o.status === 'likely qualifying' ? 0.8 : o.status === 'alternate' ? 0.45 : 0) * (0.25 + o.p) * (0.8 + 0.2 * tcf(o)), 0),
+    build('development', 'Development', 'Matches you can learn from, close to your level', n, o => o.C * ACC[o.status] * tcf(o) * (1 + Math.log10(edVal(o.ed)) * 0.04), ECON.reserve),
+    build('breakthrough', 'Breakthrough', 'Stronger fields and bigger points, with less certain entry', n, o => Math.sqrt(edVal(o.ed)) * (o.ed.band === 'J' ? 1.6 : 1) * (o.status === 'accepted' ? 1 : o.status === 'likely qualifying' ? 0.8 : o.status === 'alternate' ? 0.45 : 0) * (0.25 + o.p) * (0.8 + 0.2 * tcf(o)), 0),
     build('recovery', 'Recovery', 'Fewer events, less travel, more time to rebuild', Math.max(1, Math.ceil(n / 2)), o => (o.tc <= 1 ? 1 : 0) * (0.4 + o.C) * ACC[o.status] * (o.tc === 0 ? 1 : 0.8) * (o.ed.weeks === 2 ? 0.5 : 1), ECON.reserve),
   ];
   if (u.cash < 6000 || S.rank[S.userId] > 150) out.push(build('earnings', 'Earnings', 'Events most likely to pay for themselves', n + 1, o => Math.max(0, o.ePrize - o.cost * 0.8 + 200) * ACC[o.status] * (o.status === 'alternate' ? 0 : 1), ECON.reserve));

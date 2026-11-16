@@ -13,6 +13,9 @@ import { getSetting, setSetting } from '../persist/db';
 import { MATCH_MODES, MatchModePicker } from './Live';
 import { GoalsCard, NewsCard, NewsList, NewsTicker, RivalAlert, RivalTag, nextMeeting, useWatchControls } from './Extras';
 import { newsSince } from '../core/news';
+import { PathDecisionSection, defaultPath } from './Junior';
+import { PART_TIME_EVENTS, PATHS, eventsUsed, pathKind } from '../core/path';
+import type { PathChoice } from '../core/types';
 
 const PRIORITIES: [Priority, string, string][] = [['prep', 'Focused preparation', 'More useful training; morale can dip under sustained pressure'], ['recovery', 'Recovery', 'Faster recovery on free weeks; less skill training'], ['social', 'Social life', 'Morale rises; a little sharpness lost to late nights'], ['relationship', 'Relationship time', 'Support and morale; relationships deepen'], ['professional', 'Professional commitments', 'Reputation and sponsor relations; some training time']];
 const INTENS: [Intensity, string, string][] = [['relaxed', 'Relaxed', 'Maintenance, kind to the body'], ['normal', 'Normal', 'The sustainable default'], ['intense', 'Intense', 'More growth, more overload risk']];
@@ -95,7 +98,7 @@ export function Home({ S }: { S: State }) {
           {S.phase === 'yearEnd' && <YearEnd S={S} />}
           {S.phase === 'retired' && <><span className="kicker">Career complete</span><h1 className="mega"><span>Game,</span><span className="ol">set, match</span></h1><p className="lede">{me.name} has retired. The full review and exports are in Records.</p><button className="cta" onClick={() => set({ tab: 'records' })}>Career review<span className="go"><Arrow /></span></button></>}
         </div>
-        <div className="medal">
+        {me.junior ? <JuniorMedal S={S} /> : <div className="medal">
           <Ring value={tgt ? tgt.frac : 1} size={300} stroke={16} label={`World ranking ${S.rank[me.id] ?? 'unranked'}${tgt ? `, ${Math.round(tgt.frac * 100)} percent of the way to the top ${tgt.t}` : ''}`}>
             <span className="lbl">World rank</span>
             <span className="big">{S.rank[me.id] ?? '–'}</span>
@@ -103,7 +106,8 @@ export function Home({ S }: { S: State }) {
           </Ring>
           {tgt && <div className="target"><b>{S.pts[me.id] ?? 0} / {tgt.need} pts to the top {tgt.t}</b><small>{tgt.hint}</small></div>}
           {!tgt && S.rank[me.id] === 1 && <div className="target"><b>World No. 1</b></div>}
-        </div>
+          {u.stage === 'path' && <div className="target"><b>{PATHS[u.path!.kind].name}</b><small>Season {S.year - u.path!.from + 1} of 4{pathKind(S) === 'academy' ? ` · ${Math.max(0, PART_TIME_EVENTS - eventsUsed(S))} pro events left` : ''}</small></div>}
+        </div>}
       </section>
 
       <NewsTicker S={S} />
@@ -113,7 +117,7 @@ export function Home({ S }: { S: State }) {
           {S.lastSummary && S.phase !== 'yearEnd' && <LastBlock S={S} />}
           {S.lastSummary?.notes.map((n, i) => <p key={i} className="note">{n}</p>)}
           {S.lastSummary?.follow.map((n, i) => <p key={i} className="note story">{fillText(S, n)}</p>)}
-          {!S.lastSummary && S.phase === 'plan' && <div className="glass"><p className="eyebrow">Welcome to the tour</p><p className="story">You start 2026 ranked {S.rank[me.id]}, on the lower tour. Plan your first swing, play the weeks, and watch the ring fill.</p></div>}
+          {!S.lastSummary && S.phase === 'plan' && <div className="glass"><p className="eyebrow">{me.junior ? 'Welcome to the junior tour' : 'Welcome to the tour'}</p><p className="story">{me.junior ? `You start 2026 as a 16-year-old, ranked ${S.jrank?.[me.id] ?? '–'} in the ITF junior ranking. Junior events earn junior points only; once you are strong enough, pro ITF events start to pay and earn world ranking points. The big decision comes at 18.` : `You start 2026 ranked ${S.rank[me.id]}, on the lower tour. Plan your first swing, play the weeks, and watch the ring fill.`}</p></div>}
           <NewsCard S={S} />
         </div>
         <div className="col">
@@ -132,10 +136,25 @@ export function Home({ S }: { S: State }) {
             {u.sponsors.length > 0 && <div className="brands">{u.sponsors.map(s => <BrandMark key={s.id} sp={s} />)}</div>}
           </section>
           {u.ach.length > 0 && <section className="glass"><div className="sec-head"><h3>Milestones</h3></div><ul className="plain">{u.ach.slice(-4).reverse().map(a => <li key={a.id}><b>{a.name}</b> <small>{a.date.slice(0, 4)}</small></li>)}</ul></section>}
-          {S.phase === 'plan' && !ro && <button className="btn ghost small" onClick={() => { if (confirm('Retire now? Your career will be closed and frozen. This cannot be undone.')) dispatch({ type: 'Retire' }, 'Closing your career').then(ok => ok && set({ tab: 'records' })); }}>Retire from professional tennis</button>}
+          {S.phase === 'plan' && !ro && <button className="btn ghost small" onClick={() => { if (confirm('Retire now? Your career will be closed and frozen. This cannot be undone.')) dispatch({ type: 'Retire' }, 'Closing your career').then(ok => ok && set({ tab: 'records' })); }}>{u.stage === 'pro' || !u.jstart ? 'Retire from professional tennis' : 'Stop playing tennis'}</button>}
         </div>
       </div>
     </>
+  );
+}
+const JT = [500, 300, 200, 150, 100, 75, 50, 30, 20, 10, 5, 3, 2, 1];
+function JuniorMedal({ S }: { S: State }) {
+  const me = S.players[S.userId], jr = S.jrank?.[me.id] ?? 9999, my = S.jpts?.[me.id] ?? 0, t = JT.find(x => x < jr), need = t ? (S.jpts?.[S.jorder![t - 1]] ?? 0) + 1 : 0;
+  const pro = S.pts[me.id] > 0 ? S.rank[me.id] : null;
+  return (
+    <div className="medal">
+      <Ring value={t ? Math.min(0.99, my / Math.max(1, need)) : 1} size={300} stroke={16} label={`Junior ranking ${jr < 9999 ? jr : 'unranked'}`}>
+        <span className="lbl">Junior rank</span><span className="big">{jr < 9999 ? jr : '–'}</span>
+        <span className="delta">{pro ? `World No. ${pro}` : 'No world ranking yet'}</span>
+      </Ring>
+      {t && <div className="target"><b>{my} / {need} pts to the junior top {t}</b><small>Your best six junior results of the last 52 weeks count</small></div>}
+      {!t && <div className="target"><b>Junior world No. 1</b></div>}
+    </div>
   );
 }
 function LastBlock({ S }: { S: State }) {
@@ -182,15 +201,16 @@ function Interrupt({ S }: { S: State }) {
 }
 function YearEnd({ S }: { S: State }) {
   const u = S.u, pend = S.pending!, s = u.seasons[u.seasons.length - 1], { save } = useApp(), ro = save === 'readonly';
-  const [coach, setCoach] = useState('keep'), [sp, setSp] = useState<Record<string, string>>({}), [ret, setRet] = useState(false);
+  const [coach, setCoach] = useState('keep'), [sp, setSp] = useState<Record<string, string>>({}), [ret, setRet] = useState(false), [path, setPath] = useState<PathChoice | undefined>(defaultPath(S));
   if (pend.type === 'forcedRetire') return <><span className="kicker">End of the {s.year} season</span><h1 className="mega"><span>Time to say</span><span className="ol">goodbye</span></h1><p className="lede">{pend.text}</p><button className="cta" disabled={ro} onClick={() => dispatch({ type: 'YearEnd', coach: 'keep', sponsors: [], retire: false }, 'Closing your career').then(ok => ok && set({ tab: 'records' }))}>Career review<span className="go"><Arrow /></span></button></>;
   const slots = ['apparel', 'racket', 'partner'].filter(sl => pend.sponsorOffers?.some(o => o.slot === sl));
   return (
     <>
       <span className="kicker">Season review</span>
-      <h1 className="mega"><span>{s.year}</span><span className="ol">year-end {s.rank}</span></h1>
+      <h1 className="mega"><span>{s.year}</span><span className="ol">{s.jrank ? (s.jrank < 9999 ? `junior No. ${s.jrank}` : 'junior, unranked') : `year-end ${s.rank}`}</span></h1>
       <div className="stats"><Stat k="Record" v={`${s.w}–${s.l}`} sub={`${s.events} events`} /><Stat k="Titles" v={s.titles} sub={`${s.finals} finals`} /><Stat k="Best major" v={s.majorsBest === '–' ? '–' : headline(s.majorsBest)} /><Stat k="Prize" v={money(s.prize)} /><Stat k="Growth" v={`+${s.dev.toFixed(1)}`} sub={`${Math.round((s.devComp / (s.dev || 1)) * 100)}% from matches`} /><Stat k="Weeks injured" v={s.injWeeks} /></div>
       {(u.goals ?? []).some(g => g.year === s.year) && <div style={{ marginTop: '1rem' }}><GoalsCard S={S} year={s.year} title={`${s.year} season goals`} /></div>}
+      <PathDecisionSection S={S} value={path} onChange={setPath} />
       {u.finalSeasonWarned && <p className="warn-box">Next season is your final eligible season: the age ceiling closes a career at the end of the season in which a player turns 40.</p>}
       <h2 style={{ marginTop: '1.2rem' }}>Coaching</h2>
       <div className="choice-grid coachgrid" role="radiogroup" aria-label="Coach for next season">
@@ -203,8 +223,9 @@ function YearEnd({ S }: { S: State }) {
           <button className={`choice slim ${!sp[sl] ? 'on' : ''}`} role="radio" aria-checked={!sp[sl]} onClick={() => setSp({ ...sp, [sl]: '' })}><b>No deal</b></button>
           {pend.sponsorOffers!.filter(o => o.slot === sl).map(o => <button key={o.id} className={`choice slim ${sp[sl] === o.id ? 'on' : ''}`} role="radio" aria-checked={sp[sl] === o.id} onClick={() => setSp({ ...sp, [sl]: o.id })}><SponsorOffer o={o} /></button>)}
         </div>))}</>}
-      <label className="check"><input type="checkbox" checked={ret} onChange={e => setRet(e.target.checked)} /><span>Retire now instead of playing {S.year}<small>Closes and freezes the career.</small></span></label>
-      <div className="row"><button className="cta" disabled={ro} onClick={() => { if (ret && !confirm('Retire now? This cannot be undone.')) return; dispatch({ type: 'YearEnd', coach, sponsors: Object.values(sp).filter(Boolean), retire: ret }, ret ? 'Closing your career' : `Welcome to ${S.year}`).then(ok => ok && ret && set({ tab: 'records' })); }}>{ret ? 'Retire' : `Start ${S.year}`}<span className="go"><Arrow /></span></button></div>
+      {!pend.path && <label className="check"><input type="checkbox" checked={ret} onChange={e => setRet(e.target.checked)} /><span>Retire now instead of playing {S.year}<small>Closes and freezes the career.</small></span></label>}
+      {(() => { const quit = ret || path === 'quit', need = !!pend.path && !path; return (
+        <div className="row"><button className="cta" disabled={ro || need} onClick={() => { if (quit && !confirm(path === 'quit' ? 'Stop playing? The career will be closed. This cannot be undone.' : 'Retire now? This cannot be undone.')) return; dispatch({ type: 'YearEnd', coach, sponsors: Object.values(sp).filter(Boolean), retire: ret, path }, quit ? 'Closing your career' : `Welcome to ${S.year}`).then(ok => ok && quit && set({ tab: 'records' })); }}>{need ? 'Choose your path first' : quit ? (path === 'quit' ? 'Stop playing' : 'Retire') : `Start ${S.year}`}<span className="go"><Arrow /></span></button></div>); })()}
     </>
   );
 }
@@ -276,7 +297,7 @@ export function Planner({ S }: { S: State }) {
                 <div key={w} className="week">
                   <label htmlFor={`wk${w}`}><b>{fmtShort(wkDate(w))}</b></label>
                   {why ? <span className="muted">Occupied: {why}</span> : <select id={`wk${w}`} value={plan[w] ?? ''} onChange={e => setWeek(w, e.target.value)}><option value="">Train this week</option>{evs.map(o => <option key={o.ed.id} value={o.ed.id} disabled={o.status === 'not eligible'}>{o.ed.name} · {o.ed.cat} · {o.ed.surface} · {STATUS[o.status][0]} · {money(o.cost)}</option>)}</select>}
-                  {cur && !why && <small>{BAND_NAME[cur.ed.band]} in {cur.ed.city}. Against a typical opponent you'd be {cur.p < 0.35 ? 'the underdog' : cur.p > 0.65 ? 'the favourite' : 'evenly matched'}{cur.ed.prov ? '. Provisional calendar entry' : ''}{cur.ed.weeks === 2 ? '. Runs two weeks' : ''}.</small>}
+                  {cur && !why && <small>{cur.ed.band === 'J' ? cur.ed.cat : BAND_NAME[cur.ed.band]} in {cur.ed.city}. Against a typical opponent you'd be {cur.p < 0.35 ? 'the underdog' : cur.p > 0.65 ? 'the favourite' : 'evenly matched'}{cur.ed.prov ? '. Provisional calendar entry' : ''}{cur.ed.weeks === 2 ? '. Runs two weeks' : ''}.</small>}
                 </div>);
             })}
           </div>}

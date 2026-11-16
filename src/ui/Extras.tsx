@@ -8,7 +8,7 @@ import { newsSince } from '../core/news';
 import { RIVAL_MEETINGS, playedVs, rivalCandidates, rivalFit, rivalIn, rivalsIn } from '../core/rivals';
 import { roundName } from '../core/selectors';
 import type { Band, Edition, Goal, News, State, UTourney } from '../core/types';
-import { Avatar, EvName, Flag, Modal, money, rankTxt } from './bits';
+import { Avatar, EvName, Flag, Modal, money, rankOf } from './bits';
 import { Ring } from './fx';
 import { dispatch, set, useApp } from './store';
 
@@ -30,7 +30,7 @@ export function RivalCard({ S, id }: { S: State; id: string }) {
         <div className="grow">
           <span className="kicker">{isRival ? 'Confirmed rival' : denied ? 'Not a rival' : `Met ${ms.length} times`}</span>
           <h2 className="display" style={{ margin: '.3rem 0' }}><Flag c={p.country} size={22} /> {p.name}</h2>
-          <p className="muted">{p.retired ? `Retired after ${p.retired}` : rankTxt(S.rank[id])} · career high {p.bestRank < 9999 ? p.bestRank : '–'} · {p.titles} titles{p.majors ? `, ${p.majors} majors` : ''}</p>
+          <p className="muted">{p.retired ? `Retired after ${p.retired}` : rankOf(S, id)} · career high {p.bestRank < 9999 ? p.bestRank : '–'} · {p.titles} titles{p.majors ? `, ${p.majors} majors` : ''}</p>
         </div>
         <div className="h2h-big" aria-label={`Head to head ${fit.w} wins, ${fit.l} losses`}><span className={fit.w >= fit.l ? 'lead' : ''}>{fit.w}</span><i>–</i><span className={fit.l > fit.w ? 'lead' : ''}>{fit.l}</span><small>head to head</small></div>
       </div>
@@ -102,7 +102,7 @@ export function RivalAlert({ S }: { S: State }) {
 
 export function RivalsSection({ S }: { S: State }) {
   const u = S.u, cands = rivalCandidates(S);
-  const row = (id: string, tag: string) => { const ms = playedVs(S, id), w = ms.filter(m => m.won).length; return <li key={id}><button className="rowbtn" onClick={() => set({ overlay: { kind: 'rival', id } })}><Avatar p={S.players[id]} size={40} /><span className="grow"><b>{S.players[id]?.name}</b><small>{rankTxt(S.rank[id])} · {tag}</small></span><span className="num pts">{w}–{ms.length - w}</span></button></li>; };
+  const row = (id: string, tag: string) => { const ms = playedVs(S, id), w = ms.filter(m => m.won).length; return <li key={id}><button className="rowbtn" onClick={() => set({ overlay: { kind: 'rival', id } })}><Avatar p={S.players[id]} size={40} /><span className="grow"><b>{S.players[id]?.name}</b><small>{rankOf(S, id)} · {tag}</small></span><span className="num pts">{w}–{ms.length - w}</span></button></li>; };
   return (
     <section className="sec">
       <div className="sec-head"><h3>Rivals</h3><small>a card appears after {RIVAL_MEETINGS} meetings</small></div>

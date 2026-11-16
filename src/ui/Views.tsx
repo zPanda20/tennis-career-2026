@@ -10,13 +10,14 @@ import { SNAPSHOT_NOTE, ageOn, countryName, fmtDate, fmtShort, wkDate } from '..
 import { h2h, legacy, notableWins, peakSnap, retireSnap, retrospective, roundName, totals } from '../core/selectors';
 import { ABILITIES, ABILITY_NAMES, Ability, STYLE_NAMES, State, UMatch } from '../core/types';
 import { strength } from '../core/world';
-import { Avatar, Bar, BrandMark, EventLogo, Modal, Pill, Section, Stat, SurfaceTag, Who, money, rankTxt } from './bits';
+import { Avatar, Bar, BrandMark, EventLogo, Modal, Pill, Section, Stat, SurfaceTag, Who, money, rankOf, rankTxt } from './bits';
 import { clearPack, importAssetFile, importPack } from './pack';
 import { Momentum } from './fx';
 import { EvName, Flag, portraitFromFile } from './bits';
 import { dispatch, exportBackup, get, set, useApp } from './store';
 import { RivalsSection, TrophyCabinet } from './Extras';
 import { RIVAL_MEETINGS } from '../core/rivals';
+import { edVal, jLabel } from '../core/juniors';
 import { exportArchive, exportPdf } from '../export/pdf';
 
 const ABILITY_HELP: Record<Ability, string> = { serve: 'First and second serve effectiveness', ret: 'Neutralising serves and starting rallies', fh: 'Forehand rally control and finishing', bh: 'Backhand stability and attacking quality', net: 'Approach conversion and volleys', move: 'Court coverage and recovery between shots', end: 'Resistance to match fatigue', comp: 'Performance stability under pressure' };
@@ -29,6 +30,7 @@ export function Calendar({ S }: { S: State }) {
     for (const e of S.cal) {
       const mine = u.tourneys.find(t => t.ed === e.id), est = !e.done && e.entryWk >= S.wk && e.band !== 'F' ? estimate(S, e) : null;
       if (mode === 'main' && BAND_VAL[e.band] < 250) continue;
+      if (e.band === 'J' && !mine && !S.players[S.userId].junior && (mode !== 'all' || (e.jl ?? 0) < 500)) continue; // junior events: for juniors, plus the junior majors in the full view
       if (mode === 'relevant' && !mine && e.band !== 'GS' && (!est || est === 'unlikely' || est === 'not eligible')) continue;
       (map.get(e.startWk) ?? map.set(e.startWk, []).get(e.startWk)!).push(e);
     }
@@ -42,7 +44,7 @@ export function Calendar({ S }: { S: State }) {
       {weeks.map(([w, evs]) => (
         <section key={w} className={`agenda ${w < S.wk ? 'past' : ''}`}>
           <h3>{fmtShort(wkDate(w))}{w === S.wk ? <Pill tone="ok">This week</Pill> : null}</h3>
-          <ul className="list">{evs.sort((a, b) => BAND_VAL[b.band] - BAND_VAL[a.band]).map(e => {
+          <ul className="list">{evs.sort((a, b) => edVal(b) - edVal(a)).map(e => {
             const mine = u.tourneys.find(t => t.ed === e.id), est = !e.done && e.entryWk >= S.wk && e.band !== 'F' ? estimate(S, e) : null, champ = S.world.champs.find(c => c.ed === e.id);
             const inner = <>
               <EventLogo slam={e.slam} band={e.band} tour={S.tour} size={30} className="evlogo sm" />
@@ -86,7 +88,7 @@ export function PlayerView({ S }: { S: State }) {
   return (
     <div className="grid-2">
       <div className="col">
-        <div className="card idcard"><PortraitPicker S={S} /><div><h2 className="display">{me.name}</h2><p>{countryName(me.country)} · age {age(S, me.born)} · {me.hand === 'R' ? 'right-handed' : 'left-handed'} · {STYLE_NAMES[me.style].toLowerCase()}</p><p className="muted">{rankTxt(S.rank[me.id])} · {S.pts[me.id] ?? 0} points · career high {t.bestRank < 9999 ? t.bestRank : '–'}</p></div></div>
+        <div className="card idcard"><PortraitPicker S={S} /><div><h2 className="display">{me.name}</h2><p>{countryName(me.country)} · age {age(S, me.born)} · {me.hand === 'R' ? 'right-handed' : 'left-handed'} · {STYLE_NAMES[me.style].toLowerCase()}</p><p className="muted">{rankOf(S, me.id)} · {S.pts[me.id] ?? 0} points · career high {t.bestRank < 9999 ? t.bestRank : '–'}</p></div></div>
         <Section title="Abilities" aside={<small>1 to 100 · change over the last block</small>}>
           {ABILITIES.map(a => <div key={a}><Bar label={ABILITY_NAMES[a]} value={me.ab[a]} delta={sum?.dev[a]} /><p className="help">{ABILITY_HELP[a]}{u.injuries.some(i => i.perm?.some(p => p.ab === a)) ? ' · permanently reduced by injury' : ''}</p></div>)}
           <p className="muted">Started at {ABILITIES.map(a => `${ABILITY_NAMES[a]} ${Math.round(u.startAb[a])}`).join(', ')}.{pk ? ` Best overall level so far: ${pk.date.slice(0, 4)}, aged ${pk.age}.` : ''}</p>
@@ -165,7 +167,7 @@ export function PlayerCard({ S, id }: { S: State; id: string }) {
   return (
     <Modal title={p.name} onClose={() => set({ overlay: null })}>
       <div className="idcard"><Avatar p={p} size={84} user={p.user ? S.u.avatar : undefined} /><div><p>{countryName(p.country)} · {p.retired ? `retired after ${p.retired}` : `age ${age(S, p.born)}`} · {p.hand === 'R' ? 'right-handed' : 'left-handed'} · {STYLE_NAMES[p.style].toLowerCase()}</p>
-        <p className="muted">{p.retired ? '' : `${rankTxt(S.rank[id])} · `}career high {p.bestRank < 9999 ? p.bestRank : '–'} · {p.titles} titles since 2026{p.majors ? `, ${p.majors} majors` : ''}</p>
+        <p className="muted">{p.retired ? '' : `${rankOf(S, id)} · `}career high {p.bestRank < 9999 ? p.bestRank : '–'} · {p.titles} titles since 2026{p.majors ? `, ${p.majors} majors` : ''}{p.jbest ? ` · best junior ranking ${p.jbest}${p.jtitles ? `, ${p.jtitles} junior titles` : ''}` : ''}</p>
         {!p.real && !p.user && <Pill>Fictional player generated for this world</Pill>}{!p.retired && p.injuredUntil > S.wk && <Pill tone="warn">Currently unavailable</Pill>}</div></div>
       <Section title="Abilities" aside={<small>{p.real ? 'authored game estimates, not measurements' : p.user ? '' : 'generated'}</small>}><div className="mini-ab">{ABILITIES.map(a => <Stat key={a} k={ABILITY_NAMES[a]} v={Math.round(p.ab[a])} />)}</div></Section>
       {!p.user && w + l >= RIVAL_MEETINGS && <button className="btn rival-open" onClick={() => set({ overlay: { kind: 'rival', id } })}>⚔ {S.u.rivals.includes(id) ? 'Rival card' : 'Open rival card'}</button>}
@@ -246,7 +248,7 @@ export function Records({ S }: { S: State }) {
       <div className="grid-2"><Section title="Coaching history"><ul className="plain">{[...u.coachHistory, ...(retired ? [] : [u.coach])].map((c, i) => <li key={i}>{c.name} · {c.tier} · {c.since}–{(c as any).left ?? 'now'}</li>)}</ul></Section>
         <Section title="Sponsorship history">{u.sponsorHistory.length ? <ul className="plain">{u.sponsorHistory.map(s => <li key={s.id}><BrandMark sp={s} size={20} /> <small>{s.slot} · {s.since}–{s.until - 1}</small></li>)}</ul> : <p className="muted">None.</p>}</Section></div>
       <Section title={`Every tournament (${u.tourneys.length})`} aside={<button className="btn small" aria-expanded={all} onClick={() => setAll(!all)}>{all ? 'Hide' : 'Show'}</button>}>
-        {all && <div className="scroll" role="region" aria-label="All tournaments table" tabIndex={0}><table className="tbl"><thead><tr><th>Year</th><th>Tournament</th><th>Level</th><th>Entry</th><th>Result</th><th className="r">Pts</th><th className="r">Prize</th></tr></thead><tbody>{u.tourneys.map(x => <tr key={x.ed}><td>{x.year}</td><td><button className="link" style={{ textDecoration: 'none' }} onClick={() => set({ overlay: { kind: 'tourney', ed: x.ed } })}><EvName name={x.name} surface={x.surface} /></button></td><td>{BAND_NAME[x.band]}</td><td>{x.status}</td><td>{x.title ? 'Champion' : roundName(x.reached)}</td><td className="r num">{x.pts}</td><td className="r num">{money(x.prize)}</td></tr>)}</tbody></table></div>}
+        {all && <div className="scroll" role="region" aria-label="All tournaments table" tabIndex={0}><table className="tbl"><thead><tr><th>Year</th><th>Tournament</th><th>Level</th><th>Entry</th><th>Result</th><th className="r">Pts</th><th className="r">Prize</th></tr></thead><tbody>{u.tourneys.map(x => <tr key={x.ed}><td>{x.year}</td><td><button className="link" style={{ textDecoration: 'none' }} onClick={() => set({ overlay: { kind: 'tourney', ed: x.ed } })}><EvName name={x.name} surface={x.surface} /></button></td><td>{x.band === 'J' ? jLabel(x.jl ?? 30) : BAND_NAME[x.band]}</td><td>{x.status}</td><td>{x.title ? 'Champion' : roundName(x.reached)}</td><td className="r num">{x.pts}</td><td className="r num">{money(x.prize)}</td></tr>)}</tbody></table></div>}
       </Section>
     </div>
   );

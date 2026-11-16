@@ -12,17 +12,17 @@ export const RETIRE_AGE = 40; // spec
 // spec 13.2 ranking points by round lost (W, F, SF, QF, R16, R32, R64, R128)
 export const POINTS: Record<Band, number[]> = {
   GS: [2000, 1300, 800, 400, 200, 100, 50, 10], T1000: [1000, 650, 400, 200, 100, 50, 25, 10], T500: [500, 325, 195, 108, 54, 1, 0, 0],
-  T250: [250, 165, 100, 50, 25, 0, 0, 0], UL: [100, 60, 36, 20, 9, 0, 0, 0], SL: [50, 30, 18, 10, 4, 0, 0, 0], EP: [15, 8, 4, 2, 1, 0, 0, 0], F: [0, 0, 0, 0, 0, 0, 0, 0],
+  T250: [250, 165, 100, 50, 25, 0, 0, 0], UL: [100, 60, 36, 20, 9, 0, 0, 0], SL: [50, 30, 18, 10, 4, 0, 0, 0], EP: [15, 8, 4, 2, 1, 0, 0, 0], F: [0, 0, 0, 0, 0, 0, 0, 0], J: [0, 0, 0, 0, 0, 0, 0, 0],
 };
 export const ROUND_KEYS = ['W', 'F', 'SF', 'QF', 'R16', 'R32', 'R64', 'R128'];
-export const QUAL_POINTS: Record<Band, number> = { GS: 10, T1000: 5, T500: 5, T250: 5, UL: 2, SL: 2, EP: 0, F: 0 }; // spec
+export const QUAL_POINTS: Record<Band, number> = { GS: 10, T1000: 5, T500: 5, T250: 5, UL: 2, SL: 2, EP: 0, F: 0, J: 0 }; // spec
 export const FINALS_POINTS = { rr: 200, sf: 400, f: 500 }; // spec
 export const BEST_N = 18; // spec
 
 // spec 11.3 fictional economy (career dollars)
 export const PRIZE: Record<Band, { champ: number; floor: number }> = {
   EP: { champ: 3000, floor: 100 }, SL: { champ: 12000, floor: 400 }, UL: { champ: 30000, floor: 1000 }, T250: { champ: 80000, floor: 3000 },
-  T500: { champ: 180000, floor: 5000 }, T1000: { champ: 400000, floor: 8000 }, GS: { champ: 1000000, floor: 20000 }, F: { champ: 250000, floor: 60000 },
+  T500: { champ: 180000, floor: 5000 }, T1000: { champ: 400000, floor: 8000 }, GS: { champ: 1000000, floor: 20000 }, F: { champ: 250000, floor: 60000 }, J: { champ: 0, floor: 0 },
 };
 export const PRIZE_MULT: Record<string, number> = { W: 1, F: 0.55, SF: 0.3, QF: 0.16, R16: 0.08, R32: 0.04 };
 export const ECON = { startCash: 12000, support: 500, essentials: 350, reserve: 1000, local: [400, 800], regional: [900, 1500], inter: [2000, 3500] };
@@ -77,8 +77,8 @@ export const STYLE_OFF: Record<Style, Record<Ability, number>> = {
 };
 // Default acceptance cut-offs (last direct rank, last qualifying rank) until a series has its own history
 export const CUTS: Record<string, [number, number]> = { GS: [104, 232], T1000: [85, 140], T1000s: [50, 85], T500: [60, 110], T250: [95, 170], UL: [230, 380], SL: [420, 620], EP: [640, 960], F: [8, 8] };
-export const BAND_NAME: Record<Band, string> = { GS: 'Grand Slam', F: 'Tour Finals', T1000: 'Tour 1000', T500: 'Tour 500', T250: 'Tour 250', UL: 'Upper lower tour', SL: 'Strong lower tour', EP: 'Entry professional' };
-export const BAND_VAL: Record<Band, number> = { GS: 2000, F: 1500, T1000: 1000, T500: 500, T250: 250, UL: 100, SL: 50, EP: 15 };
+export const BAND_NAME: Record<Band, string> = { GS: 'Grand Slam', F: 'Tour Finals', T1000: 'Tour 1000', T500: 'Tour 500', T250: 'Tour 250', UL: 'Upper lower tour', SL: 'Strong lower tour', EP: 'Entry professional', J: 'Junior' };
+export const BAND_VAL: Record<Band, number> = { GS: 2000, F: 1500, T1000: 1000, T500: 500, T250: 250, UL: 100, SL: 50, EP: 15, J: 1 };
 export const BLOCKS = [0, 12, 22, 30]; // first week index of blocks A–D (spec 4.2)
 export const BLOCK_NAMES = ['Block A · January to March', 'Block B · April to the clay major', 'Block C · June and July', 'Block D · August to year end'];
 export const RULES_SUMMARY = [

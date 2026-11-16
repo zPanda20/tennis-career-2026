@@ -3,6 +3,7 @@
 import { BALANCE_VERSION, BEST_N, DEV, ECON, ENGINE_VERSION, LEVEL, PEAK_W, SCHEMA_VERSION, START_COND, START_PTS, START_YEAR, STYLE_OFF, WORLD_SIZE, lerpTable } from './balance';
 import { Content, RealPlayer, absOf, ageOn, fmtShort, iso, playerId, wkDate, weeksIn } from './content';
 import { genName, supportName } from './names';
+import { SPEED_MIX, gapAt, jpublish, juniorCalendar, makeJunior, seedJuniorPoints } from './juniors';
 import { RNG_VERSION, Rng, clamp, rngOf, uuid } from './rng';
 import { ABILITIES, Abil, Ability, Coach, Edition, EvTemplate, Player, ProfileKind, Setup, State, Style, Surface, Tour } from './types';
 
@@ -53,6 +54,13 @@ export function newcomer(S: State, r: Rng, taken: Set<string>, year: number): Pl
   return p;
 }
 
+export const JCOHORT = 100; // juniors per birth year, per tour
+/** Builds a junior's player record at a given level (used by the junior pool and the yearly cohorts). */
+export function juniorMaker(id: string, name: string, country: string, born: string, level: number, style: Style, r: Rng): Player {
+  const p = basePlayer(id, name, country, born, r.chance(0.11) ? 'L' : 'R', 'atp', false, makeAbilities(level, style, r), style, r, +born.slice(0, 4) + 14);
+  return p;
+}
+
 export interface DrawCfg { qSpots: number; qSize: number; wc: number; direct: number; bracket: number }
 export function drawCfg(e: EvTemplate): DrawCfg {
   const d = e.draw, bracket = d > 64 ? 128 : d > 32 ? 64 : d > 8 ? 32 : 8;
@@ -65,6 +73,10 @@ export function drawCfg(e: EvTemplate): DrawCfg {
   return { qSpots: q, qSize: q * mult, wc, direct: d - q - wc, bracket };
 }
 export function buildCalendar(c: Content, tour: Tour, year: number): Edition[] {
+  const slams = c.events[tour].filter(t => t.slam).map(t => ({ slam: t.slam!, week: t.week, surface: t.surface, city: t.city, country: t.country, name: t.name }));
+  return [...proCalendar(c, tour, year), ...juniorCalendar(tour, year, slams)].sort((a, b) => a.startWk - b.startWk);
+}
+function proCalendar(c: Content, tour: Tour, year: number): Edition[] {
   return c.events[tour].map(t => {
     const startWk = absOf(year, t.week), cfg = drawCfg(t);
     const sunday = t.slam === 'ao' || t.slam === 'rg' || t.slam === 'uso' || t.band === 'F';
@@ -102,6 +114,7 @@ export function publish(S: State, count = false) {
   S.rank = {}; S.pts = {}; S.order = rows.map(r => r.id);
   rows.forEach((r, i) => { S.rank[r.id] = i + 1; S.pts[r.id] = r.pts; const p = S.players[r.id]; if (i + 1 < p.bestRank && r.pts > 0) p.bestRank = i + 1; });
   if (count) { const top = S.order[0]; S.world.no1[top] = (S.world.no1[top] ?? 0) + 1; }
+  jpublish(S);
 }
 function seedResults(p: Player, pts: number, r: Rng, n?: number) {
   if (pts <= 0) return;
@@ -165,6 +178,10 @@ export function createCareer(setup: Setup, c: Content, nowUtc: string): State {
   let prev = Infinity;
   for (let rank = 1; rank <= WORLD_SIZE; rank++) { const p = byRank.get(rank)!; const x = Math.min(prev, ptsOf.get(p.id)!); prev = x; S.players[p.id] = p; S.active.push(p.id); seedResults(p, x, rngOf(seed, 'pre', p.id)); }
 
+  // ---- the junior world: five birth years of juniors, aged 14 to 18 in the first season ----
+  const jr = rngOf(seed, 'juniors');
+  for (let by = START_YEAR - 18; by <= START_YEAR - 14; by++) for (let i = 0; i < JCOHORT; i++) { const p = makeJunior(S, jr, taken, by, juniorMaker); S.players[p.id] = p; S.active.push(p.id); }
+
   // ---- the user's player (spec 3) ----
   const ur = rngOf(seed, 'user');
   const selected = setup.profile !== 'unknown';
@@ -179,27 +196,34 @@ export function createCareer(setup: Setup, c: Content, nowUtc: string): State {
   const budget = 8 * 50.5, sum = ABILITIES.reduce((t, k) => t + ab[k], 0); // same starting budget for every profile
   for (const k of ABILITIES) ab[k] = k === 'move' || k === 'end' ? clamp(ab[k] + (budget - sum) / 8, 42, 64) : clamp(ab[k] + (budget - sum) / 8, 35, 58);
   const style: Style = setup.skills[0] === 'serve' ? (setup.skills[1] === 'net' ? 'N' : 'S') : setup.skills[0] === 'net' ? 'A' : setup.skills[0] === 'ret' || setup.skills[0] === 'move' || setup.skills[0] === 'end' ? 'C' : setup.skills[0] === 'comp' ? 'A' : 'B';
-  const born = `${START_YEAR - 19}-${String(setup.birthMonth).padStart(2, '0')}-${String(setup.birthDay).padStart(2, '0')}`;
-  const bornFixed = ageOn(born, new Date(Date.UTC(START_YEAR, 0, 1))) === 19 ? born : `${START_YEAR - 20}-${String(setup.birthMonth).padStart(2, '0')}-${String(setup.birthDay).padStart(2, '0')}`;
+  const junior = setup.start === 'junior', startAge = junior ? 16 : 19, md = `${String(setup.birthMonth).padStart(2, '0')}-${String(setup.birthDay).padStart(2, '0')}`;
+  const born = `${START_YEAR - startAge}-${md}`;
+  const bornFixed = ageOn(born, new Date(Date.UTC(START_YEAR, 0, 1))) === startAge ? born : `${START_YEAR - startAge - 1}-${md}`;
   const up = basePlayer(`user:${S.careerId}`, setup.name, setup.country, bornFixed, setup.hand, tour, false, ab, style, ur, START_YEAR);
   up.user = true;
   const [c0, c1] = DEV.ceil[kind], idx = ur.range(c0, c1);
+  const speed = !junior ? undefined : setup.speed && setup.speed !== 'unknown' ? setup.speed : ur.weighted(SPEED_MIX, s => s[1])[0];
+  if (junior) { // a 16-year-old: further from the ceiling, by how fast this player develops
+    const target = clamp(idx - gapAt(speed!, 16.5, idx) + ur.normal(0, 1.5), 39, 50), shift = target - strength(ab);
+    for (const k of ABILITIES) ab[k] = clamp(ab[k] + shift, 25, 70);
+    up.ab = { ...ab }; up.junior = true; up.jres = []; up.jtitles = 0; up.speed = speed; up.pot = idx; up.debut = START_YEAR + 2;
+  }
   for (const k of ABILITIES) up.ceil[k] = clamp(idx + (k === setup.skills[0] ? 3 : k === setup.skills[1] ? 1.5 : 0) + ur.normal(0, 3) - (k === 'net' ? 5 : 0), Math.max(ab[k] + 8, idx - 10), 99);
   up.lr = ur.range(DEV.lr[kind][0], DEV.lr[kind][1]); up.curve = ur.int(-3, 3); up.resil = ur.range(0.85, 1.2); up.injSus = ur.range(0.8, 1.2); up.declineAge = ur.int(29, 32);
   up.fam = setup.focusSurface === 'all' ? { hard: 50, clay: 50, grass: 50 } : { hard: 35, clay: 35, grass: 35, [setup.focusSurface]: 65 } as any;
   Object.assign(up, START_COND);
-  seedResults(up, ur.int(8, 18), ur, ur.int(4, 8));
+  if (!junior) seedResults(up, ur.int(8, 18), ur, ur.int(4, 8));
   S.players[up.id] = up; S.active.push(up.id); S.userId = up.id;
 
   // exceptional contemporaries for a GOAT-contention career (spec 3.4)
   if (kind === 'goat') {
-    const n = ur.int(2, 3), pool = S.active.map(id => S.players[id]).filter(p => !p.real && !p.user);
+    const n = ur.int(2, 3), pool = S.active.map(id => S.players[id]).filter(p => !p.real && !p.user), uy = +up.born.slice(0, 4);
     for (let i = 0; i < n; i++) {
-      const cand = ur.pick(pool.filter(p => { const a = START_YEAR - +p.born.slice(0, 4); return a >= 18 && a <= 21 && strength(p.ab) < 66 && strength(p.ceil) < 90; }));
+      const cand = ur.pick(pool.filter(p => { const a = START_YEAR - +p.born.slice(0, 4); return junior ? !!p.junior && Math.abs(+p.born.slice(0, 4) - uy) <= 1 && (p.pot ?? 0) < 90 : a >= 18 && a <= 21 && strength(p.ab) < 66 && strength(p.ceil) < 90; }));
       if (!cand) break;
       const target = ur.range(92, 98);
       for (const k of ABILITIES) cand.ceil[k] = clamp(target + ur.normal(0, 3) - (k === 'net' ? 5 : 0), cand.ab[k] + 6, 99);
-      cand.lr = ur.range(1.15, 1.4); cand.curve = ur.int(-2, 2);
+      cand.lr = ur.range(1.15, 1.4); cand.curve = ur.int(-2, 2); if (cand.junior) cand.pot = target;
     }
   }
   const coach = makeCoach(rngOf(seed, 'coach0'), 'starter', setup.country, START_YEAR, style);
@@ -209,6 +233,8 @@ export function createCareer(setup: Setup, c: Content, nowUtc: string): State {
     rankHist: [], pol: { detail: setup.detail, intensity: 'normal', focus: 'balanced', priority: 'prep', fallback: 'nearest', adult: setup.adult },
     rel: { coach: 55, agent: 50, friend: 55, partner: null }, startAb: { ...ab }, startRank: 0, portrait: setup.portrait, evSeen: {}, follow: [], blockMods: {}, devYear: { comp: 0, train: 0 }, injWeeksYear: 0, no1Weeks: 0, hardship: 0, lastOfferYear: START_YEAR, rivals: [],
   };
+  if (junior) Object.assign(S.u, { stage: 'junior', academy: setup.academy ?? 'club', jstart: true, college: [] });
+  seedJuniorPoints(S, rngOf(seed, 'jseed'));
   const cr = rngOf(seed, 'cast'); (S.u.rel as any).friendName = supportName(cr, setup.country, cr.chance(0.5)).split(' ')[0]; (S.u.rel as any).agentName = supportName(cr, cr.chance(0.5) ? setup.country : 'USA', cr.chance(0.4));
   publish(S);
   S.u.startRank = S.rank[up.id];

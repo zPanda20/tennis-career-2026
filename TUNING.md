@@ -39,3 +39,25 @@ Not yet measured: Unknown Prospect aggregate outcomes, injury-rate bands, and wh
 npm run balance -- atp goat 10
 npm test
 ```
+
+## Junior development (added November 2026)
+
+Source: an update of Reid et al. (2007), covering the 504 boys who finished a year in the ITF junior top 50 between 2004 and 2016, matched to their ATP careers. Targets and the game's results (`npx tsx tests/juniors.ts atp 3`, three worlds, juniors born 2008–2010 followed to the end of 2034):
+
+| Best junior ranking | Top 100 before 24 (data / game) | Ever top 50 | Ever top 10 | Median career high |
+|---|---|---|---|---|
+| 1–3 | 51% / 57% | 46% / 43% | 19% / 25% | 72 / 58 |
+| 4–10 | 29% / 27% | 24% / 20% | 5% / 5% | 154 / 137 |
+| 11–20 | 19% / 16% | 21% / 8% | 4% / 3% | 205 / 253 |
+| 21–50 | 10% / 5% | 10% / 4% | 4% / 2% | 336 / 372 |
+
+Ages: top-50 juniors' best ranking before 19 is 570 (data 745) and before 22 is 317 (data 342). Eventual top-10 players: best ranking before 19 about 256 (data about 190), before 22 about 30 (data about 25). First top 250 at about 20 and first top 100 at about 20–21 (data 21.0 and 22.2): the game's players arrive about a year early.
+
+The levers:
+- `GAP` in `src/core/juniors.ts` sets how far below their peak a junior is at each age, by development speed. It is used when juniors are created.
+- `SPEED_AGE` multiplies weekly growth by age and speed. Early developers grow fastest before 17; late developers grow fastest from 19 to 24.
+- `juniorPotential` sets the potential tail for each cohort. Each tour gets 100 new 14-year-olds a year.
+- `proShare` controls how much of a strong junior's schedule moves to ITF and Challenger events.
+- Graduation at 19 removes weaker juniors from the world. The quit chance rises below level 58, and is higher for players never ranked in the junior top 300.
+
+Small samples (about 30 juniors per band per run) make single bands noisy. Run 3 or more worlds before changing anything. Later cohorts, which are simulated from 14 rather than created at 16–18, can be checked with `npx tsx tests/juniors.ts atp 2 2038 2012 2013`.

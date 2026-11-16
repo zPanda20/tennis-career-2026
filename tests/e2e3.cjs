@@ -7,7 +7,7 @@ const { chromium } = require('playwright');
   const idle = () => p.waitForSelector('.busy', { state: 'detached', timeout: 180000 });
   const shot = n => p.screenshot({ path: `${out}/${n}.png` });
   const R = {};
-  await p.goto('http://localhost:4173/'); await p.click('text=Start a new career'); await p.click('text=Skip ahead with a random identity'); await p.click('button:has-text("Create career")'); await idle();
+  await p.goto('http://localhost:4173/'); await p.click('text=Start a new career'); await p.click('.choice:has-text("Age 19")'); await p.click('text=Skip ahead with a random identity'); await p.click('button:has-text("Create career")'); await idle();
   // block A by hand, watched set by set
   await p.click('button:has-text("Plan the swing")'); await p.locator('.dock .cta').click();
   if (await p.locator('[aria-label="Your decision"]').count()) { await p.locator('[aria-label="Your decision"] .choice').first().click(); await p.locator('.dock .cta').click(); }

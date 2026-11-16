@@ -1,6 +1,6 @@
 export type Tour = 'atp' | 'wta';
 export type Surface = 'hard' | 'clay' | 'grass';
-export type Band = 'GS' | 'F' | 'T1000' | 'T500' | 'T250' | 'UL' | 'SL' | 'EP';
+export type Band = 'GS' | 'F' | 'T1000' | 'T500' | 'T250' | 'UL' | 'SL' | 'EP' | 'J';
 export const ABILITIES = ['serve', 'ret', 'fh', 'bh', 'net', 'move', 'end', 'comp'] as const;
 export type Ability = (typeof ABILITIES)[number];
 export type Abil = Record<Ability, number>;
@@ -22,6 +22,7 @@ export interface Player { edge?: number;
   injuredUntil: number; commit: Record<number, string>; consec: number; lastWk: number;
   res: RankRec[]; debut: number; retired?: number; titles: number; majors: number; bestRank: number;
   wkCredit?: number; wkMatches?: number; wkSurf?: Surface;
+  junior?: boolean; jres?: { ed: string; pts: number; exp: number; yr: number }[]; jbest?: number; jtitles?: number; speed?: 'early' | 'steady' | 'late'; pot?: number; quit?: number;
 }
 
 export interface EvTemplate {
@@ -33,7 +34,7 @@ export interface Edition extends EvTemplate {
   id: string; year: number; startWk: number; entryWk: number; qSpots: number; qSize: number; wc: number; direct: number;
   md: string[]; q: string[]; alt: string[]; wcs: string[]; quals: string[];
   slots?: (string | null)[]; round?: number; done?: boolean; cancelled?: boolean; champion?: string; runnerUp?: string;
-  lost?: Record<string, string>; cut?: number; qcut?: number; log?: MatchLite[]; rr?: any;
+  lost?: Record<string, string>; cut?: number; qcut?: number; log?: MatchLite[]; rr?: any; jl?: number;
 }
 
 export interface MatchStats { aces: number; df: number; fsIn: number; fsTot: number; fsWon: number; ssWon: number; ssTot: number; bpWon: number; bpTot: number; pts: number; retWon: number }
@@ -50,7 +51,7 @@ export interface UMatch {
 export interface UTourney {
   ed: string; series: string; name: string; cat: string; band: Band; surface: Surface; city: string; country: string; year: number; wk: number; dates: string;
   status: 'MD' | 'Q' | 'WC' | 'LL' | 'ALT' | 'REJ' | 'WD'; via?: string; qualified?: boolean; reached: string; pts: number; prize: number; cost: number; title: boolean; final: boolean;
-  matches: string[]; prov?: boolean; note?: string; champion?: string; log?: MatchLite[];
+  matches: string[]; prov?: boolean; note?: string; champion?: string; log?: MatchLite[]; jl?: number;
 }
 export interface Injury { id: string; wk: number; year: number; date: string; loc: string; kind: 'acute' | 'overuse' | 'illness'; sev: 'minor' | 'moderate' | 'major' | 'severe'; estMin: number; estMax: number; weeks: number; rehab: 'conservative' | 'specialist' | 'early'; perm?: { ab: Ability; loss: number }[]; returnedWk?: number; desc: string }
 export type CoachTier = 'starter' | 'tour' | 'elite' | 'master' | 'legend';
@@ -60,7 +61,7 @@ export interface Ledger { wk: number; year: number; cat: string; amt: number; re
 export interface Choice { id: string; ev: string; choice: number; wk: number; year: number; date: string; title: string; label: string; fx: string; personal: boolean; follow?: { dueBlock: number; text: string; done?: boolean } }
 export interface AttrChange { wk: number; year: number; ab: Ability; from: number; to: number; cause: 'competition' | 'training' | 'aging' | 'injury'; note?: string }
 export interface Snapshot { id: string; wk: number; year: number; date: string; age: number; ab: Abil; fam: Record<Surface, number>; style: Style; perm: { ab: Ability; loss: number }[]; index: number; src: string; rank: number }
-export interface Season { year: number; n: number; rank: number; pts: number; w: number; l: number; titles: number; finals: number; majorsBest: string; prize: number; injWeeks: number; dev: number; devComp: number; devTrain: number; bestRank: number; events: number; age: number; no1: boolean }
+export interface Season { year: number; n: number; rank: number; pts: number; w: number; l: number; titles: number; finals: number; majorsBest: string; prize: number; injWeeks: number; dev: number; devComp: number; devTrain: number; bestRank: number; events: number; age: number; no1: boolean; jrank?: number; stage?: string }
 export interface Achievement { id: string; name: string; wk: number; year: number; date: string; ref?: string }
 export interface Policies { match?: 'auto' | 'big' | 'all'; detail: 'quick' | 'detailed'; intensity: Intensity; focus: Focus; priority: Priority; fallback: 'nearest' | 'rest'; adult: boolean; surfacePrep?: Surface }
 
@@ -73,11 +74,15 @@ export interface UserCareer {
   portrait?: string;
   devYear: { comp: number; train: number }; injWeeksYear: number; no1Weeks: number; hardship: number; finalSeasonWarned?: boolean; lastOfferYear: number; rivals: string[];
   rivalNo?: string[]; goals?: Goal[];
+  stage?: 'junior' | 'path' | 'pro'; academy?: Academy; path?: { kind: PathKind; from: number; until: number }; usoWc?: number; college?: { year: number; w: number; l: number; ncaa?: string; matches: { wk: number; opp: string; school: string; won: boolean; score: string }[] }[]; jstart?: boolean;
   home?: { base: string; tier: number; owned: boolean }; staff?: { role: 'physio' | 'fitness' | 'hitting' | 'psych'; level: 1 | 2; name: string; since: number }[]; lifeUsed?: Record<string, number>;
 }
-export interface Goal { id: string; year: number; kind: 'rank' | 'title' | 'wins' | 'major'; target: number; bands?: Band[]; label: string; reward: number; done?: number; failed?: boolean }
+export interface Goal { id: string; year: number; kind: 'rank' | 'title' | 'wins' | 'major' | 'jrank' | 'jtitle'; target: number; bands?: Band[]; label: string; reward: number; done?: number; failed?: boolean }
 export interface News { wk: number; year: number; kind: 'champ' | 'rank' | 'rival' | 'upset' | 'teen' | 'retire' | 'yearEnd' | 'you'; text: string; ids: string[]; band?: Band }
-export interface Pending { type: 'injury' | 'yearEnd' | 'forcedRetire'; injury?: string; coachOffers?: Coach[]; sponsorOffers?: Sponsor[]; text?: string }
+export interface Pending { type: 'injury' | 'yearEnd' | 'forcedRetire'; injury?: string; coachOffers?: Coach[]; sponsorOffers?: Sponsor[]; text?: string; path?: PathDecision }
+/** The decision at 18 (choose), the yearly check-in during the four path years (review) and the end of the path (final). */
+export interface PathDecision { kind: 'choose' | 'review' | 'final'; current?: PathKind; yearsLeft?: number; read: { peak: number; cur: number; now: number; pot: number; verdict: string; age: number; jbest: number; levelTop100: number }; record: string[] }
+export type PathChoice = PathKind | 'stay' | 'quit';
 export interface BlockPlan { wc?: string[]; weeks: Record<number, string>; route: string; lifeEv?: string; lifeChoice?: number }
 export interface BlockSummary { year: number; block: number; fromWk: number; toWk: number; rankFrom: number; rankTo: number; ptsFrom: number; ptsTo: number; tourneys: string[]; notes: string[]; dev: Partial<Abil>; cashFrom: number; cashTo: number; injuries: string[]; newAch: string[]; world: string[]; follow: string[] }
 export interface WorldRec { champs: { ed: string; name: string; year: number; band: Band; cat: string; w: string; f?: string; wk: number }[]; yearEnd: Record<number, { id: string; pts: number }[]>; no1: Record<string, number>; retired: { id: string; year: number }[]; rookies: Record<number, string[]>; news?: News[]; mile?: Record<string, number>; lastNo1?: string }
@@ -86,14 +91,16 @@ export interface State {
   v: { schema: number; engine: string; balance: string; content: string; rng: string };
   careerId: string; seed: string; tour: Tour; userId: string; createdUtc: string; rev: number; seq: number;
   wk: number; year: number; week: number; block: number; phase: 'plan' | 'interrupt' | 'yearEnd' | 'retired' | 'live';
-  live?: Live; midWeek?: boolean;
+  live?: Live; midWeek?: boolean; jrank?: Record<string, number>; jpts?: Record<string, number>; jorder?: string[];
   players: Record<string, Player>; active: string[]; rank: Record<string, number>; pts: Record<string, number>; race: Record<string, number>; order: string[];
   cal: Edition[]; memo: Record<string, { cut: number; qcut: number }>; bandMemo: Record<string, { cut: number; qcut: number; n: number }>;
   u: UserCareer; world: WorldRec; pending?: Pending; plan?: BlockPlan; lastSummary?: BlockSummary; sumAcc?: BlockSummary; retire?: { year: number; wk: number; reason: string; date: string };
   blockStartRank?: Record<string, number>;
   ledger: { seq: number; wk: number; date: string; type: string; cmd: string; data?: any }[]; lastCmd?: string; nextPid: number;
 }
-export interface Setup { tour: Tour; name: string; country: string; pronouns: string; birthMonth: number; birthDay: number; hand: 'R' | 'L'; avatar: number; focusSurface: Surface | 'all'; skills: [Ability, Ability]; profile: ProfileKind | 'unknown'; adult: boolean; detail: 'quick' | 'detailed'; seed: string; portrait?: string }
+export interface Setup { tour: Tour; name: string; country: string; pronouns: string; birthMonth: number; birthDay: number; hand: 'R' | 'L'; avatar: number; focusSurface: Surface | 'all'; skills: [Ability, Ability]; profile: ProfileKind | 'unknown'; adult: boolean; detail: 'quick' | 'detailed'; seed: string; portrait?: string; start?: 'junior' | 'pro'; speed?: 'early' | 'steady' | 'late' | 'unknown'; academy?: Academy }
+export type Academy = 'club' | 'national' | 'elite';
+export type PathKind = 'pro' | 'college' | 'academy';
 
 /** A user match being played hands-on: decisions so far, where it is paused, and the final result once done. */
 export interface Live {

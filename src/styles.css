@@ -180,9 +180,10 @@ fieldset { border:0; padding:0; margin:.7rem 0; min-width:0; } legend { font-wei
 .seg button { border:0; background:none; min-height:40px; padding:0 1rem; border-radius:999px; font-weight:700; color:rgba(255,255,255,.82); } .seg button.on { background:var(--ball); color:var(--ink); font-weight:800; }
 .chips button { min-height:44px; padding:0 1rem; border-radius:999px; border:1.5px solid rgba(255,255,255,.3); background:rgba(0,0,0,.25); font-weight:600; } .chips button.on { background:var(--ball); border-color:var(--ball); color:var(--ink); font-weight:800; }
 .swatches { display:flex; gap:.5rem; flex-wrap:wrap; } .swatches button { border:2px solid transparent; background:none; border-radius:50%; padding:2px; min-width:50px; min-height:50px; } .swatches button.on { border-color:var(--ball); }
-.choice-grid { display:grid; gap:.7rem; margin:.7rem 0; } .choice-grid.two { grid-template-columns:repeat(2,minmax(0,1fr)); } .choice-grid.four { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.choice-grid { display:grid; gap:.7rem; margin:.7rem 0; } .choice-grid.two { grid-template-columns:repeat(2,minmax(0,1fr)); } .choice-grid.four { grid-template-columns:repeat(4,minmax(0,1fr)); } .choice-grid.three { grid-template-columns:repeat(3,minmax(0,1fr)); }
 .choice { text-align:left; border:1.5px solid rgba(255,255,255,.22); background:var(--glass); border-radius:20px; padding:1rem 1.1rem; display:grid; gap:.25rem; min-height:60px; color:#fff; transition:border-color .15s, transform .15s; }
 .choice b { font-family:var(--display); font-style:italic; font-weight:800; font-size:1.3rem; text-transform:uppercase; line-height:1.05; } .choice span { color:var(--muted); font-size:.9rem; }
+.choice.quit { border-style:dashed; } .choice.quit.on { border-color:var(--crit); } .pathdec .glass { margin-bottom:.8rem; }
 .choice.on { border:2.5px solid var(--ball); background:rgba(221,242,71,.08); box-shadow:0 0 24px rgba(221,242,71,.12); } .choice:hover:not(:disabled):not(.on) { border-color:rgba(255,255,255,.5); transform:translateY(-1px); } .choice.slim { padding:.7rem 1rem; } .choice.slim b { font-family:var(--sans); font-style:normal; text-transform:none; font-size:1rem; }
 .dl { display:grid; grid-template-columns:max-content 1fr; gap:.55rem 1.2rem; margin:0 0 1rem; } .dl dt { color:var(--muted); font-weight:700; } .dl dd { margin:0; }
 .steps { display:flex; gap:.4rem; list-style:none; padding:0; margin:1rem 0; flex-wrap:wrap; } .steps li { font-size:.82rem; font-weight:700; padding:.35rem .9rem; border-radius:99px; background:rgba(255,255,255,.08); color:var(--muted); } .steps li.on { background:var(--ball); color:var(--ink); } .steps li.done { background:rgba(221,242,71,.18); color:var(--ball); }
@@ -230,7 +231,7 @@ fieldset { border:0; padding:0; margin:.7rem 0; min-width:0; } legend { font-wei
   .hud { padding:.7rem 1rem; } .crest b { font-size:1.2rem; } .page, .screen-in { padding:.9rem 1rem 7rem; } .trackwrap { padding:0 1rem; }
   .overlay { padding:0; } .modal,.modal.wide { border-radius:0; min-height:100vh; width:100%; } .modal > header { border-radius:0; }
   .hero-rec,.idcard { flex-direction:column; align-items:flex-start; } .week { grid-template-columns:minmax(0,1fr); } .week small { grid-column:1; } .evlogo { display:none; }
-  .choice-grid.four { grid-template-columns:repeat(2,minmax(0,1fr)); } .choice-grid.two { grid-template-columns:minmax(0,1fr); } .mini-ab { grid-template-columns:repeat(2,1fr); }
+  .choice-grid.four { grid-template-columns:repeat(2,minmax(0,1fr)); } .choice-grid.three { grid-template-columns:minmax(0,1fr); } .choice-grid.two { grid-template-columns:minmax(0,1fr); } .mini-ab { grid-template-columns:repeat(2,1fr); }
   .stepper .lbl { display:none; } .stepper .bar-s { width:18px; margin:0 .35rem; } .dock { border-radius:24px; bottom:4.6rem; left:.8rem; right:.8rem; padding:.7rem; } .dock .cta { width:100%; justify-content:space-between; }
   .versus { gap:1rem; } .plate { width:140px; } .plate .nm { font-size:1.2rem; } .board .sc { height:54px; min-width:48px; font-size:2.2rem; } .board .nm { font-size:1rem; }
   .screen .dock { bottom:1rem; }

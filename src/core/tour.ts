@@ -1,5 +1,7 @@
 // Tournament entry, draws and round-by-round play for every event of the selected tour (spec 8, 9, 13).
-import { champNews, upsetNews } from './news';
+import { champNews, juniorNews, upsetNews } from './news';
+import { JPOINTS, proShare, runJuniorEntries } from './juniors';
+import { COLLEGE_PRIZE_CAP, pathKind, stageMoney } from './path';
 import { homeOf, lifestyleMonthly, livingMonthly } from './lifestyle';
 import { BAND_VAL, DEV, ECON, FINALS_POINTS, POINTS, PRIZE, PRIZE_MULT, QUAL_POINTS, ROUND_KEYS } from './balance';
 import { fmtDate, iso, travelClass, wkDate } from './content';
@@ -43,7 +45,7 @@ export function eventCost(S: State, ed: Edition): number {
   const cls = travelClass(homeOf(S), ed.country), [lo, hi] = cls === 0 ? ECON.local : cls === 1 ? ECON.regional : ECON.inter;
   return Math.round((lo + (hi - lo) * rngOf(S.seed, 'cost', ed.id).next()) * (ed.weeks === 2 ? 1.4 : 1));
 }
-export const weeklyGuaranteed = (S: State) => ((S.year === 2026 ? ECON.support : 0) + S.u.sponsors.reduce((t, s) => t + s.monthly, 0) - livingMonthly(S) - lifestyleMonthly(S) - S.u.coach.cost) * 12 / 52;
+export const weeklyGuaranteed = (S: State) => ((S.year === 2026 ? ECON.support : 0) + stageMoney(S).reduce((t, x) => t + x[1], 0) + S.u.sponsors.reduce((t, s) => t + s.monthly, 0) - livingMonthly(S) - lifestyleMonthly(S) - S.u.coach.cost) * 12 / 52;
 /** Local and regional trips are always possible (the basic support scheme covers a shortfall); long-haul trips need real money (spec 11.4). */
 export function canAfford(S: State, cost: number, ed?: Edition) { return (ed !== undefined && travelClass(homeOf(S), ed.country) <= 1) || S.u.cash + Math.max(0, weeklyGuaranteed(S)) * 4 - cost >= 0; }
 
@@ -72,7 +74,7 @@ function playProb(p: Player, rank: number, band: Band, q: boolean, wk: number): 
   return b;
 }
 function openTourney(S: State, ed: Edition, status: UTourney['status'], via?: string): UTourney {
-  const t: UTourney = { ed: ed.id, series: ed.series, name: ed.name, cat: ed.cat, band: ed.band, surface: ed.surface, city: ed.city, country: ed.country, year: ed.year, wk: ed.startWk, dates: ed.dates!, status, via, reached: '', pts: 0, prize: 0, cost: 0, title: false, final: false, matches: [], prov: ed.prov };
+  const t: UTourney = { ed: ed.id, series: ed.series, name: ed.name, cat: ed.cat, band: ed.band, surface: ed.surface, city: ed.city, country: ed.country, year: ed.year, wk: ed.startWk, dates: ed.dates!, status, via, reached: '', pts: 0, prize: 0, cost: 0, title: false, final: false, matches: [], prov: ed.prov, jl: ed.jl };
   S.u.tourneys.push(t); S.sumAcc?.tourneys.push(ed.id);
   logEv(S, status === 'ALT' || status === 'REJ' || status === 'WD' ? 'EntryRejected' : 'EntryAccepted', { ed: ed.id, status, rank: S.rank[S.userId] });
   if (status === 'MD' || status === 'Q' || status === 'WC') {
@@ -89,6 +91,7 @@ export function runEntries(S: State) {
   const eds = S.cal.filter(e => e.entryWk === wk && !e.cancelled);
   if (!eds.length) return;
   const avail = (p: Player, w: number) => p.injuredUntil <= w && !p.retired;
+  runJuniorEntries(S, { avail, free, open: (ed, st, via) => { openTourney(S, ed, st, via); }, note: t => note(S, t), home: homeOf(S) });
   const planned = (ed: Edition) => S.plan?.weeks[ed.startWk] === ed.id;
   const lock = (ed: Edition, id: string) => { (ed as any).lock ??= {}; (ed as any).lock[id] = S.rank[id]; };
 
@@ -103,7 +106,8 @@ export function runEntries(S: State) {
     const w1 = ed.startWk, w2 = ed.startWk + 1;
     const apps = S.order.filter(id => { const p = P[id]; return id === uid ? planned(ed) && avail(p, w1) : avail(p, w1) && free(p, w1) && free(p, w2); });
     const direct = apps.slice(0, ed.direct), rest = apps.slice(ed.direct);
-    const home = rest.filter(id => P[id].country === ed.country).slice(0, ed.wc), wcs = [...home, ...rest.filter(id => !home.includes(id)).slice(0, ed.wc - home.length)];
+    const home = rest.filter(id => P[id].country === ed.country).slice(0, ed.wc); let wcs = [...home, ...rest.filter(id => !home.includes(id)).slice(0, ed.wc - home.length)];
+    if (ed.slam === 'uso' && S.u.usoWc === S.year && planned(ed) && rest.includes(uid)) wcs = [uid, ...wcs.filter(id => id !== uid)].slice(0, ed.wc); // the NCAA champion's wildcard
     const q = rest.filter(id => !wcs.includes(id) && avail(P[id], wk) && free(P[id], wk)).slice(0, ed.qSize);
     ed.md = [...direct, ...wcs]; ed.wcs = wcs; ed.q = q; ed.alt = rest.filter(id => !wcs.includes(id) && !q.includes(id)).slice(0, 8);
     ed.cut = direct.length >= ed.direct ? S.rank[direct[direct.length - 1]] : 9999; ed.qcut = q.length >= ed.qSize ? S.rank[q[q.length - 1]] : 9999;
@@ -115,7 +119,7 @@ export function runEntries(S: State) {
       else if (q.includes(uid)) openTourney(S, ed, 'Q'); else { openTourney(S, ed, 'ALT'); note(S, `${ed.name}: your ranking of ${S.rank[uid]} was outside the qualifying cut-off. You were not entered.`); }
     }
   }
-  const regs = eds.filter(e => e.band !== 'GS' && e.band !== 'F');
+  const regs = eds.filter(e => e.band !== 'GS' && e.band !== 'F' && e.band !== 'J');
   if (!regs.length) return;
   const slots = new Map<string, { d: number; w: number; q: number }>();
   for (const ed of regs) slots.set(ed.id, { d: ed.direct, w: ed.wc, q: ed.qSpots ? ed.qSize : 0 });
@@ -172,6 +176,7 @@ export function runEntries(S: State) {
     const mv = minVal(rank);
     let best: Edition | null = null, bestV = 0, bestK: 'MD' | 'WC' | 'Q' | null = null;
     const r = rngOf(S.seed, 'entry', id, wk);
+    if (p.junior && !r.chance(proShare(p, wk))) continue; // juniors mostly play junior events; the stronger ones move across to pro events
     for (const ed of regs) {
       if (BAND_VAL[ed.band] < mv || (ed.weeks === 2 && !free(p, wk + 1))) continue;
       if (chRule(S, ed, rank) !== 'ok') continue;
@@ -210,7 +215,7 @@ export function runEntries(S: State) {
 const seedOrder = (n: number) => { let a = [1]; while (a.length < n) { const m = a.length * 2 + 1; a = a.flatMap(x => [x, m - x]); } return a; };
 const roundLabel = (size: number) => (size >= 16 ? `R${size}` : size === 8 ? 'QF' : size === 4 ? 'SF' : 'F');
 const rulesOf = (S: State, ed: Edition, qual: boolean): Rules => ({ surface: ed.surface, bestOf: ed.band === 'GS' && S.tour === 'atp' && !qual ? 5 : 3, tb10: ed.band === 'GS', tour: S.tour });
-const lockRank = (S: State, ed: Edition, id: string) => (ed as any).lock?.[id] ?? S.rank[id];
+const lockRank = (S: State, ed: Edition, id: string) => (ed as any).lock?.[id] ?? (ed.band === 'J' ? S.jrank?.[id] ?? 9999 : S.rank[id]);
 
 function reasons(S: State, res: MatchResult, i: 0 | 1, won: boolean, me: Player, opp: Player, myRank: number, oppRank: number): string[] {
   const a = res.stats[i], b = res.stats[1 - i], out: [number, string][] = [], ln = lastName(opp.name);
@@ -403,10 +408,17 @@ function closeUser(S: State, ed: Edition, t: UTourney, reached: string, inQual: 
   t.reached = reached; t.title = reached === 'W'; t.final = reached === 'W' || reached === 'F';
   const qWins = u.matches.filter(m => m.ed === ed.id && m.qual && m.won && m.cls !== 'wo').length;
   t.prize = ed.band === 'F' ? t.prize : prizeFor(ed.band, reached, inQual, qWins);
-  if (ed.band !== 'F') { addLedger(S, 'Prize money', t.prize, ed.id); const rec = S.players[uid].res.find(r => r.ed === ed.id); t.pts = rec?.pts ?? 0; }
+  if (ed.band === 'J') { t.prize = 0; t.pts = S.players[uid].jres?.find(r => r.ed === ed.id)?.pts ?? 0; }
+  else if (ed.band !== 'F') {
+    if (pathKind(S) === 'college') { // amateur status: prize money only up to the expenses limit for the year
+      const so = S.u.tourneys.filter(x => x.year === S.year && x !== t).reduce((a, x) => a + x.prize, 0), cap = Math.max(0, COLLEGE_PRIZE_CAP - so);
+      if (t.prize > cap) { note(S, `${ed.name}: as a college player you can only accept $${cap.toLocaleString('en-US')} of the $${t.prize.toLocaleString('en-US')} prize money.`); t.prize = cap; }
+    }
+    addLedger(S, 'Prize money', t.prize, ed.id); const rec = S.players[uid].res.find(r => r.ed === ed.id); t.pts = rec?.pts ?? 0; }
   t.champion = ed.champion ? S.players[ed.champion]?.name : undefined; t.log = ed.log;
   logEv(S, 'PointsAwarded', { ed: ed.id, pts: t.pts, prize: t.prize, reached });
-  if (t.title) {
+  if (t.title && ed.band === 'J') { achieve(S, 'firstJTitle', 'First junior title', ed.id); if (ed.jl === 1000) achieve(S, 'juniorSlam', 'Junior Grand Slam champion', ed.id); }
+  else if (t.title) {
     achieve(S, 'firstTitle', 'First title', ed.id);
     const main = BAND_VAL[ed.band] >= 250, bonus = u.sponsors.reduce((s, sp) => s + (main ? sp.titleBonus : sp.lowerBonus ?? sp.titleBonus * 0.2), 0);
     if (bonus) addLedger(S, main ? 'Sponsor title bonus' : 'Sponsor bonus (lower-tour title)', bonus, ed.id);
@@ -431,6 +443,18 @@ function finish(S: State, ed: Edition) {
   const P = S.players, champ = ed.slots![0]!, uid = S.userId;
   ed.done = true; ed.champion = champ; ed.lost![champ] = 'W';
   const endWk = ed.startWk + ed.weeks, table = POINTS[ed.band];
+  if (ed.band === 'J') { // junior ranking points; no prize money, no ATP points
+    const jt = JPOINTS[ed.jl ?? 30];
+    for (const id of ed.md) { const lab = ed.lost![id]; if (!lab || lab === 'WD') continue; const pts = jt[ROUND_KEYS.indexOf(lab)] ?? 0; if (lab === 'F') ed.runnerUp = id; if (pts > 0) (P[id].jres ??= []).push({ ed: ed.id, pts, exp: endWk + 52, yr: ed.year }); }
+    P[champ].jtitles = (P[champ].jtitles ?? 0) + 1;
+    if ((ed.jl ?? 0) >= 500 || (ed as any).hasUser) S.world.champs.push({ ed: ed.id, name: ed.name, year: ed.year, band: ed.band, cat: ed.cat, w: champ, f: ed.runnerUp, wk: S.wk });
+    if ((ed.jl ?? 0) >= 750) juniorNews(S, ed, champ);
+    const t = uT(S, ed.id);
+    if (t && ed.lost![uid] && ed.lost![uid] !== 'WD') closeUser(S, ed, t, ed.lost![uid], false);
+    else if (t && !t.reached && (t.status === 'MD' || t.status === 'Q' || t.status === 'WC')) { t.status = 'WD'; t.reached = 'WD'; }
+    ed.md = []; ed.slots = undefined; ed.lost = undefined; ed.log = undefined; delete (ed as any).lock; delete (ed as any).lostQ;
+    return;
+  }
   for (const id of ed.md) {
     const lab = ed.lost![id]; if (!lab || lab === 'WD') continue;
     let pts = table[ROUND_KEYS.indexOf(lab)] ?? 0;

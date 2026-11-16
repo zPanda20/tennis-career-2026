@@ -1,5 +1,10 @@
 // Weekly development, loads, recovery, health and money, plus the year-end turnover (spec 5–7, 10, 11, 14.4, 15).
 import { yearEndNews } from './news';
+import { isJuniorAge, makeJunior, speedFactor } from './juniors';
+import { JCOHORT, juniorMaker } from './world';
+import { WORLD_SIZE } from './balance';
+import { academyMult, prospectRead, stageMoney } from './path';
+import type { PathDecision } from './types';
 import { homeOf, injuryMult, lifestyleMonthly, lifestyleWeek, livingMonthly, trainMult } from './lifestyle';
 import { ensureGoals, failGoals } from './goals';
 import { DEV, ECON, HEALTH, RECOVERY, RETIRE_AGE, TRAIN } from './balance';
@@ -51,7 +56,7 @@ export function injure(S: State, p: Player, kind: Injury['kind'], fromMatch = fa
 }
 
 function develop(S: State, p: Player, played: boolean) {
-  const isU = !!p.user, u = S.u, age = ageOf(S, p), af = ageFactor(age, p.curve);
+  const isU = !!p.user, u = S.u, age = ageOf(S, p), af = ageFactor(age, p.curve) * speedFactor(p.speed, age) * (isU ? academyMult(S) : 1);
   const health = (p.fatigue > 75 ? 0.6 : 1) * (p.strain > 70 ? 0.7 : 1);
   const nr = S.rank[p.id] ?? 999;
   let coach = nr <= 60 ? 1.15 : nr <= 250 ? 1.08 : 1, inten = 1, prio = 1; // background players have coaching in line with their level
@@ -117,6 +122,7 @@ export function weeklyUpkeep(S: State) {
   // the user's weekly money (spec 11.3/11.4): one ledger for both play settings
   const m = 12 / 52;
   if (S.year === 2026) addLedger(S, 'Starter support', ECON.support * m);
+  for (const [lab, amt] of stageMoney(S)) addLedger(S, lab, amt * m);
   addLedger(S, 'Living costs', -livingMonthly(S) * m); addLedger(S, 'Coaching', -u.coach.cost * m);
   const hm = lifestyleMonthly(S); if (hm) addLedger(S, 'Home and staff', -hm * m);
   const sp = u.sponsors.reduce((t, s) => t + s.monthly, 0); if (sp) addLedger(S, 'Sponsorship', sp * m);
@@ -133,6 +139,7 @@ function seasonSummary(S: State): Season {
     year: y, n: u.seasons.length + 1, rank: S.rank[S.userId], pts: S.pts[S.userId], w: ms.filter(m => m.won).length, l: ms.filter(m => !m.won).length, titles: ts.filter(t => t.title).length, finals: ts.filter(t => t.final).length,
     majorsBest: majors[0] ?? (ts.some(t => t.band === 'GS') ? 'Qualifying' : '–'), prize: ts.reduce((a, t) => a + t.prize, 0), injWeeks: u.injWeeksYear, dev: Math.round((u.devYear.comp + u.devYear.train) * 10) / 10,
     devComp: Math.round(u.devYear.comp * 10) / 10, devTrain: Math.round(u.devYear.train * 10) / 10, bestRank: hist.reduce((b, h) => Math.min(b, h.rank), S.rank[S.userId]), events: ts.length, age: ageOf(S, p), no1: S.order[0] === S.userId,
+    ...(p.junior ? { jrank: S.jrank?.[S.userId] ?? 9999 } : {}), stage: u.stage,
   };
 }
 export function flushDev(S: State) {
@@ -178,6 +185,18 @@ export function coachOffers(S: State): Coach[] {
   return tiers.map(t => { const c = makeCoach(r, t, p.country, S.year + 1, p.style); c.until = S.year + 1 + r.int(1, 2); return c; }).filter(c => c.tier !== u.coach.tier || c.dev > u.coach.dev - 0.03);
 }
 
+/** The user's road from the juniors: the choice at 18, a yearly check-in on the path, and the final call when it ends. */
+function pathDecision(S: State, y: number): PathDecision | undefined {
+  const u = S.u, me = S.players[S.userId]; if (!u.jstart || u.stage === 'pro') return;
+  const rd = prospectRead(S), read = { ...rd, jbest: me.jbest ?? 9999 }, ss = u.seasons.slice(-2);
+  const record = ss.map(s => `${s.year}: ${s.w}–${s.l} in matches${s.rank < 9999 && S.pts[S.userId] > 0 ? `, ranked ${s.rank}` : ''}`);
+  if (me.jbest) record.unshift(`Best junior ranking: No. ${me.jbest}${me.jtitles ? `, ${me.jtitles} junior title${me.jtitles > 1 ? 's' : ''}` : ''}`);
+  for (const c of (u.college ?? []).filter(c => c.year === y)) record.push(`College ${c.year}: ${c.w}–${c.l}${c.ncaa ? `, NCAA singles ${c.ncaa === 'W' ? 'champion' : c.ncaa}` : ''}`);
+  if (u.stage === 'junior') return me.junior ? undefined : { kind: 'choose', read, record };
+  const left = (u.path?.until ?? y) - y;
+  return { kind: left <= 0 ? 'final' : 'review', current: u.path?.kind, yearsLeft: left, read, record };
+}
+
 /** Season rollover: summary, world turnover, aging, offers and next year's calendar. */
 export function yearEnd(S: State, C: Content) {
   const u = S.u, y = S.year, me = S.players[S.userId];
@@ -209,8 +228,20 @@ export function yearEnd(S: State, C: Content) {
     }
     if (r.chance(pr)) { p.retired = y; S.world.retired.push({ id, year: y }); } else keep.push(id);
   }
-  const need = S.active.length - keep.length, nr = rngOf(S.seed, 'rookies', y);
+  // juniors who age out graduate into the pro world; the weakest stop playing (quit) instead
+  const gr = rngOf(S.seed, 'graduate', y);
+  for (const id of keep.slice()) {
+    const p = S.players[id]; if (!p.junior || isJuniorAge(p.born, y + 1)) continue;
+    p.junior = false; if (p.user) continue;
+    const lvl = strength(p.ab), quitP = clamp((58 - lvl) / 20 + ((p.jbest ?? 9999) > 300 ? 0.15 : 0), 0, 0.75);
+    if (gr.chance(quitP)) { p.retired = y; p.quit = y; keep.splice(keep.indexOf(id), 1); }
+    else rookies.push(id);
+  }
+  const pros = keep.filter(id => !S.players[id].junior).length, need = Math.max(0, WORLD_SIZE - pros), nr = rngOf(S.seed, 'rookies', y);
   for (let i = 0; i < need; i++) { const p = newcomer(S, nr, taken, y + 1); S.players[p.id] = p; keep.push(p.id); rookies.push(p.id); }
+  // a new cohort of 14-year-olds joins the junior circuit
+  const cr = rngOf(S.seed, 'cohort', y);
+  for (let i = 0; i < JCOHORT; i++) { const p = makeJunior(S, cr, taken, y + 1 - 14, juniorMaker); S.players[p.id] = p; keep.push(p.id); }
   S.active = keep; S.world.rookies[y + 1] = rookies;
   yearEndNews(S, S.world.retired.filter(x => x.year === y).map(x => x.id)); failGoals(S, y);
   // drop retired background players that never met the user to keep saves small
@@ -219,7 +250,7 @@ export function yearEnd(S: State, C: Content) {
   for (const id of Object.keys(S.players)) { const p = S.players[id]; if (p.retired && !met.has(id) && !notable.has(id) && !p.real) delete S.players[id]; else if (p.retired) { p.res = []; p.commit = {}; } }
   // contracts and offers (batched at the year-end review, spec 17.3)
   u.sponsors = u.sponsors.filter(s => s.until > y + 1);
-  S.pending = { type: 'yearEnd', coachOffers: coachOffers(S), sponsorOffers: sponsorOffers(S) };
+  S.pending = { type: 'yearEnd', coachOffers: coachOffers(S), sponsorOffers: sponsorOffers(S), path: pathDecision(S, y) };
   flushDev(S);
   u.devYear = { comp: 0, train: 0 }; u.injWeeksYear = 0;
   S.year = y + 1; S.week = 0; S.block = 0;

@@ -45,6 +45,19 @@ Doubles, team events, manual point-by-point play, tactics, cloud saves, and the 
 
 A free private hobby project. Not affiliated with or endorsed by any tour, tournament, player or brand.
 
+## Starting at 16
+
+A career can start at 16 on the ITF junior tour, or at 19 as a lower-tier professional.
+
+- **Junior tour.** Junior events run every week: J30 to J500, the junior Grand Slams in the second week of each major, and the ITF Junior Finals for the top eight. The junior ranking counts your best six junior results of the last 52 weeks. Juniors play through the season they turn 18. Strong juniors also enter ITF pro events.
+- **Development speed.** Early, steady or late, or hidden. It changes when you grow, not how far.
+- **Academy.** Club, national centre or elite academy, each with its own fees and development rate. The national centre is free in the junior top 100. The elite academy is half price in the junior top 60 and free in the top 20. Family support covers part of the cost.
+- **At 18, the next four years.**
+  - **Tour full time:** no limits.
+  - **University:** the college season runs from January to May and from mid-September to mid-November. Pro events are blocked in those weeks, but you get dual matches and the NCAA singles championship; its champion gets a US Open wildcard. Prize money is capped at $10,000 a year, and a scholarship covers living costs.
+  - **Academy plus part-time tour:** faster development, at most 14 pro events a season, and academy fees.
+- **Yearly check-ins.** Each year-end you can stay on the path, turn pro early or stop playing. At the end of the four years you either commit to the tour or quit.
+
 ## Watching controls
 Space plays or pauses, ← and → step back and forward, Shift+→ (or E) jumps to the end of the match, S skips to the summary.
 Controller: A next, B back, X or Start play/pause, RB end of match, Y summary, d-pad left/right to step.

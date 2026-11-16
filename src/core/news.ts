@@ -67,3 +67,10 @@ export function yearEndNews(S: State, retired: string[]) {
 }
 
 export const newsSince = (S: State, fromWk: number) => (S.world.news ?? []).filter(n => n.wk >= fromWk);
+
+/** Junior Grand Slam and Junior Finals champions: tomorrow's stars. */
+export function juniorNews(S: State, ed: Edition, champ: string) {
+  const p = S.players[champ]; if (!p) return;
+  const age = ageOn(p.born, wkDate(S.wk)), me = champ === S.userId;
+  addNews(S, me ? 'you' : 'teen', me ? `You win ${theName(ed.name)}` : `${age}-year-old ${p.name} wins ${theName(ed.name)}`, [champ], ed.band);
+}

@@ -83,4 +83,25 @@ for (let i = 0; i < 3000; i++) {
 }
 ok('all simulated set and match scores are valid tennis scores', badScore === 0, `${badScore} invalid`);
 ok('previews are calibrated against simulated results', Math.abs(calib / n) < 0.03, `mean error ${(calib / n).toFixed(4)}, upset rate ${(upsets / n).toFixed(2)}`);
+// junior start: the junior years, the path decision at 18 and each path's limits
+{
+  const { jCounted } = await import('../src/core/juniors');
+  const { collegeWeek, PART_TIME_EVENTS } = await import('../src/core/path');
+  for (const path of ['college', 'academy'] as const) {
+    const J = createCareer({ ...baseSetup('atp', 'contender', `inv-j-${path}`), start: 'junior', academy: 'national' }, C, '2026-01-01T00:00:00Z');
+    const by = +J.players[J.userId].born.slice(0, 4); let decided = 0, jptsBad = 0, overAge = 0;
+    for (let n = 0; J.year < 2031 && J.phase !== 'retired' && n < 9000; n++) {
+      if (J.phase === 'yearEnd' && J.pending?.path?.kind === 'choose') decided = J.year - 1;
+      autoStep(J, C, n, { path });
+      if (J.phase === 'plan' && n % 3 === 0) for (const id of J.jorder ?? []) { const p = J.players[id]; if (Math.abs(jCounted(p, J.wk).reduce((t, x) => t + x, 0) - (J.jpts?.[id] ?? 0)) > 0) jptsBad++; if (p.junior && J.year - +p.born.slice(0, 4) > 18) overAge++; }
+    }
+    const ju = J.u, ts = ju.tourneys.filter(t => t.status === 'MD' || t.status === 'Q' || t.status === 'WC' || t.status === 'LL');
+    ok(`junior ${path}: path decision at the end of the season the player turns 18`, decided === by + 18, `decided ${decided}, born ${by}`);
+    ok(`junior ${path}: junior points equal the best six junior results`, jptsBad === 0, `${jptsBad} mismatches`);
+    ok(`junior ${path}: nobody plays as a junior past 18`, overAge === 0 && ts.filter(t => t.band === 'J').every(t => t.year - by <= 18));
+    ok(`junior ${path}: the user stays on the chosen path`, ju.path?.kind === path && ju.stage === 'path');
+    if (path === 'college') { const { absOf } = await import('../src/core/content'); const bad = ts.filter(t => t.band !== 'J' && t.year >= by + 19 && t.year <= by + 21 && collegeWeek(t.wk - absOf(t.year, 0))); ok('college: no pro events during the college season', bad.length === 0, `${bad.map(t => t.name).join(', ')} · ${(ju.college ?? []).map(c => `${c.year} ${c.w}-${c.l}${c.ncaa ? ' ' + c.ncaa : ''}`).join(', ')}`); }
+    if (path === 'academy') ok(`academy: at most ${PART_TIME_EVENTS} pro events in each part-time season`, [by + 19, by + 20, by + 21].every(y => ts.filter(t => t.year === y && t.band !== 'J').length <= PART_TIME_EVENTS), [by + 19, by + 20].map(y => ts.filter(t => t.year === y && t.band !== 'J').length).join(', '));
+  }
+}
 console.log(fails ? `\n${fails} FAILED` : '\nAll invariants hold.'); process.exit(fails ? 1 : 0);

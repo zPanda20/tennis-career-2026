@@ -2,7 +2,7 @@ import { RivalCard } from './Extras';
 import { LiveMatch } from './Live';
 import { useEffect, useState } from 'react';
 import { fmtDate, ageOn, wkDate } from '../core/content';
-import { Avatar, Flag, money, rankTxt } from './bits';
+import { Avatar, Flag, money, rankOf } from './bits';
 import { Home, Planner, Reveal } from './Career';
 import { CourtBg, SeasonTrack, tintOf } from './fx';
 import { Create, Library } from './Start';
@@ -34,7 +34,7 @@ export function App() {
             <header className="hud" aria-hidden={fullscreen || undefined}>
               <button className="crest" onClick={() => set({ tab: 'player' })} aria-label={`${me.name}, open player profile`}>
                 <Avatar p={me} size={50} user={S.u.avatar} />
-                <span><b>{me.name}</b><small><Flag c={me.country} size={15} /> {me.country} · {S.phase === 'retired' ? `retired ${S.retire!.year}` : `age ${ageOn(me.born, wkDate(S.wk))} · ${rankTxt(S.rank[me.id])}`}</small></span>
+                <span><b>{me.name}</b><small><Flag c={me.country} size={15} /> {me.country} · {S.phase === 'retired' ? `retired ${S.retire!.year}` : `age ${ageOn(me.born, wkDate(S.wk))} · ${rankOf(S, me.id)}`}</small></span>
               </button>
               <nav className="navpill" aria-label="Main">{TABS.map(([k, t]) => <button key={k} className={tab === k ? 'on' : ''} aria-current={tab === k ? 'page' : undefined} onClick={() => set({ tab: k })}>{t}</button>)}</nav>
               <div className="hud-right">
