@@ -32,3 +32,19 @@ export async function importPack(files: FileList): Promise<string> {
   return `Loaded ${out.length} images${missing ? `; ${missing} listed files were not found` : ''}.`;
 }
 export async function clearPack() { await clearAssets(); await loadAssets(); }
+
+/** Single-file asset pack (.tcassets): player photos, event and category logos, trophies and brand logos, prepared from the
+ *  My Tennis Career folder. Replaces any image pack already loaded. */
+export async function importAssetFile(file: File): Promise<string> {
+  const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  if (new TextDecoder().decode(head.slice(0, 8)) !== 'TCASSET1') return 'That file is not a Tennis Career asset pack.';
+  const len = new DataView(head.buffer).getUint32(8, true), base = 12 + len;
+  let meta: { format: string; assets: [string, string, number, number][] };
+  try { meta = JSON.parse(new TextDecoder().decode(await file.slice(12, base).arrayBuffer())); } catch { return 'The asset pack could not be read.'; }
+  if (meta.format !== 'tennis-career-asset-pack') return 'That file is not a Tennis Career asset pack.';
+  const buf = await file.slice(base).arrayBuffer();
+  const out: Asset[] = meta.assets.map(([key, label, off, n]) => ({ key, label: label || undefined, blob: new Blob([buf.slice(off, off + n)], { type: 'image/webp' }) }));
+  await putAssets(out); await loadAssets();
+  const c = (p: string) => out.filter(a => a.key.startsWith(p)).length;
+  return `Loaded ${c('player:')} player photos, ${c('event:')} tournament logos, ${c('trophy:')} trophies and ${c('brand:')} brand logos.`;
+}

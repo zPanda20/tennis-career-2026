@@ -9,7 +9,7 @@ import { h2h, legacy, notableWins, peakSnap, retireSnap, retrospective, roundNam
 import { ABILITIES, ABILITY_NAMES, Ability, STYLE_NAMES, State, UMatch } from '../core/types';
 import { strength } from '../core/world';
 import { Avatar, Bar, BrandMark, EventLogo, Modal, Pill, Section, Stat, SurfaceTag, Who, money, rankTxt } from './bits';
-import { clearPack, importPack } from './pack';
+import { clearPack, importAssetFile, importPack } from './pack';
 import { Momentum } from './fx';
 import { EvName, Flag, portraitFromFile } from './bits';
 import { dispatch, exportBackup, get, set, useApp } from './store';
@@ -43,6 +43,7 @@ export function Calendar({ S }: { S: State }) {
           <ul className="list">{evs.sort((a, b) => BAND_VAL[b.band] - BAND_VAL[a.band]).map(e => {
             const mine = u.tourneys.find(t => t.ed === e.id), est = !e.done && e.entryWk >= S.wk && e.band !== 'F' ? estimate(S, e) : null, champ = S.world.champs.find(c => c.ed === e.id);
             const inner = <>
+              <EventLogo slam={e.slam} band={e.band} tour={S.tour} size={30} className="evlogo sm" />
               <span className="grow"><b><EvName name={e.name} surface={e.surface} /></b><small><Flag c={e.country} size={14} /> {e.cat} · {e.city}, {e.country} · {e.dates}{e.weeks === 2 ? ' · two weeks' : ''}{e.prov ? ' · provisional' : ''}</small></span>
               <SurfaceTag s={e.surface} indoor={e.indoor} />
               <span className="res">{mine ? (mine.reached && mine.reached !== 'WD' ? <Pill tone={mine.title ? 'ok' : ''}>{mine.title ? 'Champion' : roundName(mine.reached)}</Pill> : <Pill tone="warn">{mine.status === 'ALT' ? 'Not accepted' : mine.status === 'WD' ? 'Withdrew' : 'Entered'}</Pill>) : est ? <Pill tone={est === 'accepted' ? 'ok' : est === 'alternate' ? 'warn' : est === 'unlikely' ? 'crit' : ''}>{est}</Pill> : e.cancelled ? <small>Not held</small> : champ ? <small>Won by {S.players[champ.w]?.name}</small> : null}</span></>;
@@ -178,7 +179,7 @@ export function TourneyHub({ S, ed }: { S: State; ed: string }) {
   const rounds = t.log ? [...new Set(t.log.map(m => m.r))] : [];
   return (
     <Modal title={`${t.name} ${t.year}`} onClose={() => set({ overlay: null })} wide>
-      <div className="row between"><div><p>{t.cat} · {t.city}, {t.country} · {t.dates}{t.prov ? ' · provisional calendar entry' : ''}</p><SurfaceTag s={t.surface} /></div><EventLogo slam={slam} tour={S.tour} size={52} /></div>
+      <div className="row between"><div><p>{t.cat} · {t.city}, {t.country} · {t.dates}{t.prov ? ' · provisional calendar entry' : ''}</p><SurfaceTag s={t.surface} /></div><EventLogo slam={slam} band={t.band} tour={S.tour} size={52} /></div>
       <div className="stats"><Stat k="Entry" v={t.status === 'MD' ? 'Main draw' : t.status === 'WC' ? 'Wildcard' : t.status === 'Q' ? (t.qualified ? 'Qualified' : 'Qualifying') : t.status === 'ALT' ? 'Not accepted' : 'Withdrew'} sub={t.via} /><Stat k="Result" v={t.title ? 'Champion' : roundName(t.reached)} /><Stat k="Ranking points" v={t.pts} /><Stat k="Prize" v={money(t.prize)} sub={`trip cost ${money(t.cost)}`} /></div>
       {trophy && <img className="trophy" src={trophy} alt="" />}
       {t.note && <p className="note">{t.note}</p>}
@@ -263,7 +264,7 @@ export function Settings({ S }: { S: State }) {
       <Section title="Private image pack">
         <p>Player photos and logos are not part of the game. If you keep your own images in a folder with an <code>image-pack.json</code> file, you can load them here. They are stored in this browser only and never uploaded.</p>
         <p className="muted">{n ? `${n} images loaded.` : 'No image pack loaded.'} {msg}</p>
-        <div className="row"><label className="btn">Load image pack folder<input type="file" hidden multiple {...({ webkitdirectory: '', directory: '' } as any)} onChange={async e => { const f = e.target.files; if (f?.length) { setMsg('Reading images…'); setMsg(await importPack(f)); } e.target.value = ''; }} /></label>{n > 0 && <button className="btn ghost" onClick={async () => { await clearPack(); setMsg('Image pack removed.'); }}>Remove images</button>}</div>
+        <div className="row"><label className="btn">Load asset pack file<input type="file" hidden accept=".tcassets" onChange={async e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) { setMsg('Reading images…'); setMsg(await importAssetFile(f)); } }} /></label><label className="btn ghost">Load image pack folder<input type="file" hidden multiple {...({ webkitdirectory: '', directory: '' } as any)} onChange={async e => { const f = e.target.files; if (f?.length) { setMsg('Reading images…'); setMsg(await importPack(f)); } e.target.value = ''; }} /></label>{n > 0 && <button className="btn ghost" onClick={async () => { await clearPack(); setMsg('Image pack removed.'); }}>Remove images</button>}</div>
       </Section>
       <FacePackSection />
       <Section title="Backup"><p>Browser storage can be cleared or evicted. A backup file is your durable copy{S.phase === 'retired' ? '; for a retired career, use the archive export in Records' : ''}.</p><div className="row"><button className="btn" onClick={exportBackup}>Export a backup of this career</button><button className="btn ghost" onClick={() => { get(); import('./store').then(m => m.closeCareer()); }}>Back to the career library</button></div></Section>

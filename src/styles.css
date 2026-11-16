@@ -366,3 +366,6 @@ b .evn, .evn { font-weight:inherit; }
 .keys-hint { position:relative; } .keys-x, .keys-show { border:1px solid rgba(255,255,255,.3); background:rgba(255,255,255,.08); color:#fff; border-radius:50%; width:26px; height:26px; line-height:1; font-size:.95rem; margin-left:.5rem; vertical-align:middle; }
 .keys-x:hover, .keys-show:hover { background:rgba(255,255,255,.2); } .keys-hint.off { text-align:center; }
 @media (max-width:900px), (pointer:coarse) { .keys-x, .keys-show { display:none; } }
+.evlogo { object-fit:contain; filter:drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
+.evlogo.sm { flex:none; width:auto; margin-right:.55rem; vertical-align:middle; background:rgba(255,255,255,.92); border-radius:6px; padding:2px 4px; }
+.evlogo.top { vertical-align:middle; margin-right:.6rem; background:rgba(255,255,255,.92); border-radius:8px; padding:3px 6px; }

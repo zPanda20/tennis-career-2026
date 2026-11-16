@@ -61,9 +61,16 @@ export function BrandMark({ sp, size = 28 }: { sp: Pick<Sponsor, 'slot' | 'brand
   const { assets, labels } = useApp(), key = `brand:${sp.slot}:${sp.brand}`, src = assets[key];
   return <span className="brand">{src ? <img src={src} alt="" style={{ height: size, maxWidth: size * 3 }} /> : <span className="brand-ph" aria-hidden="true">{(labels[key] ?? sp.name)[0]}</span>}<b>{labels[key] ?? BRANDS[sp.slot][sp.brand] ?? sp.name}</b></span>;
 }
-export function EventLogo({ slam, tour, size = 40 }: { slam?: string; tour: string; size?: number }) {
-  const { assets } = useApp(), src = slam ? assets[`event:${slam}`] : assets[`event:${tour}`];
-  return src ? <img className="evlogo" src={src} alt="" style={{ height: size, maxWidth: size * 2.4 }} /> : null;
+/** Logo for an event: the major's own logo, or the tour's category logo (Masters 1000, 500, 250, Challenger) when the pack has one. */
+export function logoKey(tour: string, slam?: string, band?: string) {
+  if (slam) return `event:${slam}`;
+  if (!band) return `event:${tour}`;
+  const cat = band === 'T1000' || band === 'T500' || band === 'T250' ? band : band === 'UL' || band === 'SL' ? 'challenger' : band === 'F' ? '' : null;
+  return cat === null ? null : cat ? `event:${tour}:${cat}` : `event:${tour}`;
+}
+export function EventLogo({ slam, tour, band, size = 40, className = 'evlogo' }: { slam?: string; tour: string; band?: string; size?: number; className?: string }) {
+  const { assets } = useApp(), k = logoKey(tour, slam, band), src = k ? assets[k] : undefined;
+  return src ? <img className={className} src={src} alt="" style={{ height: size, maxWidth: size * 2.6 }} /> : null;
 }
 /** National flag (image, so it renders on every platform). Neutral athletes get a plain marker, as on the tours. */
 export function Flag({ c, size = 18 }: { c: string; size?: number }) {

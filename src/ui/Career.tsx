@@ -6,7 +6,7 @@ import { absOf, fmtDate, fmtShort, wkDate } from '../core/content';
 import { roundName } from '../core/selectors';
 import { weeklyGuaranteed } from '../core/tour';
 import { ABILITIES, ABILITY_NAMES, Band, Focus, Intensity, Policies, Priority, State, UMatch, UTourney } from '../core/types';
-import { Avatar, BrandMark, EvName, Flag, Stat, money, rankTxt } from './bits';
+import { Avatar, BrandMark, EvName, Flag, Stat, money, rankTxt , EventLogo } from './bits';
 import { Arrow, Ball, BallRun, Momentum, Ring, SWING_ENDS, SWING_SHORT, SURF_COLOR, seasonOf, tintOf } from './fx';
 import { dispatch, get, set, useApp } from './store';
 import { getSetting, setSetting } from '../persist/db';
@@ -145,7 +145,7 @@ function LastBlock({ S }: { S: State }) {
         return (
           <button key={t.ed} className={`tcard ${t === best && ok ? 'best' : ''}`} onClick={() => set({ overlay: { kind: 'tourney', ed: t.ed } })}>
             <span className="meta"><span className="surf" style={{ textTransform: 'uppercase' }}><i style={{ background: SURF_COLOR[t.surface] }} />{t.surface} · {t.dates.split(' – ')[0]}</span>{t === best && ok && <span className="pill ok">Best</span>}</span>
-            <span className="nm"><EvName name={t.name} surface={t.surface} /></span>
+            <span className="nm"><EventLogo slam={S.cal.find(e => e.series === t.series)?.slam} band={t.band} tour={S.tour} size={22} className="evlogo sm" /><EvName name={t.name} surface={t.surface} /></span>
             {ok ? <BallRun wins={w} lost={!t.title} label={`${w} wins${t.title ? ', title' : ', then a loss'}`} /> : <small>{t.note ?? (t.status === 'ALT' ? 'Ranking too low to get in' : 'Withdrew')}</small>}
             <span className="rd">{ok ? headline(t.reached) : t.status === 'ALT' ? 'Not accepted' : 'Withdrew'}</span>
             <span className="pz">{ok ? `${t.pts ? `+${t.pts} pts · ` : ''}${money(t.prize)}` : ''}</span>
@@ -421,7 +421,7 @@ export function Reveal({ S, from }: { S: State; from?: number }) {
     <div className={`screen s-${step.k === 'summary' || !items[cur] ? tintOf(S) : seasonOf(items[cur].wk)}`} role="dialog" aria-modal="true" aria-label="Block results">
       <div className="screen-in">
         <div className="screen-top">
-          <div><div className="k">{multi ? 'Season' : 'Swing'} results · {multi ? fmtDate(wkDate(start)) : fmtShort(wkDate(start))} to {multi ? fmtDate(wkDate(end - 1, 6)) : fmtShort(wkDate(end - 1, 6))}</div><div className="t">{step.k === 'summary' ? 'The summary' : items[cur] && <EvName name={items[cur].name} surface={items[cur].surface} />}</div></div>
+          <div><div className="k">{multi ? 'Season' : 'Swing'} results · {multi ? fmtDate(wkDate(start)) : fmtShort(wkDate(start))} to {multi ? fmtDate(wkDate(end - 1, 6)) : fmtShort(wkDate(end - 1, 6))}</div><div className="t">{step.k === 'summary' ? 'The summary' : items[cur] && <><EventLogo slam={S.cal.find(e => e.series === items[cur].series)?.slam} band={items[cur].band} tour={S.tour} size={34} className="evlogo top" /><EvName name={items[cur].name} surface={items[cur].surface} /></>}</div></div>
           <span className="dots" style={{ margin: '0 auto' }} role="img" aria-label={`Event ${Math.min(cur + 1, items.length)} of ${items.length}`}>{items.slice(Math.max(0, Math.min(cur - 6, items.length - 12)), Math.max(12, cur + 6)).map(t => { const k = items.indexOf(t); return <Ball key={k} size={k === cur ? 28 : 18} empty={k > cur} glow={k === cur} />; })}<b style={{ marginLeft: '.3rem' }}>{step.k !== 'summary' ? `${cur + 1} of ${items.length}` : 'Summary'}</b></span>
           {step.k !== 'summary' && <button className="btn" onClick={() => { setPlaying(false); setI(steps.length - 1); }}>Skip to summary</button>}
         </div>
